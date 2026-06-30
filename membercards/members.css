@@ -1,0 +1,59 @@
+
+.fsr-teams-container {
+    display:flex;
+    flex-direction:column;
+    gap:40px;
+}
+.fsr-team-heading {
+    color:var(--theme-palette-color-4);
+}
+.fsr-members-grid {
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+    gap:24px;
+}
+.fsr-member-card {
+    border:1px solid var(--theme-palette-color-5);
+    background:var(--theme-palette-color-9);
+    box-shadow:0 8px 20px var(--theme-palette-color-11);
+    border-radius:14px;
+    padding:22px;
+    overflow:hidden;
+}
+.fsr-member-card img {
+    width:120px;
+    height:120px;
+    object-fit:cover;
+    border-radius:50%;
+    display:block;
+    margin:0 auto 16px;
+}
+.fsr-member-card h3 {
+    color:var(--theme-palette-color-4);
+    margin-bottom:8px;
+}
+.fsr-member-card p {
+    color:var(--theme-palette-color-3);
+    margin:8px 0;
+}
+.fsr-amt-tags {
+    display:flex;
+    flex-wrap:wrap;
+    gap:8px;
+    margin:15px 0;
+}
+.fsr-amt-tag {
+    background:var(--theme-palette-color-13);
+    color:var(--theme-palette-color-3);
+    border:1px solid var(--theme-palette-color-5);
+    padding:5px 10px;
+    border-radius:999px;
+}
+.fsr-email-text {
+    color:var(--theme-palette-color-7)!important;
+}
+.fsr-ehemalige-info {
+    border-top:1px solid var(--theme-palette-color-5);
+    margin-top:16px;
+    padding-top:12px;
+}

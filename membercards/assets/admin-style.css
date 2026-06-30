@@ -1,0 +1,176 @@
+/* Obere Aktionsleiste (Button sitzt sauber ÜBER den Mitgliedern) */
+.fsr-admin-top-bar {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-bottom: 15px;
+}
+
+#fsr-save-indicator {
+    font-weight: 600;
+    display: none;
+    background: #ecfdf5;
+    color: #16a34a;
+    padding: 6px 14px;
+    border-radius: 4px;
+    border: 1px solid #a7f3d0;
+    font-size: 13px;
+}
+
+/* Filterleiste */
+.fsr-filter-wrapper {
+    margin: 15px 0 !important;
+    background: var(--theme-palette-color-10, #f6f7f7);
+    padding: 10px 15px;
+    border: 1px solid var(--theme-palette-color-5, #ccd0d4);
+    border-radius: 4px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.fsr-filter-group, .fsr-action-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.fsr-filter-label {
+    font-weight: 700;
+    color: var(--theme-palette-color-4, #1d2327);
+}
+
+/* Die ausklappbaren Member-Kästen */
+#fsr-sortable-members .fsr-member-row {
+    background: var(--theme-palette-color-9, #ffffff) !important;
+    border: 1px solid var(--theme-palette-color-5, #ccd0d4) !important;
+    margin-bottom: 12px !important;
+    border-radius: 4px !important;
+    overflow: hidden !important;
+    display: block !important;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+}
+
+/* Kasten-Header */
+.fsr-row-header {
+    background: var(--theme-palette-color-10, #f6f7f7) !important;
+    padding: 12px 15px !important;
+    border-bottom: 1px solid transparent;
+    cursor: move;
+}
+
+.fsr-member-row.is-expanded .fsr-row-header {
+    border-bottom-color: var(--theme-palette-color-5, #ccd0d4) !important;
+}
+
+.fsr-toggle-trigger {
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    width: 100%;
+}
+
+/* JETZT REPARIERT: Pfeil dreht sich, wenn .is-expanded auf dem Kasten sitzt */
+.fsr-arrow {
+    display: inline-block;
+    transition: transform 0.2s ease-in-out;
+    font-size: 9px;
+    color: var(--theme-palette-color-3, #64748b);
+}
+
+.fsr-member-row.is-expanded .fsr-arrow {
+    transform: rotate(90deg);
+}
+
+.fsr-drag-handle {
+    font-size: 15px;
+    color: #8c8f94;
+}
+
+.member-display-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--theme-palette-color-4, #1d2327);
+}
+
+.badge-team-name {
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--theme-palette-color-13, #e2e8f0);
+    color: var(--theme-palette-color-3, #334155);
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-left: auto;
+}
+
+/* Das kompakte Grid für die Felder (übernehmen KEINE ganze Zeile) */
+.fsr-grid-inputs {
+    display: grid !important;
+    grid-template-columns: repeat(12, 1fr) !important;
+    gap: 14px 12px !important;
+    padding: 15px !important;
+    background: var(--theme-palette-color-9, #ffffff);
+}
+
+.fsr-grid-inputs label {
+    font-weight: 600;
+    color: var(--theme-palette-color-6, #444);
+    font-size: 12px;
+    display: block;
+}
+
+.fsr-grid-inputs input[type="text"],
+.fsr-grid-inputs input[type="number"],
+.fsr-grid-inputs select {
+    width: 100% !important;
+    margin-top: 4px !important;
+    height: 32px;
+    background: var(--theme-palette-color-9, #fff);
+    border: 1px solid var(--theme-palette-color-5, #8c8f94);
+    border-radius: 4px;
+}
+
+/* Smarte Breitenverteilung für die Spalten */
+.col-4 { grid-column: span 4; }
+.col-2 { grid-column: span 2; }
+
+/* Footer-Bereich im Kasten */
+.fsr-row-footer-actions {
+    padding: 0 15px 15px 15px;
+    background: var(--theme-palette-color-9, #ffffff);
+    display: flex;
+    justify-content: flex-end;
+}
+
+.ui-state-highlight {
+    background: var(--theme-palette-color-1, #f1f5f9) !important;
+    border: 1px dashed var(--theme-palette-color-5, #cbd5e1) !important;
+    margin-bottom: 12px;
+    border-radius: 4px;
+}
+
+/* Erweiterte Plugin-Ansicht */
+.wrap:has(#fsr-sortable-members) {
+    max-width: none;
+}
+.fsr-settings-card-wrapper {
+    max-width: 100%;
+}
+.fsr-shortcode-info {
+    margin: 20px 0;
+    padding: 18px;
+    background: var(--theme-palette-color-13, #f8fafc);
+    border: 1px solid var(--theme-palette-color-5);
+    border-radius: 8px;
+}
+.fsr-shortcode-info code {
+    color: var(--theme-palette-color-7);
+}
+.fsr-grid-inputs label {
+    min-width: 0;
+}
+.fsr-grid-inputs input,
+.fsr-grid-inputs select {
+    box-sizing: border-box;
+    max-width: 100%;
+}

@@ -1,0 +1,89 @@
+<?php
+if (!defined('ABSPATH')) exit;
+
+// Hooks für DokuWiki
+add_action('init', 'fsr_dw_rewrite_rules');
+add_filter('query_vars', 'fsr_dw_query_vars');
+add_filter('template_include', 'fsr_dw_template_router');
+add_filter('the_posts', 'fsr_dw_ensure_search_loop_runs', 10, 2);
+add_action('loop_end', 'fsr_dw_append_search_results');
+add_filter('post_class', 'fsr_dw_mark_placeholder_post', 10, 3);
+add_action('init', 'fsr_dw_asset_proxy');
+
+function fsr_dw_get_settings() {
+    return wp_parse_args(get_option('dw_bridge_settings', []), [
+        'base_url' => 'https://fsr-etit.de',
+        'cache_time' => 0,
+        'start_page' => 'aktuelles'
+    ]);
+}
+
+function fsr_dw_render_admin_fields() {
+    $s = fsr_dw_get_settings();
+    echo '<h3>DokuWiki Bridge Einstellungen</h3><table class="form-table">';
+    echo "<tr><th>DokuWiki URL</th><td><input style='width:400px' name='dw_bridge_settings[base_url]' value='".esc_attr($s['base_url'])."'></td></tr>";
+    echo "<tr><th>Startseite</th><td><input name='dw_bridge_settings[start_page]' value='".esc_attr($s['start_page'])."'></td></tr>";
+    echo "<tr><th>Cache (Sekunden)</th><td><input type='number' name='dw_bridge_settings[cache_time]' value='".esc_attr($s['cache_time'])."'></td></tr>";
+    echo '</table>';
+}
+
+// RESTLICHE INTERNE DOKUWIKI CONNECTOR LOGIK (Aus dw-bridge 3.3 gekapselt)[cite: 1]
+function fsr_dw_rewrite_rules() { add_rewrite_rule('^wiki/?$', 'index.php?dw_page=start', 'top'); add_rewrite_rule('^wiki/(.+)/?$', 'index.php?dw_page=$matches[1]', 'top'); }
+function fsr_dw_query_vars($vars) { $vars[] = 'dw_page'; return $vars; }
+function fsr_dw_template_router($template) { $page = get_query_var('dw_page'); if ($page !== '' && $page !== null) { return FSR_PLUGIN_DIR . 'global/template.php'; } return $template; }
+function fsr_dw_mark_placeholder_post($classes, $class, $post_id) { if ((int)$post_id === -1) { $classes[] = 'dw-search-placeholder'; } return $classes; }
+
+function fsr_dw_fetch($page) {
+    $s = fsr_dw_get_settings(); if (!$page) $page = $s['start_page'];
+    $cache_key = 'dw_' . md5($page); $cached = get_transient($cache_key); if ($cached) return $cached;
+    $url = rtrim($s['base_url'], '/') . '/doku.php?id=' . urlencode($page) . '&do=export_xhtmlbody';
+    $res = wp_remote_get($url, ['timeout' => 12]); if (is_wp_error($res)) return false;
+    $html = wp_remote_retrieve_body($res); if (!$html) return false;
+    $html = fsr_dw_transform($html); set_transient($cache_key, $html, intval($s['cache_time'])); return $html;
+}
+
+function fsr_dw_search($query) {
+    $s = fsr_dw_get_settings(); $url = rtrim($s['base_url'], '/') . '/aktuelles?do=search&id=' . urlencode('protokolle:sitzungsprotokolle') . '&sf=1&q=' . urlencode(trim($query) . ' @protokolle') . '&srt=mtime';
+    $res = wp_remote_get($url, ['timeout' => 12, 'user-agent' => 'Mozilla/5.0']); if (is_wp_error($res)) return '';
+    $html = wp_remote_retrieve_body($res); if (!$html) return '';
+    libxml_use_internal_errors(true); $dom = new DOMDocument(); $dom->loadHTML('<?xml encoding="utf-8" ?>'.$html); $xpath = new DOMXPath($dom); $result = '';
+    foreach ($xpath->query("//div[contains(@class,'search_fullpage_result')]") as $node) { $result .= $dom->saveHTML($node); $result .= '<br>'; } return fsr_dw_transform($result);
+}
+
+function fsr_dw_append_search_results($query) {
+    static $done = false; if ($done || is_admin() || !is_search()) return;
+    $search = get_search_query(false); if (!$search) return; $results = fsr_dw_search($search); if (!$results) return; $done = true;
+    echo '<div class="dw-search-results-content"><h3>Protokolle</h3>' . $results . '</div>';
+}
+
+function fsr_dw_ensure_search_loop_runs($posts, $query) {
+    if (is_admin() || !$query->is_main_query() || !$query->is_search()) return $posts; if (!empty($posts)) return $posts;
+    $dummy = new WP_Post((object) [ 'ID' => -1, 'post_author' => 0, 'post_date' => current_time('mysql'), 'post_date_gmt' => current_time('mysql', 1), 'post_content' => '', 'post_title' => '', 'post_excerpt' => '', 'post_status' => 'publish', 'comment_status' => 'closed', 'ping_status' => 'closed', 'post_password' => '', 'post_name' => 'dw-search-placeholder', 'to_ping' => '', 'pinged' => '', 'post_modified' => current_time('mysql'), 'post_modified_gmt' => current_time('mysql', 1), 'post_content_filtered'=> '', 'post_parent' => 0, 'guid' => '', 'menu_order' => 0, 'post_type' => 'post', 'post_mime_type' => '', 'comment_count' => 0, 'filter' => 'raw', ]); return [$dummy];
+}
+
+function fsr_dw_transform($html) {
+    libxml_use_internal_errors(true); $dom = new DOMDocument(); $dom->loadHTML('<?xml encoding="utf-8" ?>' . $html); $s = fsr_dw_get_settings(); $base_url = rtrim($s['base_url'], '/');
+    foreach ($dom->getElementsByTagName('a') as $a) {
+        $href = trim($a->getAttribute('href')); if (!$href) continue; $clean_href = strtok($href, '?');
+        if (!str_starts_with($href, 'http') && !str_starts_with($href, '#') && !str_starts_with($href, '/wiki/')) {
+            if (!str_contains($href, '/') || str_contains($href, ':')) { $clean_href = ltrim($clean_href, ':'); $a->setAttribute('href', home_url('/wiki/' . ltrim($clean_href, '/'))); continue; }
+        }
+        if (str_contains($href, 'doku.php?id=')) { parse_str(parse_url($href, PHP_URL_QUERY), $query); if (!empty($query['id'])) { $page = ltrim($query['id'], ':'); $a->setAttribute('href', home_url('/wiki/' . ltrim($page, '/'))); } }
+    }
+    foreach ($dom->getElementsByTagName('img') as $img) {
+        $src = trim($img->getAttribute('src')); if (!$src) continue; $src = html_entity_decode($src, ENT_QUOTES, 'UTF-8');
+        if (!str_starts_with($src, 'http://') && !str_starts_with($src, 'https://')) { $src = $base_url . '/' . ltrim($src, '/'); }
+        $img->setAttribute('src', home_url('/?dw_asset=' . urlencode($src)));
+        $current_class = $img->getAttribute('class'); $img->setAttribute('class', $current_class . ' dw-attached-image'); $img->setAttribute('loading', 'lazy');
+    }
+    return $dom->saveHTML();
+}
+
+function fsr_dw_asset_proxy() {
+    if (!isset($_GET['dw_asset'])) return; $url = rawurldecode($_GET['dw_asset']); $s = fsr_dw_get_settings(); $base = rtrim($s['base_url'], '/');
+    if (strpos($url, $base) !== 0) { status_header(403); exit; }
+    $res = wp_remote_get($url, [ 'timeout' => 15, 'user-agent' => 'Mozilla/5.0' ]);
+    if (is_wp_error($res) || wp_remote_retrieve_response_code($res) !== 200) { status_header(404); exit; }
+    $content_type = wp_remote_retrieve_header($res, 'content-type'); if ($content_type) header('Content-Type: ' . $content_type);
+    echo wp_remote_retrieve_body($res); exit;
+}
