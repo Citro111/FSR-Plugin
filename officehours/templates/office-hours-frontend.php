@@ -243,8 +243,7 @@ function fsr_office_hours_member_is_cancelled($cancellations, $rule_id, $date) {
 
         if (
             ($c['rule_id'] ?? '') === $rule_id &&
-            ($c['occurrence_date'] ?? '') === $date &&
-            absint($c['member_id'] ?? 0) === absint($member_id)
+            ($c['occurrence_date'] ?? '') === $date
         ) {
             return true;
         }
