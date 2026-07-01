@@ -1,72 +1,45 @@
 <?php
-function fsr_office_hours_member_token($member_id) {
-    return substr(hash_hmac('sha256', (string) absint($member_id), wp_salt('auth')), 0, 20);
-}
 
-function fsr_office_hours_handle_sick_submit($settings, $member_id, $token) {
-    if (empty($_POST['fsr_oh_sick_submit'])) {
-        return [false, ''];
-    }
-
-    if (!wp_verify_nonce($_POST['_fsr_oh_sick_nonce'] ?? '', 'fsr_oh_sick_submit')) {
-        return [false, 'Ungültige Anfrage. Bitte Seite neu laden.'];
-    }
-
+function function fsr_office_hours_handle_sick_submit(&$settings) {
+    $member_id = absint($_POST['member_id'] ?? 0);
     $occ_key = sanitize_text_field($_POST['occ_key'] ?? '');
-        if (!str_contains($occ_key, '|')) {
-            return [false, 'Ungültiger Termin.'];
-        }
-        [$rule_id, $date] = explode('|', $occ_key);
-    $reason = sanitize_text_field((string) ($_POST['reason'] ?? ''));
-
-    if ($rule_id === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-        return [false, 'Bitte einen gültigen Termin auswählen.'];
+    $reason = sanitize_text_field($_POST['reason'] ?? '');
+    if (!str_contains($occ_key, '|')) {
+        return [false, 'Ungültiger Termin.'];
     }
+    [$rule_id, $date] = explode('|', $occ_key);
+        $settings['cancellations'][] = [
+        'rule_id' => $rule_id,
+        'member_id' => $member_id,
+        'occurrence_date' => $date,
+        'reason' => $reason,
+        'created_at' => current_time('mysql'),
+    ];
 
-    foreach ($settings['cancellations'] as $entry) {
-        if (($entry['rule_id'] ?? '') === $rule_id && absint($entry['member_id'] ?? 0) === $member_id && ($entry['occurrence_date'] ?? '') === $date) {
-            return [true, 'Dieser Termin ist bereits als abgesagt markiert.'];
-        }
-    }
+    update_option(
+        'fsr_office_hours_settings',
+        $settings
+    );
 
-    return [true, 'Der Termin wurde für dich entfernt.'];
+    return [true, 'Termin erfolgreich abgesagt.'];
 }
 
 function fsr_office_hours_sick_shortcode($atts) {
     $settings = fsr_office_hours_get_settings();
-    $members_raw = fsr_get_members_data('all')['members'];
-    $members_map = [];
-    foreach ($members_raw as $m) {
-        $members_map[$m['id']] = [
-            'first_name' => $m['first_name'] ?? '',
-            'last_name' => $m['last_name'] ?? ''
-        ];
-    }
-    $member_id = absint($_GET['fsr_oh_member'] ?? $atts['member']);
-
-    if ($member_id <= 0 || !isset($members_map[$member_id])) {
-        return '<div class="fsr-office-hours-sick">Ungültiger Krankmeldelink (Mitglied fehlt).</div>';
-    }
-
-    if (!fsr_office_hours_validate_member_token($member_id, $token)) {
-        return '<div class="fsr-office-hours-sick">Ungültiger Krankmeldelink (Token stimmt nicht).</div>';
-    }
-
-    [$ok, $message] = fsr_office_hours_handle_sick_submit($settings, $member_id, $token);
-    $settings = fsr_office_hours_get_settings();
-    echo '<p>';
-    echo '<label>Mitglied</label><br>';
-    echo '<select name="member_id" required>';
-
+    $members = fsr_get_members_data('all')['members'];
+    [$ok, $message] = fsr_office_hours_handle_sick_submit($settings);
+    $member_id = absint($_POST['member_id'] ?? 0);
+    echo '<select name="member_id">';
     foreach ($members as $member) {
-        echo '<option value="' . esc_attr($member['id']) . '">';
-        echo esc_html($member['first_name']);
+        echo '<option value="' . esc_attr($member['id']) . '"';
+        selected($member['id'], $member_id);
+        echo '>';
+        echo esc_html(
+            $member['first_name'] . ' ' .
+            $member['last_name']
+        );
         echo '</option>';
     }
-    $member_id = absint($_POST['member_id'] ?? 0);
-
-    echo '</select>';
-    echo '</p>';
 
     $occurrences = fsr_office_hours_collect_occurrences($settings['rules'], 25);
     $choices = [];
