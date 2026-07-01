@@ -109,26 +109,6 @@ function fsr_sanitize_office_hours_settings($input) {
     return $clean;
 }
 
-function fsr_office_hours_get_members_map() {
-    $data = fsr_get_members_data('all');
-    $members = $data['members'] ?? [];
-    $map = [];
-
-    foreach ($members as $member) {
-        $id = absint($member['id'] ?? 0);
-        if ($id <= 0) continue;
-
-        $full_name = trim(($member['first_name'] ?? '') . ' ' . ($member['last_name'] ?? ''));
-
-        $map[$id] = [
-            'id' => $id,
-            'name' => $full_name !== '' ? $full_name : ('Mitglied #' . $id),
-        ];
-    }
-
-    return $map;
-}
-
 function fsr_office_hours_is_workday($ts) {
     $weekday = (int) date('N', $ts); // 1-7
     return $weekday <= 5; // Mo-Fr

@@ -108,9 +108,20 @@ function fsr_office_hours_nth_weekday_date($year, $month, $weekday, $nth) {
 
 function fsr_office_hours_shortcode($atts) {
     $atts = shortcode_atts(['limit' => 50], $atts);
+    $members_raw = fsr_get_members_data('all')['members'];
+    $members_map = [];
+    foreach ($members_raw as $m) {
+        $members_map[$m['id']] = [
+            'id' => $m['id'],
+            'first_name' => $m['first_name'] ?? '',
+            'last_name' => $m['last_name'] ?? '',
+            'email' => !empty($m['email_prefix']) ? $m['email_prefix'] . '@deinedomain.de' : '',
+            'study' => trim(($m['studiengang'] ?? '') . ' ' . ($m['abschluss'] ?? '')),
+            'roles' => !empty($m['amt']) ? [$m['amt']] : [],
+        ];
+    }
 
     $settings = fsr_office_hours_get_settings();
-    $members_map = fsr_office_hours_get_members_map();
 
     $occurrences = fsr_office_hours_collect_occurrences(
         $settings['rules'],
@@ -118,86 +129,105 @@ function fsr_office_hours_shortcode($atts) {
     );
 
     if (empty($occurrences)) {
-        return '<div class="fsr-office-hours-empty">Aktuell sind keine Office Hours hinterlegt.</div>';
+        return '<div class="fsr-office-hours-empty">Keine Termine.</div>';
     }
 
     $today = strtotime(current_time('Y-m-d'));
     $end = strtotime('+14 days', $today);
 
-    // 🔥 Filter: nur nächste 7 Werktage im Zeitraum
     $filtered = [];
 
     foreach ($occurrences as $o) {
         $ts = strtotime($o['date']);
 
         if ($ts < $today || $ts > $end) continue;
-        if ((int) date('N', $ts) > 5) continue; // Wochenende raus
+        if ((int) date('N', $ts) > 5) continue;
 
         $o['ts'] = $ts;
         $filtered[] = $o;
     }
 
-    // Sortieren nach Datum + Zeit
-    usort($filtered, function ($a, $b) {
-        return strcmp(
-            $a['date'] . $a['start_time'],
-            $b['date'] . $b['start_time']
-        );
-    });
+    // Gruppieren nach Wochentag
+    $grouped = [];
 
-    if (empty($filtered)) {
-        return '<div class="fsr-office-hours-empty">Keine Termine in den nächsten Werktagen.</div>';
+    foreach ($filtered as $item) {
+        $weekday = (int) date('N', $item['ts']);
+        $grouped[$weekday][] = $item;
     }
+
+    ksort($grouped);
+
+    $weekday_labels = [
+        1 => 'Montag',
+        2 => 'Dienstag',
+        3 => 'Mittwoch',
+        4 => 'Donnerstag',
+        5 => 'Freitag'
+    ];
 
     ob_start();
 
-    echo '<div class="fsr-oh-weeklist">';
+    echo '<div class="fsr-oh-weekplan">';
 
-    foreach ($filtered as $item) {
+    foreach ($weekday_labels as $day => $label) {
 
-        $members = [];
+        if (empty($grouped[$day])) continue;
 
-        foreach ($item['member_ids'] as $id) {
-            if (!isset($members_map[$id])) continue;
-            $members[] = $members_map[$id]['name'];
+        echo '<section class="fsr-oh-day">';
+        echo '<h3>' . esc_html($label) . '</h3>';
+
+        usort($grouped[$day], function ($a, $b) {
+            return strcmp($a['start_time'], $b['start_time']);
+        });
+
+        foreach ($grouped[$day] as $item) {
+
+            $members = [];
+
+            foreach ($item['member_ids'] as $id) {
+                if (!isset($members_map[$id])) continue;
+                $members[] = $members_map[$id];
+            }
+            $first_names = array_map(fn($m) => $m['first_name'], $members);
+            $timeLabel = $item['start_time'] . '–' . $item['end_time'];
+            echo '<details class="fsr-oh-card">';
+            // CLOSED VIEW
+            echo '<summary class="fsr-oh-summary">';
+            echo '<span class="fsr-oh-time">' . esc_html($timeLabel) . '</span>';
+            echo '<span class="fsr-oh-names">' . esc_html(implode(', ', $first_names)) . '</span>';
+            echo '</summary>';
+            // OPEN VIEW
+            echo '<div class="fsr-oh-body">';
+            echo '<p><strong>Zeit:</strong> ' . esc_html($timeLabel) . '</p>';
+            echo '<p><strong>Mitglieder:</strong></p>';
+            echo '<ul>';
+            foreach ($members as $m) {
+                $full = trim($m['first_name'] . ' ' . $m['last_name']);
+                echo '<li>';
+                echo esc_html($full);
+                if (!empty($m['email'])) {
+                    echo ' – ' . esc_html($m['email']);
+                }
+                if (!empty($m['study'])) {
+                    echo ' – ' . esc_html($m['study']);
+                }
+                if (!empty($m['roles'])) {
+                    echo ' – ' . esc_html(implode(', ', (array)$m['roles']));
+                }
+                echo '</li>';
+            }
+
+            echo '</ul>';
+
+            if (!empty($item['location'])) {
+                echo '<p><strong>Raum:</strong> ' . esc_html($item['location']) . '</p>';
+            }
+
+            echo '</div>';
+            echo '</details>';
         }
 
-        $dateLabel = date_i18n('D, d.m.', $item['ts']);
-        $timeLabel = $item['start_time'] . '–' . $item['end_time'];
-
-        echo '<details class="fsr-oh-card">';
-
-        // 👉 CLOSED VIEW (kompakt)
-        echo '<summary class="fsr-oh-summary">';
-        echo '<span class="fsr-oh-main">';
-        echo esc_html($timeLabel);
-        echo '</span>';
-
-        echo '<span class="fsr-oh-members-inline">';
-        echo esc_html(implode(', ', $members) ?: 'Keine Person');
-        echo '</span>';
-
-        echo '</summary>';
-
-        // 👉 OPEN VIEW (vollständig)
-        echo '<div class="fsr-oh-body">';
-
-        echo '<p><strong>Datum:</strong> ' . esc_html($dateLabel) . '</p>';
-        echo '<p><strong>Zeit:</strong> ' . esc_html($timeLabel) . '</p>';
-
-        echo '<p><strong>Titel:</strong> ' . esc_html($item['title']) . '</p>';
-
-        if (!empty($item['location'])) {
-            echo '<p><strong>Raum:</strong> ' . esc_html($item['location']) . '</p>';
-        }
-
-        echo '<p><strong>Mitglieder:</strong> '
-            . esc_html(implode(', ', $members) ?: 'Keine Personen')
-            . '</p>';
-
-        echo '</div>';
-
-        echo '</details>';
+        echo '</section>';
     }
 
     echo '</div>';

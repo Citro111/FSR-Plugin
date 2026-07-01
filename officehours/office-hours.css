@@ -50,52 +50,54 @@
 .fsr-oh-rules-table .fsr-oh-members {
     min-width: 220px;
 }
-.fs-oh-day {
+.fsr-oh-day {
     margin-bottom: 24px;
     padding: 12px;
     border: 1px solid #ddd;
     border-radius: 8px;
 }
 
-.fs-oh-day-title {
+.fsr-oh-day-title {
     margin: 0 0 12px 0;
     font-size: 18px;
 }
 
-.fs-oh-item {
+.fsr-oh-item {
     margin-bottom: 8px;
     background: #f9f9f9;
     border-radius: 6px;
     padding: 6px 10px;
 }
 
-.fs-oh-details {
+.fsr-oh-details {
     padding: 10px 0 0 0;
 }
 
-.fs-oh-card {
+.fsr-oh-card {
     border: 1px solid #ddd;
     margin-bottom: 10px;
     border-radius: 8px;
+    padding: 6px 10px;
     overflow: hidden;
     background: #fff;
 }
 
-.fs-oh-summary {
+.fsr-oh-summary {
     display: flex;
     justify-content: space-between;
     cursor: pointer;
+    gap: 12px;
     padding: 10px 12px;
     font-weight: 500;
 }
 
-.fs-oh-members-inline {
+.fsr-oh-members-inline {
     opacity: 0.7;
     font-size: 13px;
 }
 
-.fs-oh-body {
+.fsr-oh-body {
     padding: 10px 12px;
     border-top: 1px solid #eee;
-    background: #fafafa;
+    background: var(--theme-palette-color-13);
 }
