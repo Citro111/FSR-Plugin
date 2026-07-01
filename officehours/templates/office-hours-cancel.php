@@ -88,7 +88,6 @@ function fsr_office_hours_sick_shortcode($atts) {
 
     ob_start();
     echo '<div class="fsr-office-hours-sick">';
-    echo '<h3>Krankmeldung Office Hours</h3>';
 
     // Mitbewerter-Auswahl per GET, damit sie beim Refresh erhalten bleibt
     echo '<form method="get">';
