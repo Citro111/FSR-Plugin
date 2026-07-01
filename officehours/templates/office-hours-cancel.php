@@ -12,9 +12,11 @@ function fsr_office_hours_handle_sick_submit($settings) {
     $member_id = absint($_POST['member_id'] ?? 0);
     $occ_key   = sanitize_text_field($_POST['occ_key'] ?? '');
     $reason    = sanitize_text_field($_POST['reason'] ?? '');
+    if (!str_contains($occ_key, '|')) {
+        return [false, 'Ungültiger Termin.'];
+    }
     [$rule_id, $date] = explode('|', $occ_key);
-    foreach ($settings['cancellations'] as $key => $entry) {
-
+    foreach (($settings['cancellations'] ?? []) as $key => $entry) {
         if (
             $entry['rule_id'] === $rule_id &&
             absint($entry['member_id']) === $member_id &&
@@ -96,7 +98,7 @@ function fsr_office_hours_sick_shortcode($atts) {
         }
 
         echo '<label>Nächster Termin:</label><br>';
-        echo '<select name="selected" id="fsr_oh_rule_selector">';
+        echo '<select name="occ_key" id="fsr_oh_rule_selector">';
         foreach ($choices as $choice) {
             $cancelled = fsr_office_hours_member_is_cancelled(
                 $settings['cancellations'],
@@ -123,12 +125,6 @@ function fsr_office_hours_sick_shortcode($atts) {
             echo '</option>';
         }
         echo '</select>';
-        $is_cancelled = fsr_office_hours_member_is_cancelled(
-            $settings['cancellations'],
-            $selected['rule_id'],
-            $selected['date'],
-            $member_id
-        );
         echo '<p><label>Optionaler Grund:</label><br><input type="text" name="reason" class="regular-text" /></p>';
         echo '<button id="fsr-oh-submit" type="submit" class="button button-primary">';
         echo 'Termin absagen';
