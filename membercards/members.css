@@ -24,9 +24,8 @@
 
 .fsr-members-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-template-columns: repeat(var(--fsr-cols-desktop, 4), minmax(0, 1fr));
     gap: 24px;
-    max-width: calc(var(--fsr-max-cols, 4) * 320px);
     width: 100%;
 }
 
@@ -127,9 +126,15 @@
     color: var(--theme-palette-color-3);
 }
 
+@media (max-width: 1024px) {
+    .fsr-members-grid {
+        grid-template-columns: repeat(var(--fsr-cols-tablet, 2), minmax(0, 1fr));
+    }
+}
+
 @media (max-width: 640px) {
     .fsr-members-grid {
-        max-width: 100%;
+        grid-template-columns: repeat(var(--fsr-cols-mobile, 1), minmax(0, 1fr));
     }
 
     .fsr-member-card {

@@ -18,7 +18,7 @@ function fsr_custom_admin_menu() {
         'DokuWiki Connector',
         'DokuWiki Connector',
         'manage_options',
-        'fsr-etit-settings-dokuwiki',
+        'fsr-etit-settings',
         'fsr_custom_settings_page'
     );
 
@@ -47,11 +47,10 @@ function fsr_custom_register_global_settings() {
 }
 
 function fsr_custom_settings_page() {
-    $page_slug = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : 'fsr-etit-settings-dokuwiki';
+    $page_slug = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : 'fsr-etit-settings';
 
     $page_to_tab = [
         'fsr-etit-settings' => 'dokuwiki',
-        'fsr-etit-settings-dokuwiki' => 'dokuwiki',
         'fsr-etit-settings-membercards' => 'membercards',
         'fsr-etit-settings-officehours' => 'officehours',
     ];
@@ -64,7 +63,7 @@ function fsr_custom_settings_page() {
     }
 
     $tab_links = [
-        'dokuwiki' => admin_url('admin.php?page=fsr-etit-settings-dokuwiki'),
+        'dokuwiki' => admin_url('admin.php?page=fsr-etit-settings'),
         'membercards' => admin_url('admin.php?page=fsr-etit-settings-membercards'),
         'officehours' => admin_url('admin.php?page=fsr-etit-settings-officehours'),
     ];

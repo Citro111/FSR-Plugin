@@ -40,6 +40,45 @@
     color: var(--theme-palette-color-7);
 }
 
+.fsr-layout-settings-form {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--theme-palette-color-5);
+}
+
+.fsr-layout-settings-form h4,
+.fsr-shortcode-usage h4 {
+    margin: 0 0 10px;
+    color: var(--theme-palette-color-4);
+}
+
+.fsr-layout-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(110px, 1fr));
+    gap: 10px;
+    max-width: 500px;
+}
+
+.fsr-layout-grid input {
+    width: 100%;
+    margin-top: 4px;
+}
+
+.fsr-shortcode-usage {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--theme-palette-color-5);
+}
+
+.fsr-shortcode-usage ul {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.fsr-shortcode-usage li {
+    margin: 4px 0;
+}
+
 .fsr-import-panel {
     display: grid;
     gap: 14px;
@@ -148,6 +187,10 @@
     box-shadow: 0 12px 24px var(--theme-palette-color-11) !important;
 }
 
+#fsr-sortable-members .fsr-member-row.fsr-is-filter-hidden {
+    display: none !important;
+}
+
 .fsr-row-header {
     background: linear-gradient(180deg, var(--theme-palette-color-10), var(--theme-palette-color-13)) !important;
     padding: 12px 15px !important;
@@ -228,6 +271,48 @@
     max-width: 100%;
 }
 
+.fsr-amt-quicktags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.fsr-amt-tag-btn {
+    border-color: var(--theme-palette-color-5) !important;
+    background: var(--theme-palette-color-13) !important;
+    color: var(--theme-palette-color-3) !important;
+}
+
+.fsr-amt-tag-btn.is-selected {
+    background: var(--theme-palette-color-1) !important;
+    color: var(--theme-palette-color-8) !important;
+    border-color: var(--theme-palette-color-1) !important;
+}
+
+.fsr-known-tags {
+    display: grid;
+    gap: 8px;
+}
+
+.fsr-known-tags-list {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.fsr-known-tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--theme-palette-color-5);
+    background: var(--theme-palette-color-9);
+    color: var(--theme-palette-color-3);
+    font-size: 12px;
+    font-weight: 600;
+}
+
 .col-4 { grid-column: span 4; }
 .col-2 { grid-column: span 2; }
 
@@ -277,5 +362,9 @@
 
     .badge-team-name {
         margin-left: 0;
+    }
+
+    .fsr-layout-grid {
+        grid-template-columns: 1fr;
     }
 }

@@ -3,6 +3,7 @@ if (!defined('ABSPATH')) exit;
 
 add_action('init', 'fsr_register_member_post_type');
 add_action('admin_init', 'fsr_maybe_migrate_legacy_members');
+add_action('admin_init', 'fsr_register_membercards_layout_settings');
 add_action('admin_enqueue_scripts', 'fsr_members_admin_assets');
 add_shortcode('fsr_members', 'fsr_members_shortcode_renderer');
 add_action('wp_ajax_fsr_save_member_order', 'fsr_ajax_save_member_order_handler');
@@ -442,26 +443,70 @@ function fsr_ajax_import_members_handler() {
     ]);
 }
 
+function fsr_get_shortcode_usage_overview() {
+    global $wpdb;
+
+    $shortcodes = ['fsr_members', 'fsr_office_hours', 'fsr_office_hours_sick'];
+    $like_parts = [];
+    $like_values = [];
+
+    foreach ($shortcodes as $shortcode) {
+        $like_parts[] = 'post_content LIKE %s';
+        $like_values[] = '%[' . $wpdb->esc_like($shortcode) . '%';
+    }
+
+    $sql = "SELECT ID, post_title, post_type, post_status, post_content
+            FROM {$wpdb->posts}
+            WHERE post_status NOT IN ('auto-draft', 'trash', 'inherit')
+            AND (" . implode(' OR ', $like_parts) . ")
+            ORDER BY post_modified DESC";
+
+    $rows = $wpdb->get_results($wpdb->prepare($sql, $like_values));
+    if (empty($rows)) {
+        return [];
+    }
+
+    $usage = [];
+    $pattern = '/\[(fsr_members|fsr_office_hours|fsr_office_hours_sick)\b[^\]]*\]/i';
+
+    foreach ($rows as $row) {
+        if (!preg_match_all($pattern, (string) $row->post_content, $matches)) {
+            continue;
+        }
+
+        $found_shortcodes = array_values(array_unique(array_map('strtolower', $matches[1])));
+        $usage[] = [
+            'id' => (int) $row->ID,
+            'title' => $row->post_title !== '' ? $row->post_title : '(Ohne Titel)',
+            'type' => (string) $row->post_type,
+            'status' => (string) $row->post_status,
+            'shortcodes' => $found_shortcodes,
+            'edit_link' => get_edit_post_link((int) $row->ID, ''),
+            'view_link' => get_permalink((int) $row->ID),
+        ];
+    }
+
+    return $usage;
+}
+
 function fsr_members_render_admin_interface() {
     $data = fsr_get_members_data('all');
     $members = $data['members'] ?? [];
+    $layout_settings = fsr_get_membercards_layout_settings();
+    $shortcode_usage = fsr_get_shortcode_usage_overview();
     include plugin_dir_path(__FILE__) . 'templates/admin-interface.php';
 }
 
 function fsr_members_shortcode_renderer($atts) {
-    $a = shortcode_atts(['team' => 'all', 'max_cols' => 4], $atts);
+    $a = shortcode_atts(['team' => 'all'], $atts);
     $team = sanitize_key((string) ($a['team'] ?? 'all'));
     if (!in_array($team, ['all', 'gewaehlte', 'helfer', 'ehemalige'], true)) {
         $team = 'all';
     }
 
-    $max_cols = max(1, min(6, absint($a['max_cols'])));
-    if ($max_cols < 1) {
-        $max_cols = 4;
-    }
-
     $data = fsr_get_members_data($team);
     $members = $data['members'] ?? [];
+    $layout_settings = fsr_get_membercards_layout_settings();
 
     if (empty($members)) {
         return '<div class="fsr-members-empty">Noch keine Mitglieder hinterlegt.</div>';
@@ -470,4 +515,48 @@ function fsr_members_shortcode_renderer($atts) {
     ob_start();
     include plugin_dir_path(__FILE__) . 'templates/frontend-grid.php';
     return ob_get_clean();
+}
+
+function fsr_membercards_layout_defaults() {
+    return [
+        'desktop_cols' => 4,
+        'tablet_cols' => 2,
+        'mobile_cols' => 1,
+    ];
+}
+
+function fsr_sanitize_membercards_layout_settings($input) {
+    $defaults = fsr_membercards_layout_defaults();
+    $input = is_array($input) ? $input : [];
+
+    $desktop = isset($input['desktop_cols']) ? absint($input['desktop_cols']) : $defaults['desktop_cols'];
+    $tablet = isset($input['tablet_cols']) ? absint($input['tablet_cols']) : $defaults['tablet_cols'];
+    $mobile = isset($input['mobile_cols']) ? absint($input['mobile_cols']) : $defaults['mobile_cols'];
+
+    $desktop = max(1, min(6, $desktop));
+    $tablet = max(1, min($desktop, $tablet));
+    $mobile = max(1, min($tablet, $mobile));
+
+    return [
+        'desktop_cols' => $desktop,
+        'tablet_cols' => $tablet,
+        'mobile_cols' => $mobile,
+    ];
+}
+
+function fsr_register_membercards_layout_settings() {
+    register_setting(
+        'fsr_membercards_layout_settings',
+        'fsr_membercards_layout',
+        [
+            'type' => 'array',
+            'sanitize_callback' => 'fsr_sanitize_membercards_layout_settings',
+            'default' => fsr_membercards_layout_defaults(),
+        ]
+    );
+}
+
+function fsr_get_membercards_layout_settings() {
+    $settings = get_option('fsr_membercards_layout', []);
+    return wp_parse_args(is_array($settings) ? $settings : [], fsr_membercards_layout_defaults());
 }

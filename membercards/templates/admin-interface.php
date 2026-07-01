@@ -16,6 +16,14 @@ $team_labels = [
     'gewaehlte' => 'Gewählte',
     'helfer' => 'Helfer',
 ];
+
+$layout_settings = isset($layout_settings) && is_array($layout_settings) ? $layout_settings : [];
+$desktop_cols = max(1, min(6, absint($layout_settings['desktop_cols'] ?? 4)));
+$tablet_cols = max(1, min($desktop_cols, absint($layout_settings['tablet_cols'] ?? 2)));
+$mobile_cols = max(1, min($tablet_cols, absint($layout_settings['mobile_cols'] ?? 1)));
+
+$shortcode_usage = isset($shortcode_usage) && is_array($shortcode_usage) ? $shortcode_usage : [];
+$all_amt_tags_json = wp_json_encode(array_values($unique_amter));
 ?>
 <datalist id="fsr-amter-list">
     <?php foreach ($unique_amter as $amt) : ?>
@@ -33,8 +41,41 @@ $team_labels = [
         <strong>Shortcodes</strong><br>
         Alle Mitglieder anzeigen: <code>[fsr_members]</code><br>
         Nur ein Team anzeigen: <code>[fsr_members team="gewaehlte"]</code>, <code>[fsr_members team="helfer"]</code>, <code>[fsr_members team="ehemalige"]</code>
-        <br>Maximale Karten pro Reihe festlegen: <code>[fsr_members max_cols="4"]</code>
-        <p>Jedes Mitglied wird jetzt als eigener Inhalt gespeichert. Damit sind Import, Sortierung und spätere Pflege deutlich robuster als ein einziges Options-Array.</p>
+
+        <form method="post" action="options.php" class="fsr-layout-settings-form">
+            <?php settings_fields('fsr_membercards_layout_settings'); ?>
+            <h4>Responsive Spalten (global für alle [fsr_members]-Shortcodes)</h4>
+            <div class="fsr-layout-grid">
+                <label>Desktop<br><input type="number" min="1" max="6" name="fsr_membercards_layout[desktop_cols]" value="<?php echo esc_attr($desktop_cols); ?>"></label>
+                <label>Tablet<br><input type="number" min="1" max="6" name="fsr_membercards_layout[tablet_cols]" value="<?php echo esc_attr($tablet_cols); ?>"></label>
+                <label>Mobil<br><input type="number" min="1" max="6" name="fsr_membercards_layout[mobile_cols]" value="<?php echo esc_attr($mobile_cols); ?>"></label>
+            </div>
+            <?php submit_button('Layout speichern', 'secondary', 'submit', false); ?>
+        </form>
+
+        <?php if (!empty($shortcode_usage)) : ?>
+            <div class="fsr-shortcode-usage">
+                <h4>Shortcodes aktuell verwendet in</h4>
+                <ul>
+                    <?php foreach ($shortcode_usage as $usage) : ?>
+                        <li>
+                            <?php if (!empty($usage['edit_link'])) : ?>
+                                <a href="<?php echo esc_url($usage['edit_link']); ?>"><?php echo esc_html($usage['title']); ?></a>
+                            <?php else : ?>
+                                <?php echo esc_html($usage['title']); ?>
+                            <?php endif; ?>
+                            (<?php echo esc_html($usage['type']); ?>, <?php echo esc_html($usage['status']); ?>)
+                            - <?php echo esc_html(implode(', ', $usage['shortcodes'])); ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+                <p class="description">Hinweis: Erfasst werden Inhalte aus dem eigentlichen Beitragstext. Shortcodes in externen Builder-Daten sind ggf. nicht sichtbar.</p>
+            </div>
+        <?php else : ?>
+            <p class="description">Aktuell keine Verwendung der Plugin-Shortcodes im Beitragstext gefunden.</p>
+        <?php endif; ?>
+
+        <p>Jedes Mitglied wird als eigener Datensatz gespeichert. Dadurch sind Import, Sortierung und spätere Pflege robuster.</p>
     </div>
 
     <div class="fsr-admin-top-bar">
@@ -101,7 +142,14 @@ $team_labels = [
                         <label class="col-2">Pronomen:<br><input type="text" name="fsr_members_settings[members][<?php echo $index; ?>][pronomen]" value="<?php echo esc_attr($member['pronomen'] ?? ''); ?>" placeholder="er/ihm" /></label>
                         <label class="col-4">Mail-Präfix:<br><input type="text" class="fsr-input-email" name="fsr_members_settings[members][<?php echo $index; ?>][email_prefix]" value="<?php echo esc_attr($member['email_prefix'] ?? ''); ?>" /></label>
 
-                        <label class="col-4">Ämter (kommagetrennt):<br><input type="text" list="fsr-amter-list" name="fsr_members_settings[members][<?php echo $index; ?>][amt]" value="<?php echo esc_attr($member['amt'] ?? ''); ?>" /></label>
+                        <label class="col-4">Ämter (kommagetrennt):<br>
+                            <input type="text" list="fsr-amter-list" class="fsr-input-amt" name="fsr_members_settings[members][<?php echo $index; ?>][amt]" value="<?php echo esc_attr($member['amt'] ?? ''); ?>" />
+                            <div class="fsr-amt-quicktags">
+                                <?php foreach ($unique_amter as $amt_tag) : ?>
+                                    <button type="button" class="button button-small fsr-amt-tag-btn" data-tag="<?php echo esc_attr($amt_tag); ?>"><?php echo esc_html($amt_tag); ?></button>
+                                <?php endforeach; ?>
+                            </div>
+                        </label>
                         <label class="col-2">Erstes Jahr:<br><input type="text" name="fsr_members_settings[members][<?php echo $index; ?>][erstes_jahr]" value="<?php echo esc_attr($member['erstes_jahr'] ?? ''); ?>" /></label>
                         <label class="col-2">Semester:<br><input type="number" name="fsr_members_settings[members][<?php echo $index; ?>][semester_anzahl]" value="<?php echo esc_attr($member['semester_anzahl'] ?? ''); ?>" /></label>
                         <label class="col-4">Team:<br>
@@ -144,6 +192,18 @@ $team_labels = [
         <div class="fsr-import-hint">
             JSON-Objekte können die Felder <code>first_name</code>, <code>last_name</code>, <code>image</code>, <code>studiengang</code>, <code>abschluss</code>, <code>pronomen</code>, <code>email_prefix</code>, <code>amt</code>, <code>erstes_jahr</code>, <code>semester_anzahl</code>, <code>team</code>, <code>is_ehemalige</code> und <code>abgang_jahr</code> enthalten.
         </div>
+        <div class="fsr-known-tags">
+            <strong>Aktuelle Ämter-Tags:</strong>
+            <div class="fsr-known-tags-list">
+                <?php if (!empty($unique_amter)) : ?>
+                    <?php foreach ($unique_amter as $amt_tag) : ?>
+                        <span class="fsr-known-tag"><?php echo esc_html($amt_tag); ?></span>
+                    <?php endforeach; ?>
+                <?php else : ?>
+                    <span class="description">Noch keine Tags vorhanden.</span>
+                <?php endif; ?>
+            </div>
+        </div>
         <div id="fsr-import-status" aria-live="polite"></div>
     </div>
 </div>
@@ -153,6 +213,8 @@ $team_labels = [
 <script>
 jQuery(document).ready(function($) {
     const nonce = $('#fsr_member_admin_nonce').val();
+    const allAmtTags = <?php echo $all_amt_tags_json ? $all_amt_tags_json : '[]'; ?>;
+    let activeFilter = 'all';
 
     function slugify(text) {
         return text.toString().toLowerCase()
@@ -177,6 +239,43 @@ jQuery(document).ready(function($) {
         return label;
     }
 
+    function parseAmtTags(value) {
+        return String(value || '')
+            .split(',')
+            .map(function(item) { return item.trim(); })
+            .filter(function(item) { return item !== ''; });
+    }
+
+    function setAmtTags(input, tags) {
+        const normalized = [];
+        tags.forEach(function(tag) {
+            const clean = String(tag || '').trim();
+            if (clean !== '' && normalized.indexOf(clean) === -1) {
+                normalized.push(clean);
+            }
+        });
+        input.val(normalized.join(', '));
+    }
+
+    function renderDynamicQuickTags(scope) {
+        scope.find('.fsr-amt-quicktags-dynamic').each(function() {
+            const container = $(this);
+            if (container.data('ready')) {
+                return;
+            }
+            allAmtTags.forEach(function(tag) {
+                const button = $('<button/>', {
+                    type: 'button',
+                    class: 'button button-small fsr-amt-tag-btn',
+                    'data-tag': tag,
+                    text: tag
+                });
+                container.append(button);
+            });
+            container.data('ready', true);
+        });
+    }
+
     function applyRowTeamState(row) {
         const val = row.find('.fsr-team-selector').val();
         const isEhemalige = row.find('.fsr-is-ehemalige').is(':checked');
@@ -194,8 +293,12 @@ jQuery(document).ready(function($) {
         $('#fsr-sortable-members .fsr-member-row').each(function() {
             const row = $(this);
             const match = filter === 'all' || row.hasClass('fsr-team-' + filter);
-            row.toggle(match);
+            row.toggleClass('fsr-is-filter-hidden', !match);
         });
+    }
+
+    function applyCurrentFilter() {
+        filterRows(activeFilter);
     }
 
     function triggerAutoSave() {
@@ -244,7 +347,10 @@ jQuery(document).ready(function($) {
                     <label class="col-2">Abschluss:<br><select name="fsr_members_settings[members][${index}][abschluss]"><option value="">-</option><option value="B.Sc.">B.Sc.</option><option value="M.Sc.">M.Sc.</option><option value="Abgeschlossen">Abgeschlossen</option></select></label>
                     <label class="col-2">Pronomen:<br><input type="text" name="fsr_members_settings[members][${index}][pronomen]" placeholder="er/ihm" /></label>
                     <label class="col-4">Mail-Präfix:<br><input type="text" class="fsr-input-email" name="fsr_members_settings[members][${index}][email_prefix]" /></label>
-                    <label class="col-4">Ämter:<br><input type="text" list="fsr-amter-list" name="fsr_members_settings[members][${index}][amt]" /></label>
+                    <label class="col-4">Ämter:<br>
+                        <input type="text" list="fsr-amter-list" class="fsr-input-amt" name="fsr_members_settings[members][${index}][amt]" />
+                        <div class="fsr-amt-quicktags fsr-amt-quicktags-dynamic"></div>
+                    </label>
                     <label class="col-2">Erstes Jahr:<br><input type="text" name="fsr_members_settings[members][${index}][erstes_jahr]" /></label>
                     <label class="col-2">Semester:<br><input type="number" name="fsr_members_settings[members][${index}][semester_anzahl]" /></label>
                     <label class="col-4">Team:<br>
@@ -327,13 +433,46 @@ jQuery(document).ready(function($) {
     $(document).on('change', '.fsr-team-selector, .fsr-is-ehemalige', function() {
         const row = $(this).closest('.fsr-member-row');
         applyRowTeamState(row);
+        applyCurrentFilter();
     });
 
     $('.fsr-filter-btn').on('click', function() {
         $('.fsr-filter-btn').removeClass('active');
         $(this).addClass('active');
-        const filter = $(this).data('filter');
-        filterRows(filter);
+        activeFilter = $(this).data('filter');
+        applyCurrentFilter();
+    });
+
+    $(document).on('click', '.fsr-amt-tag-btn', function() {
+        const button = $(this);
+        const row = button.closest('.fsr-member-row');
+        const input = row.find('.fsr-input-amt').first();
+        const tag = String(button.data('tag') || '').trim();
+        if (!tag || !input.length) {
+            return;
+        }
+
+        const tags = parseAmtTags(input.val());
+        if (tags.indexOf(tag) !== -1) {
+            setAmtTags(input, tags.filter(function(item) { return item !== tag; }));
+            button.removeClass('is-selected');
+        } else {
+            tags.push(tag);
+            setAmtTags(input, tags);
+            button.addClass('is-selected');
+        }
+
+        triggerAutoSave();
+    });
+
+    $(document).on('input', '.fsr-input-amt', function() {
+        const input = $(this);
+        const tags = parseAmtTags(input.val());
+        input.closest('.fsr-member-row').find('.fsr-amt-tag-btn').each(function() {
+            const btn = $(this);
+            const tag = String(btn.data('tag') || '').trim();
+            btn.toggleClass('is-selected', tags.indexOf(tag) !== -1);
+        });
     });
 
     $(document).on('click', '.remove-member', function() {
@@ -347,7 +486,9 @@ jQuery(document).ready(function($) {
         const index = $('#fsr-sortable-members').children().length;
         const row = $(createMemberRow(index));
         $('#fsr-sortable-members').prepend(row);
+        renderDynamicQuickTags(row);
         applyRowTeamState(row);
+        applyCurrentFilter();
         triggerAutoSave();
     });
 
@@ -382,9 +523,15 @@ jQuery(document).ready(function($) {
     }
 
     $('#fsr-sortable-members .fsr-member-row').each(function() {
-        applyRowTeamState($(this));
+        const row = $(this);
+        applyRowTeamState(row);
+        const amtInput = row.find('.fsr-input-amt');
+        if (amtInput.length) {
+            amtInput.trigger('input');
+        }
     });
 
-    filterRows('all');
+    renderDynamicQuickTags($('#fsr-sortable-members'));
+    applyCurrentFilter();
 });
 </script>

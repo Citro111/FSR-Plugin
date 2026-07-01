@@ -1,7 +1,10 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
-$max_cols = isset($max_cols) ? max(1, min(6, absint($max_cols))) : 4;
+$layout_settings = isset($layout_settings) && is_array($layout_settings) ? $layout_settings : [];
+$desktop_cols = max(1, min(6, absint($layout_settings['desktop_cols'] ?? 4)));
+$tablet_cols = max(1, min($desktop_cols, absint($layout_settings['tablet_cols'] ?? 2)));
+$mobile_cols = max(1, min($tablet_cols, absint($layout_settings['mobile_cols'] ?? 1)));
 
 $teams = [
     'gewaehlte' => ['title' => 'Gewählte Mitglieder', 'list' => []],
@@ -44,7 +47,7 @@ foreach ($teams as $team_id => $team_data) {
     
     echo '<div class="fsr-team-section">';
     echo '<h2 class="fsr-team-heading" style="color: var(--theme-palette-color-4);">' . esc_html($team_data['title']) . '</h2>';
-    echo '<div class="fsr-members-grid" style="--fsr-max-cols:' . esc_attr($max_cols) . ';">';
+    echo '<div class="fsr-members-grid" style="--fsr-cols-desktop:' . esc_attr($desktop_cols) . '; --fsr-cols-tablet:' . esc_attr($tablet_cols) . '; --fsr-cols-mobile:' . esc_attr($mobile_cols) . ';">';
     
     foreach ($team_data['list'] as $m) {
         $img = !empty($m['image']) ? esc_url($m['image']) : 'https://www.gravatar.com/avatar/?d=mp&s=150';
