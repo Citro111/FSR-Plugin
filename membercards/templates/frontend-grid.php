@@ -11,7 +11,6 @@ $teams = [
     'helfer'    => ['title' => 'Freie Helfer', 'list' => []],
     'ehemalige' => ['title' => 'Ehemalige', 'list' => []]
 ];
-
 foreach ($members as $m) {
     $t_id = $m['team'] ?? 'gewaehlte';
     if (isset($teams[$t_id])) { $teams[$t_id]['list'][] = $m; }

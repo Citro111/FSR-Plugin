@@ -2,7 +2,7 @@
 /*
 Plugin Name: FSR ET/IT Custom WP Plugin
 Description: Modulares Custom-Plugin für den FSR ET/IT (DokuWiki Connector & Team-Mitgliederverwaltung).
-Version: 5.3
+Version: 5.4
 Author: Enric & FSR ET/IT
 Text Domain: fsretit
 */

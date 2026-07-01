@@ -55,7 +55,7 @@ function fsr_member_default_record() {
 
 function fsr_member_normalize_team($team) {
     $team = sanitize_key((string) $team);
-    return in_array($team, ['gewaehlte', 'helfer'], true) ? $team : 'gewaehlte';
+    return in_array($team, ['gewaehlte', 'helfer', 'ehemalige'], true) ? $team : 'gewaehlte';
 }
 
 function fsr_member_clean_text($value) {
