@@ -1,6 +1,6 @@
 <?php
 
-function function fsr_office_hours_handle_sick_submit(&$settings) {
+function fsr_office_hours_handle_sick_submit(&$settings) {
     $member_id = absint($_POST['member_id'] ?? 0);
     $occ_key = sanitize_text_field($_POST['occ_key'] ?? '');
     $reason = sanitize_text_field($_POST['reason'] ?? '');
