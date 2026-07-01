@@ -184,6 +184,17 @@
     display: grid;
     gap: 6px;
 }
+.fsr-team-gewaehlte::before {
+    background: linear-gradient(90deg,#2563eb,#60a5fa);
+}
+
+.fsr-team-helfer::before {
+    background: linear-gradient(90deg,#16a34a,#4ade80);
+}
+
+.fsr-team-ehemalige::before {
+    background: linear-gradient(90deg,#6b7280,#9ca3af);
+}
 
 .fsr-members-empty {
     padding: 20px;
