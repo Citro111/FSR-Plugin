@@ -75,7 +75,7 @@ function fsr_sanitize_member_record($member) {
     $member['last_name'] = fsr_member_clean_text($member['last_name']);
     $member['image'] = esc_url_raw(trim((string) $member['image']));
     $member['studiengang'] = fsr_member_clean_text($member['studiengang']);
-    $member['abschluss'] = in_array($member['abschluss'], ['B.Sc.', 'M.Sc.'], true) ? $member['abschluss'] : '';
+    $member['abschluss'] = in_array($member['abschluss'], ['B.Sc.', 'M.Sc.','Abgeschlossen'], true) ? $member['abschluss'] : '';
     $member['pronomen'] = fsr_member_clean_text($member['pronomen']);
     $member['email_prefix'] = fsr_member_clean_text($member['email_prefix']);
     $member['amt'] = fsr_member_clean_text($member['amt']);

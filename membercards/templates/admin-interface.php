@@ -111,6 +111,7 @@ $team_labels = [
                                 <option value="" <?php selected($member['abschluss'] ?? '', ''); ?>>-</option>
                                 <option value="B.Sc." <?php selected($member['abschluss'] ?? '', 'B.Sc.'); ?>>B.Sc.</option>
                                 <option value="M.Sc." <?php selected($member['abschluss'] ?? '', 'M.Sc.'); ?>>M.Sc.</option>
+                                <option value="Abgeschlossen" <?php selected($member['abschluss'] ?? '', 'Abgeschlossen'); ?>>Abgeschlossen</option>
                             </select>
                         </label>
                         <label class="col-2">Pronomen:<br><input type="text" name="fsr_members_settings[members][<?php echo $index; ?>][pronomen]" value="<?php echo esc_attr($member['pronomen'] ?? ''); ?>" placeholder="er/ihm" /></label>
@@ -205,7 +206,7 @@ jQuery(document).ready(function($) {
                     <label class="col-4">Nachname:<br><input type="text" class="fsr-input-lastname" name="fsr_members_settings[members][${index}][last_name]" required /></label>
                     <label class="col-4">Bild-URL:<br><input type="text" name="fsr_members_settings[members][${index}][image]" placeholder="https://..." /></label>
                     <label class="col-4">Studiengang:<br><input type="text" name="fsr_members_settings[members][${index}][studiengang]" /></label>
-                    <label class="col-2">Abschluss:<br><select name="fsr_members_settings[members][${index}][abschluss]"><option value="">-</option><option value="B.Sc.">B.Sc.</option><option value="M.Sc.">M.Sc.</option></select></label>
+                    <label class="col-2">Abschluss:<br><select name="fsr_members_settings[members][${index}][abschluss]"><option value="">-</option><option value="B.Sc.">B.Sc.</option><option value="M.Sc.">M.Sc.</option><option value="Abgeschlossen">Abgeschlossen</option></select></label>
                     <label class="col-2">Pronomen:<br><input type="text" name="fsr_members_settings[members][${index}][pronomen]" placeholder="er/ihm" /></label>
                     <label class="col-4">Mail-Präfix:<br><input type="text" class="fsr-input-email" name="fsr_members_settings[members][${index}][email_prefix]" /></label>
                     <label class="col-4">Ämter:<br><input type="text" list="fsr-amter-list" name="fsr_members_settings[members][${index}][amt]" /></label>
