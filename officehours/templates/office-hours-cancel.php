@@ -13,6 +13,18 @@ function fsr_office_hours_handle_sick_submit($settings) {
     $occ_key   = sanitize_text_field($_POST['occ_key'] ?? '');
     $reason    = sanitize_text_field($_POST['reason'] ?? '');
     [$rule_id, $date] = explode('|', $occ_key);
+    foreach ($settings['cancellations'] as $key => $entry) {
+
+        if (
+            $entry['rule_id'] === $rule_id &&
+            absint($entry['member_id']) === $member_id &&
+            $entry['occurrence_date'] === $date
+        ) {
+            unset($settings['cancellations'][$key]);
+            update_option('fsr_office_hours_settings', $settings);
+            return [true, 'Termin wieder zugesagt.'];
+        }
+    }
     $settings['cancellations'][] = [
         'rule_id' => $rule_id,
         'member_id' => $member_id,
@@ -72,13 +84,6 @@ function fsr_office_hours_sick_shortcode($atts) {
             }
             $choices[] = $occurrence;
         }
-        $choices = [];
-        foreach ($occurrences as $occurrence) {
-            if (!in_array($member_id, $occurrence['member_ids'], true)) {
-                continue;
-            }
-            $choices[] = $occurrence;
-        }
         if ($message !== '') {
             echo '<p class="fsr-office-hours-sick-message ' . ($ok ? 'is-success' : 'is-error') . '">' . esc_html($message) . '</p>';
         }
@@ -90,7 +95,7 @@ function fsr_office_hours_sick_shortcode($atts) {
         }
 
         echo '<label>Nächster Termin:</label><br>';
-        echo '<select name="occ_key" id="fsr_oh_rule_selector">';
+        echo '<select name="selected" id="fsr_oh_rule_selector">';
         foreach ($choices as $choice) {
             $cancelled = fsr_office_hours_member_is_cancelled(
                 $settings['cancellations'],
@@ -118,8 +123,18 @@ function fsr_office_hours_sick_shortcode($atts) {
                 '</option>';
         }
         echo '</select>';
+        $is_cancelled = fsr_office_hours_member_is_cancelled(
+            $settings['cancellations'],
+            $selected['rule_id'],
+            $selected['date'],
+            $member_id
+        );
         echo '<p><label>Optionaler Grund:</label><br><input type="text" name="reason" class="regular-text" /></p>';
-        echo '<button type="submit" class="button button-primary">Termin als krank melden</button>';
+        echo '<button type="submit" class="button button-primary">';
+        echo $is_cancelled
+            ? 'Termin wieder zusagen'
+            : 'Termin absagen';
+        echo '</button>';
         echo '</form>';
     }
 
