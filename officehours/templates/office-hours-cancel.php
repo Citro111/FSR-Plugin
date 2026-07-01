@@ -94,7 +94,9 @@ function fsr_office_hours_sick_shortcode($atts) {
     echo '<form method="get">';
     echo '<label>Mitglied</label><br>';
     echo '<select name="member_id" onchange="this.form.submit()">';
-    echo '<option value="">Bitte wählen</option>';
+    echo '<option value="" selected style="display: none;">';
+    echo esc_html(Bitte wählen);
+    echo '</option>';
 
     foreach ($members as $m) {
         $full_name = trim(($m['first_name'] ?? '') . ' ' . ($m['last_name'] ?? ''));
