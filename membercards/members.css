@@ -50,15 +50,6 @@
     border-color: var(--theme-palette-color-7);
 }
 
-/*
-.fsr-member-card::before {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 6px;
-    background: linear-gradient(90deg, var(--theme-palette-color-7), var(--theme-palette-color-2));
-}*/
-
 .fsr-member-card-badge {
     display: inline-flex;
     align-items: center;
@@ -149,15 +140,37 @@
     display: grid;
     gap: 6px;
 }
+
+/*
+.fsr-member-card::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--theme-palette-color-7), var(--theme-palette-color-2));
+}*/
+
 .fsr-team-gewaehlte::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 6px;
     background: linear-gradient(90deg,#2563eb,#60a5fa);
 }
 
 .fsr-team-helfer::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 6px;
     background: linear-gradient(90deg,#16a34a,#4ade80);
 }
 
 .fsr-team-ehemalige::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 6px;
     background: linear-gradient(90deg,#6b7280,#9ca3af);
 }
 
