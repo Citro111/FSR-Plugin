@@ -122,6 +122,13 @@ function fsr_office_hours_render_admin_interface() {
 
     <script>
     jQuery(function($) {
+
+        function initSelect2(scope) {
+            scope.find('.fsr-oh-members').select2({
+                width: '100%'
+            });
+        }
+
         function bindRecurrenceToggle(scope) {
             scope.find('.fsr-oh-recurrence').on('change', function() {
                 const row = $(this).closest('.fsr-oh-row');
@@ -145,6 +152,7 @@ function fsr_office_hours_render_admin_interface() {
 
         $('#fsr-oh-add-row').on('click', function() {
             const index = $('#fsr-oh-rules-body .fsr-oh-row').length;
+
             const memberOptions = <?php echo wp_json_encode(array_map(static function ($member) {
                 return [
                     'id' => $member['id'],
@@ -158,37 +166,33 @@ function fsr_office_hours_render_admin_interface() {
             });
 
             const html = '<tr class="fsr-oh-row">'
-                + '<td><input type="hidden" name="fsr_office_hours_settings[rules][' + index + '][id]" value="rule_new_' + Date.now() + '" /><input type="text" name="fsr_office_hours_settings[rules][' + index + '][title]" value="Office Hour" class="regular-text" /></td>'
-                + '<td><select name="fsr_office_hours_settings[rules][' + index + '][recurrence]" class="fsr-oh-recurrence"><option value="monthly_nth">Monatlich (n-ter Wochentag)</option><option value="weekly">Wöchentlich</option></select>'
-                + '<div class="fsr-oh-monthly-fields"><select name="fsr_office_hours_settings[rules][' + index + '][nth_week]"><option value="1">1.</option><option value="2">2.</option><option value="3">3.</option><option value="4">4.</option></select></div>'
-                + '<div><select name="fsr_office_hours_settings[rules][' + index + '][weekday]"><option value="1">Montag</option><option value="2">Dienstag</option><option value="3" selected>Mittwoch</option><option value="4">Donnerstag</option><option value="5">Freitag</option><option value="6">Samstag</option><option value="7">Sonntag</option></select></div>'
-                + '<div class="fsr-oh-weekly-fields" style="display:none;">Alle <input type="number" min="1" max="8" name="fsr_office_hours_settings[rules][' + index + '][week_interval]" value="1" style="width:70px" /> Wochen</div></td>'
-                + '<td><input type="time" name="fsr_office_hours_settings[rules][' + index + '][start_time]" value="10:00" /> bis <input type="time" name="fsr_office_hours_settings[rules][' + index + '][end_time]" value="12:00" /></td>'
-                + '<td><input type="text" name="fsr_office_hours_settings[rules][' + index + '][location]" value="FSR Büro" class="regular-text" /></td>'
-                + '<td><select name="fsr_office_hours_settings[rules][' + index + '][member_ids][]" multiple size="6" class="fsr-oh-members">' + optionsHtml + '</select></td>'
+                + '<td>...</td>'
+                + '<td>...</td>'
+                + '<td>...</td>'
+                + '<td>...</td>'
+                + '<td>'
+                + '<select name="fsr_office_hours_settings[rules][' + index + '][member_ids][]" multiple size="6" class="fsr-oh-members">'
+                + optionsHtml
+                + '</select>'
+                + '</td>'
                 + '<td><button type="button" class="button button-link-delete fsr-oh-remove-row">Löschen</button></td>'
                 + '</tr>';
 
             $('#fsr-oh-rules-body').append(html);
-            reindexRows();
-            bindRecurrenceToggle($('#fsr-oh-rules-body .fsr-oh-row:last'));
+
             const newRow = $('#fsr-oh-rules-body .fsr-oh-row:last');
+
+            reindexRows();
             bindRecurrenceToggle(newRow);
-            initSelect2(newRow);
+            initSelect2(newRow); // ✅ NUR JS VERSION
         });
-        $('.fsr-oh-members').select2();
 
         $(document).on('click', '.fsr-oh-remove-row', function() {
             $(this).closest('.fsr-oh-row').remove();
             reindexRows();
         });
+
     });
     </script>
     <?php
-}
-
-function initSelect2(scope) {
-    scope.find('.fsr-oh-members').select2({
-        width: '100%'
-    });
 }
