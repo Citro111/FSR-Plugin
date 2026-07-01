@@ -55,8 +55,8 @@
 .fsr-member-card:hover img {
     width: 180px;
     height: 180px;
-    border-radius: 50%;
-    transform:  translateY(-8px)
+    border-radius: 25%;
+    transform:  translateY(-30px)
                 scale(1.03);
     box-shadow: 0 12px 24px rgba(0,0,0,.18);
 }
