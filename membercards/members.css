@@ -49,29 +49,15 @@
     box-shadow: 0 16px 36px var(--theme-palette-color-11);
     border-color: var(--theme-palette-color-7);
 }
+
 /*
-.fsr-member-card {
-    position: relative;
-    border: 1px solid var(--theme-palette-color-5);
-    background: var(--theme-palette-color-9);
-    box-shadow: 0 12px 28px var(--theme-palette-color-11);
-    border-radius: 18px;
-    padding: 22px;
-    overflow: hidden;
-}
-.fsr-member-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 10px 15px -3px var(--theme-palette-color-11);
-    filter: brightness(1.1);
-}
-*/
 .fsr-member-card::before {
     content: '';
     position: absolute;
     inset: 0 0 auto 0;
     height: 6px;
     background: linear-gradient(90deg, var(--theme-palette-color-7), var(--theme-palette-color-2));
-}
+}*/
 
 .fsr-member-card-badge {
     display: inline-flex;
@@ -109,22 +95,6 @@
     line-height:1.2;
     text-align:center;
 }
-/*
-.fsr-member-card img {
-    width: 128px;
-    height: 128px;
-    object-fit: cover;
-    border-radius: 50%;
-    display: block;
-    margin: 0 auto 16px;
-    border: 4px solid var(--theme-palette-color-13);
-}
-
-.fsr-member-card h3 {
-    color: var(--theme-palette-color-4);
-    margin-bottom: 8px;
-    text-align: center;
-}*/
 
 .fsr-member-card p {
     color: var(--theme-palette-color-3);
@@ -132,17 +102,12 @@
 }
 
 .fsr-pronomen{
-
     margin-top:-4px;
-
     font-size:.85rem;
-
     opacity:.7;
 }
 .fsr-studiengang{
-
     font-size:.9rem;
-
     opacity:.85;
 }
 .fsr-email-text {
@@ -170,7 +135,7 @@
 
 .fsr-email-text{
     color: var(--theme-palette-color-7) !important;
-    margin-top:auto;
+    margin-bottom: auto;
     padding-top:18px;
     font-weight:600;
     font-size:.9rem;
