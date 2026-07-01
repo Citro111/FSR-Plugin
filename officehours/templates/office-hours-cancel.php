@@ -69,6 +69,7 @@ function fsr_office_hours_sick_shortcode($atts) {
     echo '</p>';
     if ($member_id > 0 && $current_member) {
         echo '<form method="post">';
+        wp_nonce_field('fsr_oh_sick_submit', '_fsr_oh_sick_nonce');
         echo '<input type="hidden" name="fsr_oh_sick_submit" value="1">';
         echo '<input type="hidden" name="member_id" value="'.$member_id.'">';
         echo '<p>Hallo ' . esc_html($current_member['first_name']) . ', hier kannst du den nächsten Termin absagen.</p>';
@@ -116,11 +117,9 @@ function fsr_office_hours_sick_shortcode($atts) {
                 $choice['end_time'] .
                 ')' .
                 $status;
-            echo '<option value="' .
-                esc_attr($choice['rule_id'].'|'.$choice['date']) .
-                '">' .
-                esc_html($label) .
-                '</option>';
+            echo '<option
+            value="'.esc_attr($choice['rule_id'].'|'.$choice['date']).'"
+            data-cancelled="'.($cancelled ? '1' : '0').'">';
         }
         echo '</select>';
         $is_cancelled = fsr_office_hours_member_is_cancelled(
@@ -130,11 +129,25 @@ function fsr_office_hours_sick_shortcode($atts) {
             $member_id
         );
         echo '<p><label>Optionaler Grund:</label><br><input type="text" name="reason" class="regular-text" /></p>';
-        echo '<button type="submit" class="button button-primary">';
-        echo $is_cancelled
-            ? 'Termin wieder zusagen'
-            : 'Termin absagen';
+        echo '<button id="fsr-oh-submit" type="submit" class="button button-primary">';
+        echo 'Termin absagen';
         echo '</button>';
+        <script>
+            document.addEventListener('DOMContentLoaded', function(){
+                const select = document.getElementById('fsr_oh_rule_selector');
+                const button = document.getElementById('fsr-oh-submit');
+                function updateButton(){
+                    const cancelled =
+                        select.options[select.selectedIndex]
+                            .dataset.cancelled === '1';
+                    button.textContent = cancelled
+                        ? 'Termin wieder zusagen'
+                        : 'Termin absagen';
+                }
+                updateButton();
+                select.addEventListener('change', updateButton);
+            });
+        </script>
         echo '</form>';
     }
 
