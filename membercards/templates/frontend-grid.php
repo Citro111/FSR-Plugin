@@ -61,8 +61,9 @@ foreach ($teams as $team_id => $team_data) {
         }
         ?>
         <article class="fsr-member-card fsr-team-<?php echo esc_attr($team_id); ?>">
-
-            <img src="<?php echo $img; ?>" alt="<?php echo esc_attr($full_name); ?>">
+            <div class="fsr-member-image">
+                <img src="<?php echo esc_url($img); ?>" alt="<?php echo esc_attr($full_name); ?>">
+            </div>
             <h3><?php echo esc_html($full_name ?: 'Unbenannt'); ?></h3>
             
             <?php if (!empty($m['pronomen'])): ?>
