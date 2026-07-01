@@ -60,7 +60,7 @@ foreach ($teams as $team_id => $team_data) {
             $prefix = preg_replace('/[^a-z0-9_.-]/', '', $prefix);
         }
         ?>
-        <article class="fsr-member-card" fsr-team-<?php echo esc_attr($team_id); ?>>
+        <article class="fsr-member-card fsr-team-<?php echo esc_attr($team_id); ?>">
 
             <img src="<?php echo $img; ?>" alt="<?php echo esc_attr($full_name); ?>">
             <h3><?php echo esc_html($full_name ?: 'Unbenannt'); ?></h3>

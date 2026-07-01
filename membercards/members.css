@@ -39,6 +39,7 @@
     border-radius: 18px;
     background: var(--theme-palette-color-9);
     padding: 24px;
+    gap: 8px;
     box-shadow: 0 8px 24px var(--theme-palette-color-11);
     transition: transform .25s ease,
                 box-shadow .25s ease,
@@ -50,25 +51,10 @@
     border-color: var(--theme-palette-color-7);
 }
 
-.fsr-member-card-badge {
-    display: inline-flex;
-    align-items: center;
-    text-transform:uppercase;
-    gap: 6px;
-    padding: 6px 14px;
-    border-radius: 999px;
-    letter-spacing: .06em;
-    background:linear-gradient(
-        135deg,
-        var(--theme-palette-color-7),
-        var(--theme-palette-color-2)
-    );
-    color: var(--theme-palette-color-3);
-    border: 1px solid var(--theme-palette-color-5);
-    margin-bottom: 14px;
-    font-size: 12px;
-    font-weight: 700;
+.fsr-member-card:hover img{
+    transform:scale(1.03);
 }
+
 .fsr-member-card img{
     width:150px;
     height:150px;
@@ -77,6 +63,7 @@
     border-radius:50%;
     border:4px solid var(--theme-palette-color-13);
     margin-bottom:18px;
+    transition:.3s;
 }
 
 .fsr-member-card h3{
@@ -85,6 +72,8 @@
     font-weight:700;
     line-height:1.2;
     text-align:center;
+    margin-top:8px;
+    margin-bottom:2px;
 }
 
 .fsr-member-card p {
@@ -102,7 +91,12 @@
     opacity:.85;
 }
 .fsr-email-text {
+    color: var(--theme-palette-color-7) !important;
+    margin-top:auto;
+    padding-top:20px;
     text-align: center;
+    font-weight:600;
+    font-size:.9rem;
 }
 
 .fsr-amt-tags {
@@ -124,14 +118,6 @@
     letter-spacing:.02em;
 }
 
-.fsr-email-text{
-    color: var(--theme-palette-color-7) !important;
-    margin-bottom: auto;
-    padding-top:18px;
-    font-weight:600;
-    font-size:.9rem;
-}
-
 .fsr-ehemalige-info {
     border-top: 1px solid var(--theme-palette-color-5);
     margin-top: 16px;
@@ -141,37 +127,28 @@
     gap: 6px;
 }
 
-/*
-.fsr-member-card::before {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 6px;
-    background: linear-gradient(90deg, var(--theme-palette-color-7), var(--theme-palette-color-2));
-}*/
-
-.fsr-team-gewaehlte::before {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 6px;
-    background: linear-gradient(90deg,#2563eb,#60a5fa);
+.fsr-team-gewaehlte::before{
+    content:"";
+    position:absolute;
+    inset:0 0 auto 0;
+    height:6px;
+    background:linear-gradient(90deg,#2563eb,#3b82f6);
 }
 
-.fsr-team-helfer::before {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 6px;
-    background: linear-gradient(90deg,#16a34a,#4ade80);
+.fsr-team-helfer::before{
+    content:"";
+    position:absolute;
+    inset:0 0 auto 0;
+    height:6px;
+    background:linear-gradient(90deg,#059669,#10b981);
 }
 
-.fsr-team-ehemalige::before {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 6px;
-    background: linear-gradient(90deg,#6b7280,#9ca3af);
+.fsr-team-ehemalige::before{
+    content:"";
+    position:absolute;
+    inset:0 0 auto 0;
+    height:6px;
+    background:linear-gradient(90deg,#6b7280,#9ca3af);
 }
 
 .fsr-members-empty {
