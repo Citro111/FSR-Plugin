@@ -25,7 +25,13 @@ function fsr_office_hours_collect_occurrences($rules, $limit = 12) {
                 if (!$date || $date < $today) {
                     continue;
                 }
-                if (fsr_office_hours_member_is_cancelled($settings['cancellations'] ?? [], $rule['id'], $date)) {
+               if (
+                    fsr_office_hours_occurrence_is_cancelled(
+                        $rule,
+                        $date,
+                        $settings['cancellations']
+                    )
+                ) {
                     continue;
                 }
                 $bucket[] = [
@@ -180,9 +186,10 @@ function fsr_office_hours_shortcode($atts) {
             foreach ($item['member_ids'] as $id) {
                 if (!isset($members_map[$id])) continue;
                 if (fsr_office_hours_member_is_cancelled(
-                        $settings['cancellations'],
-                        $item['rule_id'],
-                        $item['date']
+                    $settings['cancellations'],
+                    $item['rule_id'],
+                    $item['date'],
+                    $id
                 )) {
                     continue;
                 }
@@ -237,17 +244,35 @@ function fsr_office_hours_shortcode($atts) {
     return ob_get_clean();
 }
 
-function fsr_office_hours_member_is_cancelled($cancellations, $rule_id, $date) {
+function fsr_office_hours_member_is_cancelled($cancellations, $rule_id, $date, $member_id) {
 
     foreach ($cancellations as $c) {
 
         if (
             ($c['rule_id'] ?? '') === $rule_id &&
-            ($c['occurrence_date'] ?? '') === $date
+            ($c['occurrence_date'] ?? '') === $date &&
+            absint($c['member_id']) === absint($member_id)
         ) {
             return true;
         }
     }
 
     return false;
+}
+
+function fsr_office_hours_occurrence_is_cancelled($rule, $date, $cancellations) {
+
+    foreach ($rule['member_ids'] as $member_id) {
+
+        if (!fsr_office_hours_member_is_cancelled(
+            $cancellations,
+            $rule['id'],
+            $date,
+            $member_id
+        )) {
+            return false;
+        }
+    }
+
+    return true;
 }

@@ -12,9 +12,6 @@ function fsr_office_hours_handle_sick_submit($settings) {
     $member_id = absint($_POST['member_id'] ?? 0);
     $occ_key   = sanitize_text_field($_POST['occ_key'] ?? '');
     $reason    = sanitize_text_field($_POST['reason'] ?? '');
-    if (!str_contains($occ_key, '|')) {
-        return [false, 'Ungültiger Termin.'];
-    }
     [$rule_id, $date] = explode('|', $occ_key);
     $settings['cancellations'][] = [
         'rule_id' => $rule_id,
@@ -64,6 +61,17 @@ function fsr_office_hours_sick_shortcode($atts) {
         echo '<input type="hidden" name="member_id" value="'.$member_id.'">';
         echo '<p>Hallo ' . esc_html($current_member['first_name']) . ', hier kannst du den nächsten Termin absagen.</p>';
         $occurrences = fsr_office_hours_collect_occurrences($settings['rules'], 25);
+        $today = current_time('Y-m-d');
+        $choices = [];
+        foreach ($occurrences as $occurrence) {
+            if ($occurrence['date'] < $today) {
+                continue;
+            }
+            if (!in_array($member_id, $occurrence['member_ids'], true)) {
+                continue;
+            }
+            $choices[] = $occurrence;
+        }
         $choices = [];
         foreach ($occurrences as $occurrence) {
             if (!in_array($member_id, $occurrence['member_ids'], true)) {
@@ -83,14 +91,33 @@ function fsr_office_hours_sick_shortcode($atts) {
 
         echo '<label>Nächster Termin:</label><br>';
         echo '<select name="occ_key" id="fsr_oh_rule_selector">';
-        foreach ($choices as $idx => $choice) {
-            $label = date_i18n('d.m.Y', strtotime($choice['date'])) . ' - ' . $choice['title'] . ' (' . $choice['start_time'] . '-' . $choice['end_time'] . ')';
-            $value = $choice['rule_id'] . '|' . $choice['date'];
-            echo '<option value="' . esc_attr($value) . '" ' . selected($idx === 0, true, false) . '>'
-                . esc_html($label)
-                . '</option>';    }
+        foreach ($choices as $choice) {
+            $cancelled = fsr_office_hours_member_is_cancelled(
+                $settings['cancellations'],
+                $choice['rule_id'],
+                $choice['date'],
+                $member_id
+            );
+            $status = $cancelled
+                ? ' (bereits abgesagt)'
+                : '';
+            $label =
+                date_i18n('d.m.Y', strtotime($choice['date'])) .
+                ' - ' .
+                $choice['title'] .
+                ' (' .
+                $choice['start_time'] .
+                '-' .
+                $choice['end_time'] .
+                ')' .
+                $status;
+            echo '<option value="' .
+                esc_attr($choice['rule_id'].'|'.$choice['date']) .
+                '">' .
+                esc_html($label) .
+                '</option>';
+        }
         echo '</select>';
-
         echo '<p><label>Optionaler Grund:</label><br><input type="text" name="reason" class="regular-text" /></p>';
         echo '<button type="submit" class="button button-primary">Termin als krank melden</button>';
         echo '</form>';
