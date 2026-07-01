@@ -10,7 +10,6 @@ function fsr_office_hours_register_settings() {
 
 
 function fsr_office_hours_render_admin_interface() {
-    initSelect2($(document));
     $settings = fsr_office_hours_get_settings();
     $members_map = fsr_office_hours_get_members_map();
     $weekday_labels = [1 => 'Montag', 2 => 'Dienstag', 3 => 'Mittwoch', 4 => 'Donnerstag', 5 => 'Freitag', 6 => 'Samstag', 7 => 'Sonntag'];
