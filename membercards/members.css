@@ -161,19 +161,22 @@
     box-shadow:0 0 18px var(--theme-palette-color-11);
 }
 
-.fsr-team-gewaehlte::before {
-    background: linear-gradient(90deg,#2563eb,#3b82f6);
+.fsr-team-gewaehlte{
+    box-shadow:
+        inset 0 8px 0 #3b82f6,
+        0 8px 24px var(--theme-palette-color-11);
 }
 
 .fsr-team-helfer{
     box-shadow:
         inset 0 8px 0 #10b981,
         0 8px 24px var(--theme-palette-color-11);
-
 }
 
-.fsr-team-ehemalige::before {
-    background: linear-gradient(90deg,#6b7280,#9ca3af);
+.fsr-team-ehemalige{
+    box-shadow:
+        inset 0 8px 0 #6b7280,
+        0 8px 24px var(--theme-palette-color-11);
 }
 
 .fsr-members-empty {
