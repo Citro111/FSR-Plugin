@@ -116,7 +116,7 @@ function fsr_office_hours_shortcode($atts) {
             'id' => $m['id'],
             'first_name' => $m['first_name'] ?? '',
             'last_name' => $m['last_name'] ?? '',
-            'email' => !empty($m['email_prefix']) ? $m['email_prefix'] . '@deinedomain.de' : '',
+            'email' => !empty($m['email_prefix']) ? $m['email_prefix'] . ' (at) fsr-etit.de' : '',
             'study' => trim(($m['studiengang'] ?? '') . ' ' . ($m['abschluss'] ?? '')),
             'roles' => !empty($m['amt']) ? [$m['amt']] : [],
         ];
@@ -194,7 +194,6 @@ function fsr_office_hours_shortcode($atts) {
             echo '</summary>';
             // OPEN VIEW
             echo '<div class="fsr-oh-body">';
-            echo '<p><strong>Zeit:</strong> ' . esc_html($timeLabel) . '</p>';
             echo '<p><strong>Mitglieder:</strong></p>';
             echo '<ul>';
             foreach ($members as $m) {

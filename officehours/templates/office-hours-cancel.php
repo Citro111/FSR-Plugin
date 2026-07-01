@@ -48,7 +48,14 @@ function fsr_office_hours_handle_sick_submit($settings, $member_id, $token) {
 function fsr_office_hours_sick_shortcode($atts) {
     $atts = shortcode_atts(['member' => '', 'token' => ''], $atts);
     $settings = fsr_office_hours_get_settings();
-    $members_map = fsr_office_hours_get_members_map();
+    $members_raw = fsr_get_members_data('all')['members'];
+    $members_map = [];
+    foreach ($members_raw as $m) {
+        $members_map[$m['id']] = [
+            'first_name' => $m['first_name'] ?? '',
+            'last_name' => $m['last_name'] ?? ''
+        ];
+    }
     $member_id = absint($_GET['fsr_oh_member'] ?? $atts['member']);
     $token = sanitize_text_field((string) ($_GET['fsr_oh_token'] ?? $atts['token']));
 
