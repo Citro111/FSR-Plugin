@@ -11,7 +11,14 @@ function fsr_office_hours_register_settings() {
 
 function fsr_office_hours_render_admin_interface() {
     $settings = fsr_office_hours_get_settings();
-    $members_map = fsr_office_hours_get_members_map();
+    $members_raw = fsr_get_members_data('all')['members'];
+    $members_map = [];
+    foreach ($members_raw as $m) {
+        $members_map[$m['id']] = [
+            'first_name' => $m['first_name'] ?? '',
+            'last_name' => $m['last_name'] ?? ''
+        ];
+    }
     $weekday_labels = [1 => 'Montag', 2 => 'Dienstag', 3 => 'Mittwoch', 4 => 'Donnerstag', 5 => 'Freitag', 6 => 'Samstag', 7 => 'Sonntag'];
     ?>
     <div class="fsr-oh-admin">
