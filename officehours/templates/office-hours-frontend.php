@@ -1,5 +1,5 @@
 <?php
-function fsr_office_hours_collect_occurrences($rules, $limit = 12) {
+function fsr_office_hours_collect_occurrences($rules, $limit = 12, $hide_fully_cancelled = true) {
     $today = current_time('Y-m-d');
     $today_ts = strtotime($today);
     $bucket = [];
@@ -25,7 +25,7 @@ function fsr_office_hours_collect_occurrences($rules, $limit = 12) {
                 if (!$date || $date < $today) {
                     continue;
                 }
-               if (
+               if ( $hide_fully_cancelled &&
                     fsr_office_hours_occurrence_is_cancelled(
                         $rule,
                         $date,
@@ -131,7 +131,8 @@ function fsr_office_hours_shortcode($atts) {
     $settings = fsr_office_hours_get_settings();
     $occurrences = fsr_office_hours_collect_occurrences(
         $settings['rules'],
-        absint($atts['limit'])
+        absint($atts['limit']),
+        true // hide fully cancelled occurrences
     );
     if (empty($occurrences)) {
         return '<div class="fsr-office-hours-empty">Keine Termine.</div>';

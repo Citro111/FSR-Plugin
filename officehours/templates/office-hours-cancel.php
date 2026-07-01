@@ -5,10 +5,6 @@ function fsr_office_hours_handle_sick_submit($settings) {
     if (empty($_POST['fsr_oh_sick_submit'])) {
         return [false, ''];
     }
-
-    if (!wp_verify_nonce($_POST['_fsr_oh_sick_nonce'] ?? '', 'fsr_oh_sick_submit')) {
-        return [false, 'Ungültige Anfrage.'];
-    }
     $member_id = absint($_POST['member_id'] ?? 0);
     $occ_key   = sanitize_text_field($_POST['occ_key'] ?? '');
     $reason    = sanitize_text_field($_POST['reason'] ?? '');
@@ -75,7 +71,8 @@ function fsr_office_hours_sick_shortcode($atts) {
         echo '<input type="hidden" name="fsr_oh_sick_submit" value="1">';
         echo '<input type="hidden" name="member_id" value="'.$member_id.'">';
         echo '<p>Hallo ' . esc_html($current_member['first_name']) . ', hier kannst du den nächsten Termin absagen.</p>';
-        $occurrences = fsr_office_hours_collect_occurrences($settings['rules'], 25);
+        $occurrences = fsr_office_hours_collect_occurrences($settings['rules'], 25, false // include fully cancelled occurrences
+        );
         $today = current_time('Y-m-d');
         $choices = [];
         foreach ($occurrences as $occurrence) {
