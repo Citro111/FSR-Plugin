@@ -117,9 +117,10 @@ function fsr_office_hours_sick_shortcode($atts) {
                 $choice['end_time'] .
                 ')' .
                 $status;
-            echo '<option
-            value="'.esc_attr($choice['rule_id'].'|'.$choice['date']).'"
-            data-cancelled="'.($cancelled ? '1' : '0').'">';
+            echo '<option value="' . esc_attr($choice['rule_id'].'|'.$choice['date']) . '"
+            data-cancelled="' . ($cancelled ? '1' : '0') . '">';
+            echo esc_html($label);
+            echo '</option>';
         }
         echo '</select>';
         $is_cancelled = fsr_office_hours_member_is_cancelled(
