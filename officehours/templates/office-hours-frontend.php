@@ -111,89 +111,93 @@ function fsr_office_hours_shortcode($atts) {
 
     $settings = fsr_office_hours_get_settings();
     $members_map = fsr_office_hours_get_members_map();
-    $occurrences = fsr_office_hours_collect_occurrences($settings['rules'], absint($atts['limit']));
+
+    $occurrences = fsr_office_hours_collect_occurrences(
+        $settings['rules'],
+        absint($atts['limit'])
+    );
 
     if (empty($occurrences)) {
         return '<div class="fsr-office-hours-empty">Aktuell sind keine Office Hours hinterlegt.</div>';
     }
 
-    // 1. Gruppieren nach Wochentag
-    $grouped = [];
+    $today = strtotime(current_time('Y-m-d'));
+    $end = strtotime('+14 days', $today);
 
-    foreach ($occurrences as $occurrence) {
-        $ts = strtotime($occurrence['date']);
-        $weekdayNum = (int) date('N', $ts); // 1=Mon ... 7=Son
-        $weekdayLabel = date_i18n('l', $ts);
+    // 🔥 Filter: nur nächste 7 Werktage im Zeitraum
+    $filtered = [];
 
-        $occurrence['ts'] = $ts;
-        $occurrence['weekday_label'] = $weekdayLabel;
-        $occurrence['weekday_num'] = $weekdayNum;
+    foreach ($occurrences as $o) {
+        $ts = strtotime($o['date']);
 
-        $grouped[$weekdayNum]['label'] = $weekdayLabel;
-        $grouped[$weekdayNum]['items'][] = $occurrence;
+        if ($ts < $today || $ts > $end) continue;
+        if ((int) date('N', $ts) > 5) continue; // Wochenende raus
+
+        $o['ts'] = $ts;
+        $filtered[] = $o;
     }
 
-    // 2. Sortierung der Wochentage
-    ksort($grouped);
+    // Sortieren nach Datum + Zeit
+    usort($filtered, function ($a, $b) {
+        return strcmp(
+            $a['date'] . $a['start_time'],
+            $b['date'] . $b['start_time']
+        );
+    });
+
+    if (empty($filtered)) {
+        return '<div class="fsr-office-hours-empty">Keine Termine in den nächsten Werktagen.</div>';
+    }
 
     ob_start();
 
-    echo '<div class="fsr-office-hours-week">';
+    echo '<div class="fsr-oh-weeklist">';
 
-    foreach ($grouped as $weekday) {
+    foreach ($filtered as $item) {
 
-        echo '<section class="fsr-oh-day">';
+        $members = [];
 
-        echo '<h3 class="fsr-oh-day-title">'
-            . esc_html($weekday['label'])
-            . '</h3>';
-
-        // 3. Sortierung nach Startzeit
-        usort($weekday['items'], function ($a, $b) {
-            return strcmp($a['start_time'], $b['start_time']);
-        });
-
-        foreach ($weekday['items'] as $item) {
-
-            $members = [];
-
-            foreach ($item['member_ids'] as $member_id) {
-                if (!isset($members_map[$member_id])) continue;
-                $members[] = $members_map[$member_id]['name'];
-            }
-
-            $timeLabel = $item['start_time'] . ' – ' . $item['end_time'];
-
-            $accordionId = 'oh_' . md5($item['rule_id'] . $item['date'] . $item['start_time']);
-
-            echo '<details class="fsr-oh-item">';
-            echo '<summary class="fsr-oh-summary">';
-            echo '<strong>' . esc_html($timeLabel) . '</strong>';
-
-            if (!empty($item['title'])) {
-                echo ' — ' . esc_html($item['title']);
-            }
-
-            echo '</summary>';
-
-            echo '<div class="fsr-oh-details">';
-
-            echo '<p><strong>Datum:</strong> ' . esc_html(date_i18n('d.m.Y', $item['ts'])) . '</p>';
-
-            if (!empty($item['location'])) {
-                echo '<p><strong>Ort:</strong> ' . esc_html($item['location']) . '</p>';
-            }
-
-            echo '<p><strong>Mitglieder:</strong> '
-                . esc_html(implode(', ', $members) ?: 'Keine Personen')
-                . '</p>';
-
-            echo '</div>';
-
-            echo '</details>';
+        foreach ($item['member_ids'] as $id) {
+            if (!isset($members_map[$id])) continue;
+            $members[] = $members_map[$id]['name'];
         }
 
-        echo '</section>';
+        $dateLabel = date_i18n('D, d.m.', $item['ts']);
+        $timeLabel = $item['start_time'] . '–' . $item['end_time'];
+
+        echo '<details class="fsr-oh-card">';
+
+        // 👉 CLOSED VIEW (kompakt)
+        echo '<summary class="fsr-oh-summary">';
+        echo '<span class="fsr-oh-main">';
+        echo esc_html($timeLabel);
+        echo '</span>';
+
+        echo '<span class="fsr-oh-members-inline">';
+        echo esc_html(implode(', ', $members) ?: 'Keine Person');
+        echo '</span>';
+
+        echo '</summary>';
+
+        // 👉 OPEN VIEW (vollständig)
+        echo '<div class="fsr-oh-body">';
+
+        echo '<p><strong>Datum:</strong> ' . esc_html($dateLabel) . '</p>';
+        echo '<p><strong>Zeit:</strong> ' . esc_html($timeLabel) . '</p>';
+
+        echo '<p><strong>Titel:</strong> ' . esc_html($item['title']) . '</p>';
+
+        if (!empty($item['location'])) {
+            echo '<p><strong>Raum:</strong> ' . esc_html($item['location']) . '</p>';
+        }
+
+        echo '<p><strong>Mitglieder:</strong> '
+            . esc_html(implode(', ', $members) ?: 'Keine Personen')
+            . '</p>';
+
+        echo '</div>';
+
+        echo '</details>';
     }
 
     echo '</div>';

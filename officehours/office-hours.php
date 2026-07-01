@@ -128,3 +128,33 @@ function fsr_office_hours_get_members_map() {
 
     return $map;
 }
+
+function fsr_office_hours_is_workday($ts) {
+    $weekday = (int) date('N', $ts); // 1-7
+    return $weekday <= 5; // Mo-Fr
+}
+
+function fsr_office_hours_in_next_workdays($ts, $days = 7) {
+    $today = strtotime(current_time('Y-m-d'));
+
+    $count = 0;
+    $cursor = $today;
+
+    while ($cursor <= strtotime("+14 days", $today)) {
+        if (fsr_office_hours_is_workday($cursor)) {
+            $count++;
+        }
+
+        if ($cursor >= $ts && $count <= $days) {
+            return true;
+        }
+
+        if ($count > $days) {
+            return false;
+        }
+
+        $cursor = strtotime('+1 day', $cursor);
+    }
+
+    return false;
+}

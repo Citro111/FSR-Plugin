@@ -69,11 +69,33 @@
     padding: 6px 10px;
 }
 
+.fs-oh-details {
+    padding: 10px 0 0 0;
+}
+
+.fs-oh-card {
+    border: 1px solid #ddd;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+}
+
 .fs-oh-summary {
+    display: flex;
+    justify-content: space-between;
     cursor: pointer;
+    padding: 10px 12px;
     font-weight: 500;
 }
 
-.fs-oh-details {
-    padding: 10px 0 0 0;
+.fs-oh-members-inline {
+    opacity: 0.7;
+    font-size: 13px;
+}
+
+.fs-oh-body {
+    padding: 10px 12px;
+    border-top: 1px solid #eee;
+    background: #fafafa;
 }
