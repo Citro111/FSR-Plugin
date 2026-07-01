@@ -65,7 +65,8 @@ function fsr_office_hours_collect_occurrences($rules, $limit = 12) {
                     !fsr_office_hours_member_is_cancelled(
                         $settings['cancellations'] ?? [],
                         $rule['id'],
-                        $date
+                        $date,
+                        $id
                     )
                 ) {
 
