@@ -41,26 +41,40 @@ function fsr_office_hours_collect_occurrences($rules, $limit = 12) {
         } else {
             $weekday = (int) $rule['weekday'];
             $week_interval = max(1, (int) $rule['week_interval']);
-            $cursor = strtotime('monday this week', $today_ts);
-            $endCursor = strtotime('+10 weeks', $cursor);
-            while ($cursor <= $endCursor) {
-                $candidate_ts = strtotime("next $weekday weekday", $cursor);
+
+            $cursor = $today_ts;
+
+            for ($i = 0; $i < 16; $i++) {
+
+                $current_weekday = (int) date('N', $cursor);
+                $delta = ($weekday - $current_weekday + 7) % 7;
+
+                $candidate_ts = strtotime("+$delta days", $cursor);
                 $date = date('Y-m-d', $candidate_ts);
-                if ($date >= $today) {
-                    $settings = fsr_office_hours_get_settings();
-                    if (!fsr_office_hours_is_cancelled($settings['cancellations'] ?? [], $rule['id'], $date)) {
-                        $bucket[$rule['id'] . '_' . $date] = [
-                            'rule_id' => $rule['id'],
-                            'date' => $date,
-                            'start_time' => $rule['start_time'],
-                            'end_time' => $rule['end_time'],
-                            'title' => $rule['title'],
-                            'location' => $rule['location'],
-                            'member_ids' => $rule['member_ids'],
-                        ];
-                    }
+
+                $settings = fsr_office_hours_get_settings();
+
+                if (
+                    $date >= $today &&
+                    !fsr_office_hours_is_cancelled(
+                        $settings['cancellations'] ?? [],
+                        $rule['id'],
+                        $date
+                    )
+                ) {
+
+                    $bucket[$rule['id'].'_'.$date] = [
+                        'rule_id' => $rule['id'],
+                        'date' => $date,
+                        'start_time' => $rule['start_time'],
+                        'end_time' => $rule['end_time'],
+                        'title' => $rule['title'],
+                        'location' => $rule['location'],
+                        'member_ids' => $rule['member_ids'],
+                    ];
                 }
-                $cursor = strtotime("+$week_interval week", $cursor);
+
+                $cursor = strtotime("+{$week_interval} week", $candidate_ts);
             }
         }
     }
@@ -118,13 +132,11 @@ function fsr_office_hours_shortcode($atts) {
     $now = current_time('H:i');
     $todayDate = current_time('Y-m-d');
     $today = strtotime(current_time('Y-m-d'));
-
-    $weekStart = strtotime('monday this week', $today);
-    $weekEnd = strtotime('sunday next week', $weekStart);
+    $weekEnd = strtotime('+7 days', $today);
     $filtered = [];
     foreach ($occurrences as $o) {
         $ts = strtotime($o['date']);
-        if ($ts < $weekStart || $ts > $weekEnd) continue;
+        if ($ts < $today || $ts > $weekEnd) continue;
         if ((int) date('N', $ts) > 5) continue;
         $o['ts'] = $ts;
         $filtered[] = $o;
@@ -149,16 +161,7 @@ function fsr_office_hours_shortcode($atts) {
     echo '<div class="fsr-oh-weekplan">';
 
     foreach ($weekday_labels as $day => $label) {
-        $is_active =
-            $item['date'] === $todayDate &&
-            $item['start_time'] <= $now &&
-            $item['end_time'] >= $now;
-
         if (empty($grouped[$day])) continue;
-        if ($is_active) {
-            echo '<span class="fsr-oh-live">🟢 Jetzt besetzt</span>';
-        }
-
         echo '<section class="fsr-oh-day">';
         echo '<h3>' . esc_html($label) . '</h3>';
 
@@ -168,6 +171,10 @@ function fsr_office_hours_shortcode($atts) {
 
         foreach ($grouped[$day] as $item) {
 
+            $is_active =
+                $item['date'] === $todayDate &&
+                $item['start_time'] <= $now &&
+                $item['end_time'] >= $now;
             $members = [];
 
             foreach ($item['member_ids'] as $id) {
@@ -179,6 +186,9 @@ function fsr_office_hours_shortcode($atts) {
             echo '<details class="fsr-oh-card">';
             // CLOSED VIEW
             echo '<summary class="fsr-oh-summary">';
+            if ($is_active) {
+                echo '<span class="fsr-oh-live">🟢 Jetzt besetzt</span>';
+            }
             echo '<span class="fsr-oh-time">' . esc_html($timeLabel) . '</span>';
             echo '<span class="fsr-oh-names">' . esc_html(implode(', ', $first_names)) . '</span>';
             echo '</summary>';
