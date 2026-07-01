@@ -33,30 +33,8 @@ $team_labels = [
         <strong>Shortcodes</strong><br>
         Alle Mitglieder anzeigen: <code>[fsr_members]</code><br>
         Nur ein Team anzeigen: <code>[fsr_members team="gewaehlte"]</code>, <code>[fsr_members team="helfer"]</code>, <code>[fsr_members team="ehemalige"]</code>
+        <br>Maximale Karten pro Reihe festlegen: <code>[fsr_members max_cols="4"]</code>
         <p>Jedes Mitglied wird jetzt als eigener Inhalt gespeichert. Damit sind Import, Sortierung und spätere Pflege deutlich robuster als ein einziges Options-Array.</p>
-    </div>
-
-    <div class="fsr-import-panel">
-        <div class="fsr-import-copy">
-            <h4>Bulk Import für das Setup</h4>
-            <p>Füge hier JSON oder CSV ein, um bestehende Daten schnell anzulegen. Der Import ersetzt auf Wunsch die vorhandenen Mitglieder und legt jeden Eintrag als eigenen Datensatz an.</p>
-        </div>
-        <textarea id="fsr-member-import-data" rows="10" placeholder='JSON-Beispiel: [{"first_name":"Max","last_name":"Mustermann","team":"gewaehlte"}]\nCSV-Beispiel: first_name,last_name,team'></textarea>
-        <div class="fsr-import-tools">
-            <label class="fsr-import-file">
-                <span>Optional Datei laden</span>
-                <input type="file" id="fsr-member-import-file" accept=".json,.csv,.txt,application/json,text/csv,text/plain">
-            </label>
-            <label class="fsr-import-replace">
-                <input type="checkbox" id="fsr-member-import-replace" checked>
-                Vorhandene Mitglieder vor dem Import löschen
-            </label>
-            <button type="button" class="button button-secondary" id="fsr-member-import-btn">Import starten</button>
-        </div>
-        <div class="fsr-import-hint">
-            JSON-Objekte können die Felder <code>first_name</code>, <code>last_name</code>, <code>image</code>, <code>studiengang</code>, <code>abschluss</code>, <code>pronomen</code>, <code>email_prefix</code>, <code>amt</code>, <code>erstes_jahr</code>, <code>semester_anzahl</code>, <code>team</code>, <code>is_ehemalige</code> und <code>abgang_jahr</code> enthalten.
-        </div>
-        <div id="fsr-import-status" aria-live="polite"></div>
     </div>
 
     <div class="fsr-admin-top-bar">
@@ -145,6 +123,29 @@ $team_labels = [
             </div>
         <?php endforeach; ?>
     </div>
+
+    <div class="fsr-import-panel">
+        <div class="fsr-import-copy">
+            <h4>Bulk Import für das Setup</h4>
+            <p>Füge hier JSON oder CSV ein, um bestehende Daten schnell anzulegen. Der Import ersetzt auf Wunsch die vorhandenen Mitglieder und legt jeden Eintrag als eigenen Datensatz an.</p>
+        </div>
+        <textarea id="fsr-member-import-data" rows="10" placeholder='JSON-Beispiel: [{"first_name":"Max","last_name":"Mustermann","team":"gewaehlte"}]\nCSV-Beispiel: first_name,last_name,team'></textarea>
+        <div class="fsr-import-tools">
+            <label class="fsr-import-file">
+                <span>Optional Datei laden</span>
+                <input type="file" id="fsr-member-import-file" accept=".json,.csv,.txt,application/json,text/csv,text/plain">
+            </label>
+            <label class="fsr-import-replace">
+                <input type="checkbox" id="fsr-member-import-replace" checked>
+                Vorhandene Mitglieder vor dem Import löschen
+            </label>
+            <button type="button" class="button button-secondary" id="fsr-member-import-btn">Import starten</button>
+        </div>
+        <div class="fsr-import-hint">
+            JSON-Objekte können die Felder <code>first_name</code>, <code>last_name</code>, <code>image</code>, <code>studiengang</code>, <code>abschluss</code>, <code>pronomen</code>, <code>email_prefix</code>, <code>amt</code>, <code>erstes_jahr</code>, <code>semester_anzahl</code>, <code>team</code>, <code>is_ehemalige</code> und <code>abgang_jahr</code> enthalten.
+        </div>
+        <div id="fsr-import-status" aria-live="polite"></div>
+    </div>
 </div>
 
 <input type="hidden" id="fsr_member_admin_nonce" value="<?php echo esc_attr(wp_create_nonce('fsr-member-admin-nonce')); ?>">
@@ -187,6 +188,14 @@ jQuery(document).ready(function($) {
         }
 
         row.find('.badge-team-name').text(teamLabel(val, isEhemalige));
+    }
+
+    function filterRows(filter) {
+        $('#fsr-sortable-members .fsr-member-row').each(function() {
+            const row = $(this);
+            const match = filter === 'all' || row.hasClass('fsr-team-' + filter);
+            row.toggle(match);
+        });
     }
 
     function triggerAutoSave() {
@@ -321,9 +330,10 @@ jQuery(document).ready(function($) {
     });
 
     $('.fsr-filter-btn').on('click', function() {
-        $('.fsr-filter-btn').removeClass('active'); $(this).addClass('active');
+        $('.fsr-filter-btn').removeClass('active');
+        $(this).addClass('active');
         const filter = $(this).data('filter');
-        if(filter === 'all') { $('.fsr-member-row').show(); } else { $('.fsr-member-row').hide(); $('.fsr-team-' + filter).show(); }
+        filterRows(filter);
     });
 
     $(document).on('click', '.remove-member', function() {
@@ -374,5 +384,7 @@ jQuery(document).ready(function($) {
     $('#fsr-sortable-members .fsr-member-row').each(function() {
         applyRowTeamState($(this));
     });
+
+    filterRows('all');
 });
 </script>

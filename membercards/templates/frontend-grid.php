@@ -1,6 +1,8 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
+$max_cols = isset($max_cols) ? max(1, min(6, absint($max_cols))) : 4;
+
 $teams = [
     'gewaehlte' => ['title' => 'Gewählte Mitglieder', 'list' => []],
     'helfer'    => ['title' => 'Freie Helfer', 'list' => []],
@@ -42,7 +44,7 @@ foreach ($teams as $team_id => $team_data) {
     
     echo '<div class="fsr-team-section">';
     echo '<h2 class="fsr-team-heading" style="color: var(--theme-palette-color-4);">' . esc_html($team_data['title']) . '</h2>';
-    echo '<div class="fsr-members-grid" style="gap: 20px;">';
+    echo '<div class="fsr-members-grid" style="--fsr-max-cols:' . esc_attr($max_cols) . ';">';
     
     foreach ($team_data['list'] as $m) {
         $img = !empty($m['image']) ? esc_url($m['image']) : 'https://www.gravatar.com/avatar/?d=mp&s=150';

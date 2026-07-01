@@ -449,10 +449,15 @@ function fsr_members_render_admin_interface() {
 }
 
 function fsr_members_shortcode_renderer($atts) {
-    $a = shortcode_atts(['team' => 'all'], $atts);
+    $a = shortcode_atts(['team' => 'all', 'max_cols' => 4], $atts);
     $team = sanitize_key((string) ($a['team'] ?? 'all'));
     if (!in_array($team, ['all', 'gewaehlte', 'helfer', 'ehemalige'], true)) {
         $team = 'all';
+    }
+
+    $max_cols = max(1, min(6, absint($a['max_cols'])));
+    if ($max_cols < 1) {
+        $max_cols = 4;
     }
 
     $data = fsr_get_members_data($team);

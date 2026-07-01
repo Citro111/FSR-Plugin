@@ -26,6 +26,8 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
     gap: 24px;
+    max-width: calc(var(--fsr-max-cols, 4) * 320px);
+    width: 100%;
 }
 
 .fsr-member-card {
@@ -126,6 +128,10 @@
 }
 
 @media (max-width: 640px) {
+    .fsr-members-grid {
+        max-width: 100%;
+    }
+
     .fsr-member-card {
         padding: 18px;
     }
