@@ -132,6 +132,7 @@ function fsr_office_hours_sick_shortcode($atts) {
         echo '<button id="fsr-oh-submit" type="submit" class="button button-primary">';
         echo 'Termin absagen';
         echo '</button>';
+        ?>
         <script>
             document.addEventListener('DOMContentLoaded', function(){
                 const select = document.getElementById('fsr_oh_rule_selector');
@@ -148,6 +149,7 @@ function fsr_office_hours_sick_shortcode($atts) {
                 select.addEventListener('change', updateButton);
             });
         </script>
+        <?php
         echo '</form>';
     }
 
