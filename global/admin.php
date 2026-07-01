@@ -19,7 +19,6 @@ function fsr_custom_admin_menu() {
 add_action('admin_init', 'fsr_custom_register_global_settings');
 function fsr_custom_register_global_settings() {
     register_setting('dw_bridge_settings', 'dw_bridge_settings');
-    register_setting('fsr_members_settings', 'fsr_members_settings', 'fsr_sanitize_members_data');
 }
 
 function fsr_custom_settings_page() {
@@ -33,18 +32,19 @@ function fsr_custom_settings_page() {
             <a href="?page=fsr-etit-settings&tab=membercards" class="nav-tab <?php echo $active_tab == 'membercards' ? 'nav-tab-active' : ''; ?>">Mitgliedskarten</a>
         </h2>
 
-        <form method="post" action="options.php" style="margin-top: 20px;">
-            <?php
-            if ($active_tab == 'dokuwiki') {
+        <?php if ($active_tab == 'dokuwiki') : ?>
+            <form method="post" action="options.php" style="margin-top: 20px;">
+                <?php
                 settings_fields('dw_bridge_settings');
                 fsr_dw_render_admin_fields();
                 submit_button();
-            } else {
-                settings_fields('fsr_members_settings');
-                fsr_members_render_admin_interface();
-            }
-            ?>
-        </form>
+                ?>
+            </form>
+        <?php else : ?>
+            <div style="margin-top: 20px;">
+                <?php fsr_members_render_admin_interface(); ?>
+            </div>
+        <?php endif; ?>
     </div>
     <?php
 }

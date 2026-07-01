@@ -2,7 +2,7 @@
 /*
 Plugin Name: FSR ET/IT Custom WP Plugin
 Description: Modulares Custom-Plugin für den FSR ET/IT (DokuWiki Connector & Team-Mitgliederverwaltung).
-Version: 5.2
+Version: 5.3
 Author: Enric & FSR ET/IT
 Text Domain: fsretit
 */
@@ -27,10 +27,10 @@ add_action('wp_enqueue_scripts', 'fsr_custom_enqueue_frontend_assets');
 function fsr_custom_enqueue_frontend_assets() {
     // DokuWiki CSS laden, falls die Datei existiert
     if (file_exists(FSR_PLUGIN_DIR . 'dokuwiki/dw.css')) {
-        wp_enqueue_style('fsr-dw-css', FSR_PLUGIN_URL . 'dokuwiki/dw.css', [], '5.1');
+        wp_enqueue_style('fsr-dw-css', FSR_PLUGIN_URL . 'dokuwiki/dw.css', [], '5.3');
     }
     // Membercards CSS laden, falls die Datei existiert
     if (file_exists(FSR_PLUGIN_DIR . 'membercards/members.css')) {
-        wp_enqueue_style('fsr-members-css', FSR_PLUGIN_URL . 'membercards/members.css', [], '5.1');
+        wp_enqueue_style('fsr-members-css', FSR_PLUGIN_URL . 'membercards/members.css', [], '5.3');
     }
 }

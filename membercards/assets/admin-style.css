@@ -1,4 +1,100 @@
-/* Obere Aktionsleiste (Button sitzt sauber ÜBER den Mitgliedern) */
+.wrap:has(#fsr-sortable-members) {
+    max-width: none;
+}
+
+.fsr-settings-card-wrapper {
+    max-width: 100%;
+    color: var(--theme-palette-color-3);
+}
+
+.fsr-card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--theme-palette-color-4);
+    margin-bottom: 12px;
+}
+
+.fsr-card-title .dashicons {
+    color: var(--theme-palette-color-7);
+}
+
+.fsr-shortcode-info,
+.fsr-import-panel {
+    margin: 18px 0;
+    padding: 18px;
+    background: var(--theme-palette-color-13);
+    border: 1px solid var(--theme-palette-color-5);
+    border-radius: 12px;
+    box-shadow: 0 10px 24px var(--theme-palette-color-11);
+}
+
+.fsr-shortcode-info p,
+.fsr-import-panel p,
+.fsr-import-hint {
+    color: var(--theme-palette-color-3);
+}
+
+.fsr-shortcode-info code,
+.fsr-import-hint code {
+    color: var(--theme-palette-color-7);
+}
+
+.fsr-import-panel {
+    display: grid;
+    gap: 14px;
+}
+
+.fsr-import-panel textarea {
+    width: 100%;
+    min-height: 160px;
+    resize: vertical;
+    background: var(--theme-palette-color-9);
+    color: var(--theme-palette-color-3);
+    border: 1px solid var(--theme-palette-color-5);
+    border-radius: 10px;
+    padding: 14px;
+}
+
+.fsr-import-tools {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    align-items: center;
+}
+
+.fsr-import-file {
+    display: grid;
+    gap: 6px;
+    color: var(--theme-palette-color-3);
+    font-weight: 600;
+}
+
+.fsr-import-replace {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--theme-palette-color-3);
+}
+
+#fsr-import-status {
+    min-height: 20px;
+    font-weight: 600;
+}
+
+#fsr-import-status.is-loading {
+    color: var(--theme-palette-color-6);
+}
+
+#fsr-import-status.is-success {
+    color: #0f766e;
+}
+
+#fsr-import-status.is-error {
+    color: #b91c1c;
+}
+
 .fsr-admin-top-bar {
     display: flex;
     align-items: center;
@@ -9,58 +105,58 @@
 #fsr-save-indicator {
     font-weight: 600;
     display: none;
-    background: #ecfdf5;
-    color: #16a34a;
+    background: var(--theme-palette-color-13);
+    color: var(--theme-palette-color-6);
     padding: 6px 14px;
-    border-radius: 4px;
-    border: 1px solid #a7f3d0;
+    border-radius: 999px;
+    border: 1px solid var(--theme-palette-color-5);
     font-size: 13px;
 }
 
-/* Filterleiste */
 .fsr-filter-wrapper {
     margin: 15px 0 !important;
-    background: var(--theme-palette-color-10, #f6f7f7);
-    padding: 10px 15px;
-    border: 1px solid var(--theme-palette-color-5, #ccd0d4);
-    border-radius: 4px;
+    background: var(--theme-palette-color-10);
+    padding: 12px 15px;
+    border: 1px solid var(--theme-palette-color-5);
+    border-radius: 12px;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 14px;
 }
 
-.fsr-filter-group, .fsr-action-group {
+.fsr-filter-group,
+.fsr-action-group {
     display: flex;
     align-items: center;
     gap: 6px;
+    flex-wrap: wrap;
 }
 
 .fsr-filter-label {
     font-weight: 700;
-    color: var(--theme-palette-color-4, #1d2327);
+    color: var(--theme-palette-color-4);
 }
 
-/* Die ausklappbaren Member-Kästen */
 #fsr-sortable-members .fsr-member-row {
-    background: var(--theme-palette-color-9, #ffffff) !important;
-    border: 1px solid var(--theme-palette-color-5, #ccd0d4) !important;
+    background: var(--theme-palette-color-9) !important;
+    border: 1px solid var(--theme-palette-color-5) !important;
     margin-bottom: 12px !important;
-    border-radius: 4px !important;
+    border-radius: 12px !important;
     overflow: hidden !important;
     display: block !important;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05) !important;
+    box-shadow: 0 12px 24px var(--theme-palette-color-11) !important;
 }
 
-/* Kasten-Header */
 .fsr-row-header {
-    background: var(--theme-palette-color-10, #f6f7f7) !important;
+    background: linear-gradient(180deg, var(--theme-palette-color-10), var(--theme-palette-color-13)) !important;
     padding: 12px 15px !important;
     border-bottom: 1px solid transparent;
     cursor: move;
 }
 
 .fsr-member-row.is-expanded .fsr-row-header {
-    border-bottom-color: var(--theme-palette-color-5, #ccd0d4) !important;
+    border-bottom-color: var(--theme-palette-color-5) !important;
 }
 
 .fsr-toggle-trigger {
@@ -70,12 +166,11 @@
     width: 100%;
 }
 
-/* JETZT REPARIERT: Pfeil dreht sich, wenn .is-expanded auf dem Kasten sitzt */
 .fsr-arrow {
     display: inline-block;
     transition: transform 0.2s ease-in-out;
     font-size: 9px;
-    color: var(--theme-palette-color-3, #64748b);
+    color: var(--theme-palette-color-3);
 }
 
 .fsr-member-row.is-expanded .fsr-arrow {
@@ -84,39 +179,39 @@
 
 .fsr-drag-handle {
     font-size: 15px;
-    color: #8c8f94;
+    color: var(--theme-palette-color-7);
 }
 
 .member-display-name {
     font-size: 14px;
     font-weight: 600;
-    color: var(--theme-palette-color-4, #1d2327);
+    color: var(--theme-palette-color-4);
 }
 
 .badge-team-name {
     font-size: 11px;
-    font-weight: 600;
-    background: var(--theme-palette-color-13, #e2e8f0);
-    color: var(--theme-palette-color-3, #334155);
-    padding: 2px 8px;
-    border-radius: 10px;
+    font-weight: 700;
+    background: var(--theme-palette-color-1);
+    color: var(--theme-palette-color-8);
+    padding: 4px 10px;
+    border-radius: 999px;
     margin-left: auto;
 }
 
-/* Das kompakte Grid für die Felder (übernehmen KEINE ganze Zeile) */
 .fsr-grid-inputs {
     display: grid !important;
     grid-template-columns: repeat(12, 1fr) !important;
     gap: 14px 12px !important;
     padding: 15px !important;
-    background: var(--theme-palette-color-9, #ffffff);
+    background: var(--theme-palette-color-9);
 }
 
 .fsr-grid-inputs label {
     font-weight: 600;
-    color: var(--theme-palette-color-6, #444);
+    color: var(--theme-palette-color-6);
     font-size: 12px;
     display: block;
+    min-width: 0;
 }
 
 .fsr-grid-inputs input[type="text"],
@@ -124,53 +219,63 @@
 .fsr-grid-inputs select {
     width: 100% !important;
     margin-top: 4px !important;
-    height: 32px;
-    background: var(--theme-palette-color-9, #fff);
-    border: 1px solid var(--theme-palette-color-5, #8c8f94);
-    border-radius: 4px;
+    min-height: 36px;
+    background: var(--theme-palette-color-9);
+    color: var(--theme-palette-color-3);
+    border: 1px solid var(--theme-palette-color-5);
+    border-radius: 8px;
+    box-sizing: border-box;
+    max-width: 100%;
 }
 
-/* Smarte Breitenverteilung für die Spalten */
 .col-4 { grid-column: span 4; }
 .col-2 { grid-column: span 2; }
 
-/* Footer-Bereich im Kasten */
 .fsr-row-footer-actions {
     padding: 0 15px 15px 15px;
-    background: var(--theme-palette-color-9, #ffffff);
+    background: var(--theme-palette-color-9);
     display: flex;
     justify-content: flex-end;
 }
 
 .ui-state-highlight {
-    background: var(--theme-palette-color-1, #f1f5f9) !important;
-    border: 1px dashed var(--theme-palette-color-5, #cbd5e1) !important;
+    background: var(--theme-palette-color-1) !important;
+    border: 1px dashed var(--theme-palette-color-5) !important;
     margin-bottom: 12px;
-    border-radius: 4px;
+    border-radius: 12px;
 }
 
-/* Erweiterte Plugin-Ansicht */
-.wrap:has(#fsr-sortable-members) {
-    max-width: none;
+@media (max-width: 900px) {
+    .fsr-filter-wrapper {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .fsr-grid-inputs {
+        grid-template-columns: repeat(6, 1fr) !important;
+    }
+
+    .col-4 { grid-column: span 6; }
+    .col-2 { grid-column: span 3; }
 }
-.fsr-settings-card-wrapper {
-    max-width: 100%;
-}
-.fsr-shortcode-info {
-    margin: 20px 0;
-    padding: 18px;
-    background: var(--theme-palette-color-13, #f8fafc);
-    border: 1px solid var(--theme-palette-color-5);
-    border-radius: 8px;
-}
-.fsr-shortcode-info code {
-    color: var(--theme-palette-color-7);
-}
-.fsr-grid-inputs label {
-    min-width: 0;
-}
-.fsr-grid-inputs input,
-.fsr-grid-inputs select {
-    box-sizing: border-box;
-    max-width: 100%;
+
+@media (max-width: 640px) {
+    .fsr-admin-top-bar,
+    .fsr-import-tools {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .fsr-grid-inputs {
+        grid-template-columns: repeat(1, 1fr) !important;
+    }
+
+    .col-4,
+    .col-2 {
+        grid-column: span 1;
+    }
+
+    .badge-team-name {
+        margin-left: 0;
+    }
 }

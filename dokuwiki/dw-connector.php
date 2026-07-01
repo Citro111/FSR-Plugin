@@ -65,10 +65,18 @@ function fsr_dw_transform($html) {
     libxml_use_internal_errors(true); $dom = new DOMDocument(); $dom->loadHTML('<?xml encoding="utf-8" ?>' . $html); $s = fsr_dw_get_settings(); $base_url = rtrim($s['base_url'], '/');
     foreach ($dom->getElementsByTagName('a') as $a) {
         $href = trim($a->getAttribute('href')); if (!$href) continue; $clean_href = strtok($href, '?');
+        $open_in_new_tab = false;
         if (!str_starts_with($href, 'http') && !str_starts_with($href, '#') && !str_starts_with($href, '/wiki/')) {
-            if (!str_contains($href, '/') || str_contains($href, ':')) { $clean_href = ltrim($clean_href, ':'); $a->setAttribute('href', home_url('/wiki/' . ltrim($clean_href, '/'))); continue; }
+            if (!str_contains($href, '/') || str_contains($href, ':')) { $clean_href = ltrim($clean_href, ':'); $target_page = ltrim($clean_href, '/'); $a->setAttribute('href', home_url('/wiki/' . $target_page)); $open_in_new_tab = fsr_dw_should_open_in_new_tab($target_page); if ($open_in_new_tab) { $a->setAttribute('target', '_blank'); $a->setAttribute('rel', 'noopener noreferrer'); } continue; }
         }
-        if (str_contains($href, 'doku.php?id=')) { parse_str(parse_url($href, PHP_URL_QUERY), $query); if (!empty($query['id'])) { $page = ltrim($query['id'], ':'); $a->setAttribute('href', home_url('/wiki/' . ltrim($page, '/'))); } }
+        if (str_contains($href, 'doku.php?id=')) { parse_str(parse_url($href, PHP_URL_QUERY), $query); if (!empty($query['id'])) { $page = ltrim($query['id'], ':'); $a->setAttribute('href', home_url('/wiki/' . ltrim($page, '/'))); $open_in_new_tab = fsr_dw_should_open_in_new_tab($page); if ($open_in_new_tab) { $a->setAttribute('target', '_blank'); $a->setAttribute('rel', 'noopener noreferrer'); } } }
+        if (str_starts_with($href, '/wiki/')) {
+            $page = ltrim(substr($clean_href, strlen('/wiki/')), '/');
+            if (fsr_dw_should_open_in_new_tab($page)) {
+                $a->setAttribute('target', '_blank');
+                $a->setAttribute('rel', 'noopener noreferrer');
+            }
+        }
     }
     foreach ($dom->getElementsByTagName('img') as $img) {
         $src = trim($img->getAttribute('src')); if (!$src) continue; $src = html_entity_decode($src, ENT_QUOTES, 'UTF-8');
@@ -77,6 +85,15 @@ function fsr_dw_transform($html) {
         $current_class = $img->getAttribute('class'); $img->setAttribute('class', $current_class . ' dw-attached-image'); $img->setAttribute('loading', 'lazy');
     }
     return $dom->saveHTML();
+}
+
+function fsr_dw_should_open_in_new_tab($page) {
+    $page = strtolower(trim((string) $page));
+    if ($page === '') {
+        return false;
+    }
+
+    return (strpos($page, 'nonpublic') !== false || strpos($page, 'intern') !== false);
 }
 
 function fsr_dw_asset_proxy() {

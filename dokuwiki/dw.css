@@ -22,6 +22,22 @@
 .dw-content h1 a:hover {
     opacity: .8;
 }
+.dw-content a {
+    color: var(--theme-palette-color-7);
+    text-decoration: none;
+}
+
+.dw-content a:hover {
+    color: var(--theme-palette-color-2);
+}
+
+.dw-content a[target="_blank"]::after {
+    content: '↗';
+    display: inline-block;
+    margin-left: 0.25em;
+    font-size: 0.85em;
+    color: var(--theme-palette-color-2);
+}
 .dw-content h1:first-of-type {
     display: flex;
     align-items: center;

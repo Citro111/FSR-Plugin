@@ -1,59 +1,137 @@
-
 .fsr-teams-container {
-    display:flex;
-    flex-direction:column;
-    gap:40px;
+    display: flex;
+    flex-direction: column;
+    gap: 40px;
+    color: var(--theme-palette-color-3);
 }
+
+.fsr-member-intro {
+    padding: 18px 20px;
+    border: 1px solid var(--theme-palette-color-5);
+    border-radius: 14px;
+    background: linear-gradient(180deg, var(--theme-palette-color-13), var(--theme-palette-color-9));
+    box-shadow: 0 10px 30px var(--theme-palette-color-11);
+}
+
+.fsr-member-intro p {
+    margin: 0;
+}
+
 .fsr-team-heading {
-    color:var(--theme-palette-color-4);
+    color: var(--theme-palette-color-4);
+    margin-bottom: 18px;
 }
+
 .fsr-members-grid {
-    display:grid;
-    grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
-    gap:24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 24px;
 }
+
 .fsr-member-card {
-    border:1px solid var(--theme-palette-color-5);
-    background:var(--theme-palette-color-9);
-    box-shadow:0 8px 20px var(--theme-palette-color-11);
-    border-radius:14px;
-    padding:22px;
-    overflow:hidden;
+    position: relative;
+    border: 1px solid var(--theme-palette-color-5);
+    background: var(--theme-palette-color-9);
+    box-shadow: 0 12px 28px var(--theme-palette-color-11);
+    border-radius: 18px;
+    padding: 22px;
+    overflow: hidden;
 }
+
+.fsr-member-card::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--theme-palette-color-7), var(--theme-palette-color-2));
+}
+
+.fsr-member-card-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--theme-palette-color-13);
+    color: var(--theme-palette-color-3);
+    border: 1px solid var(--theme-palette-color-5);
+    margin-bottom: 14px;
+    font-size: 12px;
+    font-weight: 700;
+}
+
 .fsr-member-card img {
-    width:120px;
-    height:120px;
-    object-fit:cover;
-    border-radius:50%;
-    display:block;
-    margin:0 auto 16px;
+    width: 128px;
+    height: 128px;
+    object-fit: cover;
+    border-radius: 50%;
+    display: block;
+    margin: 0 auto 16px;
+    border: 4px solid var(--theme-palette-color-13);
 }
+
 .fsr-member-card h3 {
-    color:var(--theme-palette-color-4);
-    margin-bottom:8px;
+    color: var(--theme-palette-color-4);
+    margin-bottom: 8px;
+    text-align: center;
 }
+
 .fsr-member-card p {
-    color:var(--theme-palette-color-3);
-    margin:8px 0;
+    color: var(--theme-palette-color-3);
+    margin: 8px 0;
 }
-.fsr-amt-tags {
-    display:flex;
-    flex-wrap:wrap;
-    gap:8px;
-    margin:15px 0;
-}
-.fsr-amt-tag {
-    background:var(--theme-palette-color-13);
-    color:var(--theme-palette-color-3);
-    border:1px solid var(--theme-palette-color-5);
-    padding:5px 10px;
-    border-radius:999px;
-}
+
+.fsr-pronomen,
+.fsr-studiengang,
 .fsr-email-text {
-    color:var(--theme-palette-color-7)!important;
+    text-align: center;
 }
+
+.fsr-amt-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 15px 0;
+    justify-content: center;
+}
+
+.fsr-amt-tag {
+    background: var(--theme-palette-color-13);
+    color: var(--theme-palette-color-3);
+    border: 1px solid var(--theme-palette-color-5);
+    padding: 5px 10px;
+    border-radius: 999px;
+}
+
+.fsr-email-text {
+    color: var(--theme-palette-color-7) !important;
+    font-weight: 600;
+}
+
 .fsr-ehemalige-info {
-    border-top:1px solid var(--theme-palette-color-5);
-    margin-top:16px;
-    padding-top:12px;
+    border-top: 1px solid var(--theme-palette-color-5);
+    margin-top: 16px;
+    padding-top: 12px;
+    color: var(--theme-palette-color-3);
+    display: grid;
+    gap: 6px;
+}
+
+.fsr-members-empty {
+    padding: 20px;
+    border: 1px dashed var(--theme-palette-color-5);
+    border-radius: 12px;
+    background: var(--theme-palette-color-13);
+    color: var(--theme-palette-color-3);
+}
+
+@media (max-width: 640px) {
+    .fsr-member-card {
+        padding: 18px;
+    }
+
+    .fsr-member-card img {
+        width: 108px;
+        height: 108px;
+    }
 }
