@@ -50,3 +50,30 @@
 .fsr-oh-rules-table .fsr-oh-members {
     min-width: 220px;
 }
+.fs-oh-day {
+    margin-bottom: 24px;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+}
+
+.fs-oh-day-title {
+    margin: 0 0 12px 0;
+    font-size: 18px;
+}
+
+.fs-oh-item {
+    margin-bottom: 8px;
+    background: #f9f9f9;
+    border-radius: 6px;
+    padding: 6px 10px;
+}
+
+.fs-oh-summary {
+    cursor: pointer;
+    font-weight: 500;
+}
+
+.fs-oh-details {
+    padding: 10px 0 0 0;
+}

@@ -107,7 +107,8 @@ function fsr_office_hours_nth_weekday_date($year, $month, $weekday, $nth) {
 }
 
 function fsr_office_hours_shortcode($atts) {
-    $atts = shortcode_atts(['limit' => 10], $atts);
+    $atts = shortcode_atts(['limit' => 50], $atts);
+
     $settings = fsr_office_hours_get_settings();
     $members_map = fsr_office_hours_get_members_map();
     $occurrences = fsr_office_hours_collect_occurrences($settings['rules'], absint($atts['limit']));
@@ -116,39 +117,85 @@ function fsr_office_hours_shortcode($atts) {
         return '<div class="fsr-office-hours-empty">Aktuell sind keine Office Hours hinterlegt.</div>';
     }
 
-    ob_start();
-    echo '<div class="fsr-office-hours-list">';
+    // 1. Gruppieren nach Wochentag
+    $grouped = [];
+
     foreach ($occurrences as $occurrence) {
-
         $ts = strtotime($occurrence['date']);
-        $weekday = date_i18n('l', $ts);
-        $date = date_i18n('d.m.Y', $ts);
+        $weekdayNum = (int) date('N', $ts); // 1=Mon ... 7=Son
+        $weekdayLabel = date_i18n('l', $ts);
 
-        $members = [];
+        $occurrence['ts'] = $ts;
+        $occurrence['weekday_label'] = $weekdayLabel;
+        $occurrence['weekday_num'] = $weekdayNum;
 
-        foreach ($occurrence['member_ids'] as $member_id) {
-            if (!isset($members_map[$member_id])) continue;
-            $members[] = $members_map[$member_id]['name'];
-        }
-
-        echo '<article class="fsr-office-hours-item">';
-
-        echo '<p class="fsr-oh-date"><strong>'
-            . esc_html("$weekday, $date {$occurrence['start_time']}–{$occurrence['end_time']}")
-            . '</strong></p>';
-
-        echo '<p class="fsr-oh-members">'
-            . esc_html(implode(', ', $members) ?: 'Keine Personen')
-            . '</p>';
-
-        if (!empty($occurrence['location'])) {
-            echo '<p class="fsr-oh-location">'
-                . esc_html($occurrence['location'])
-                . '</p>';
-        }
-
-        echo '</article>';
+        $grouped[$weekdayNum]['label'] = $weekdayLabel;
+        $grouped[$weekdayNum]['items'][] = $occurrence;
     }
+
+    // 2. Sortierung der Wochentage
+    ksort($grouped);
+
+    ob_start();
+
+    echo '<div class="fsr-office-hours-week">';
+
+    foreach ($grouped as $weekday) {
+
+        echo '<section class="fsr-oh-day">';
+
+        echo '<h3 class="fsr-oh-day-title">'
+            . esc_html($weekday['label'])
+            . '</h3>';
+
+        // 3. Sortierung nach Startzeit
+        usort($weekday['items'], function ($a, $b) {
+            return strcmp($a['start_time'], $b['start_time']);
+        });
+
+        foreach ($weekday['items'] as $item) {
+
+            $members = [];
+
+            foreach ($item['member_ids'] as $member_id) {
+                if (!isset($members_map[$member_id])) continue;
+                $members[] = $members_map[$member_id]['name'];
+            }
+
+            $timeLabel = $item['start_time'] . ' – ' . $item['end_time'];
+
+            $accordionId = 'oh_' . md5($item['rule_id'] . $item['date'] . $item['start_time']);
+
+            echo '<details class="fsr-oh-item">';
+            echo '<summary class="fsr-oh-summary">';
+            echo '<strong>' . esc_html($timeLabel) . '</strong>';
+
+            if (!empty($item['title'])) {
+                echo ' — ' . esc_html($item['title']);
+            }
+
+            echo '</summary>';
+
+            echo '<div class="fsr-oh-details">';
+
+            echo '<p><strong>Datum:</strong> ' . esc_html(date_i18n('d.m.Y', $item['ts'])) . '</p>';
+
+            if (!empty($item['location'])) {
+                echo '<p><strong>Ort:</strong> ' . esc_html($item['location']) . '</p>';
+            }
+
+            echo '<p><strong>Mitglieder:</strong> '
+                . esc_html(implode(', ', $members) ?: 'Keine Personen')
+                . '</p>';
+
+            echo '</div>';
+
+            echo '</details>';
+        }
+
+        echo '</section>';
+    }
+
     echo '</div>';
 
     return ob_get_clean();
