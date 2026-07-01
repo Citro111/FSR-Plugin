@@ -1,6 +1,6 @@
 <?php
 
-function fsr_office_hours_handle_sick_submit(&$settings) {
+function fsr_office_hours_handle_sick_submit($settings) {
     $member_id = absint($_POST['member_id'] ?? 0);
     $occ_key = sanitize_text_field($_POST['occ_key'] ?? '');
     $reason = sanitize_text_field($_POST['reason'] ?? '');
@@ -27,7 +27,7 @@ function fsr_office_hours_handle_sick_submit(&$settings) {
 function fsr_office_hours_sick_shortcode($atts) {
     $settings = fsr_office_hours_get_settings();
     $members = fsr_get_members_data('all')['members'];
-    [$ok, $message] = fsr_office_hours_handle_sick_submit(&$settings);
+    [$ok, $message] = fsr_office_hours_handle_sick_submit($settings);
     $member_id = absint($_POST['member_id'] ?? 0);
     echo '<select name="member_id">';
     foreach ($members as $member) {
