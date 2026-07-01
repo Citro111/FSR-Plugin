@@ -182,7 +182,6 @@ function fsr_office_hours_shortcode($atts) {
                 if (fsr_office_hours_member_is_cancelled(
                         $settings['cancellations'],
                         $item['rule_id'],
-                        $id,
                         $item['date']
                 )) {
                     continue;
@@ -238,7 +237,7 @@ function fsr_office_hours_shortcode($atts) {
     return ob_get_clean();
 }
 
-function fsr_office_hours_member_is_cancelled($cancellations, $rule_id, $member_id, $date) {
+function fsr_office_hours_member_is_cancelled($cancellations, $rule_id, $date) {
 
     foreach ($cancellations as $c) {
 
