@@ -51,12 +51,18 @@ function fsr_office_hours_sick_shortcode($atts) {
     $settings = fsr_office_hours_get_settings();
     $members = fsr_get_members_data('all')['members'];
     $current_member = null;
+    $ok = false;
+    $message = '';
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['fsr_oh_sick_submit'])) {
-    [$ok, $message] = fsr_office_hours_handle_sick_submit();
+        [$ok, $message] = fsr_office_hours_handle_sick_submit();
         // Redirect verhindert Refresh-Bug
         $url = remove_query_arg(null, $_SERVER['REQUEST_URI']);
         wp_safe_redirect($url . '&fsr_msg=' . urlencode($message));
         exit;
+    }
+    if (!empty($_GET['fsr_msg'])) {
+        $message = sanitize_text_field($_GET['fsr_msg']);
+        $ok = str_contains($message, 'zugesagt');
     }
     $member_id = absint($_POST['member_id'] ?? 0);
 
