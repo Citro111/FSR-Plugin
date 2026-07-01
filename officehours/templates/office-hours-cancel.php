@@ -1,11 +1,12 @@
 <?php
 
-function fsr_office_hours_handle_sick_submit($settings) {
+function fsr_office_hours_handle_sick_submit() {
 
     if (empty($_POST['fsr_oh_sick_submit'])) {
         return [false, ''];
     }
     $member_id = absint($_POST['member_id'] ?? 0);
+    $settings = fsr_office_hours_get_settings();
     $occ_key   = sanitize_text_field($_POST['occ_key'] ?? '');
     $reason    = sanitize_text_field($_POST['reason'] ?? '');
     if (!str_contains($occ_key, '|')) {
@@ -19,6 +20,7 @@ function fsr_office_hours_handle_sick_submit($settings) {
             $entry['occurrence_date'] === $date
         ) {
             unset($settings['cancellations'][$key]);
+            $settings['cancellations'] = array_values($settings['cancellations']);
             update_option('fsr_office_hours_settings', $settings);
             return [true, 'Termin wieder zugesagt.'];
         }
@@ -38,32 +40,30 @@ function fsr_office_hours_sick_shortcode($atts) {
     $settings = fsr_office_hours_get_settings();
     $members = fsr_get_members_data('all')['members'];
     $current_member = null;
-    [$ok, $message] = fsr_office_hours_handle_sick_submit($settings);
+    [$ok, $message] = fsr_office_hours_handle_sick_submit();
     $member_id = absint($_POST['member_id'] ?? 0);
 
     ob_start();
     echo '<div class="fsr-office-hours-sick">';
     echo '<h3>Krankmeldung Office Hours</h3>';
     echo '<p>';
-    echo '<label>Mitglied</label><br>';
-    echo '<form method="post">';
-    wp_nonce_field('fsr_oh_sick_submit', '_fsr_oh_sick_nonce');
-    echo '<input type="hidden" name="fsr_oh_sick_submit" value="1">';
-    echo '<select name="member_id" onchange="this.form.submit()">';
-    foreach ($members as $m) {
-        echo '<option value="' . esc_attr($m['id']) . '"';
-        selected($m['id'], $member_id);
-        echo '>';
-        echo esc_html(
-            $m['first_name'].' '.$m['last_name']
-        );
-        echo '</option>';
-        if ($m['id'] == $member_id) {
-            $current_member = $m;
-        }
-    }
-    echo '</select>';
-    echo '</form>';
+        echo '<label>Mitglied</label><br>';
+        echo '<form method="post">';
+            echo '<select name="member_id" onchange="this.form.submit()">';
+            foreach ($members as $m) {
+                echo '<option value="' . esc_attr($m['id']) . '"';
+                selected($m['id'], $member_id);
+                echo '>';
+                echo esc_html(
+                    $m['first_name'].' '.$m['last_name']
+                );
+                echo '</option>';
+                if ($m['id'] == $member_id) {
+                    $current_member = $m;
+                }
+            }
+            echo '</select>';
+        echo '</form>';
     echo '</p>';
     if ($member_id > 0 && $current_member) {
         echo '<form method="post">';
