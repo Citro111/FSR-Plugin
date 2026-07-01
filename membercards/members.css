@@ -39,6 +39,12 @@
     overflow: hidden;
 }
 
+.fsr-member-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px var(--theme-palette-color-11);
+    filter: brightness(1.1);
+}
+
 .fsr-member-card::before {
     content: '';
     position: absolute;
