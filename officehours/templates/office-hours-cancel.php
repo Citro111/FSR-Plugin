@@ -54,6 +54,19 @@ function fsr_office_hours_sick_shortcode($atts) {
 
     [$ok, $message] = fsr_office_hours_handle_sick_submit($settings, $member_id, $token);
     $settings = fsr_office_hours_get_settings();
+    echo '<p>';
+    echo '<label>Mitglied</label><br>';
+    echo '<select name="member_id" required>';
+
+    foreach ($members as $member) {
+        echo '<option value="' . esc_attr($member['id']) . '">';
+        echo esc_html($member['first_name']);
+        echo '</option>';
+    }
+    $member_id = absint($_POST['member_id'] ?? 0);
+
+    echo '</select>';
+    echo '</p>';
 
     $occurrences = fsr_office_hours_collect_occurrences($settings['rules'], 25);
     $choices = [];
@@ -68,19 +81,6 @@ function fsr_office_hours_sick_shortcode($atts) {
     ob_start();
     echo '<div class="fsr-office-hours-sick">';
     echo '<h3>Krankmeldung Office Hours</h3>';
-    echo '<p>';
-    echo '<label>Mitglied</label><br>';
-    echo '<select name="member_id" required>';
-
-    foreach ($members as $member) {
-        echo '<option value="' . esc_attr($member['id']) . '">';
-        echo esc_html($member['first_name']);
-        echo '</option>';
-    }
-    $member_id = absint($_POST['member_id'] ?? 0);
-
-    echo '</select>';
-    echo '</p>';
     echo '<p>Hallo ' . esc_html($members_map[$member_id]['first_name']) . ', hier kannst du den nächsten Termin absagen.</p>';
 
     if ($message !== '') {
