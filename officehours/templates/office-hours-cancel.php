@@ -5,15 +5,21 @@ function fsr_office_hours_handle_sick_submit() {
     if (empty($_POST['fsr_oh_sick_submit'])) {
         return [false, ''];
     }
+
+    if (!wp_verify_nonce($_POST['_fsr_oh_sick_nonce'] ?? '', 'fsr_oh_sick_submit')) {
+        return [false, 'Ungültige Anfrage.'];
+    }
+
     $member_id = absint($_POST['member_id'] ?? 0);
-    $settings = fsr_office_hours_get_settings();
     $occ_key   = sanitize_text_field($_POST['occ_key'] ?? '');
     $reason    = sanitize_text_field($_POST['reason'] ?? '');
-    if (!str_contains($occ_key, '|')) {
-        return [false, 'Ungültiger Termin.'];
-    }
+
     [$rule_id, $date] = explode('|', $occ_key);
+
+    $settings = fsr_office_hours_get_settings();
+
     foreach (($settings['cancellations'] ?? []) as $key => $entry) {
+
         if (
             $entry['rule_id'] === $rule_id &&
             absint($entry['member_id']) === $member_id &&
@@ -21,10 +27,13 @@ function fsr_office_hours_handle_sick_submit() {
         ) {
             unset($settings['cancellations'][$key]);
             $settings['cancellations'] = array_values($settings['cancellations']);
+
             update_option('fsr_office_hours_settings', $settings);
+
             return [true, 'Termin wieder zugesagt.'];
         }
     }
+
     $settings['cancellations'][] = [
         'rule_id' => $rule_id,
         'member_id' => $member_id,
@@ -32,7 +41,9 @@ function fsr_office_hours_handle_sick_submit() {
         'reason' => $reason,
         'created_at' => current_time('mysql'),
     ];
+
     update_option('fsr_office_hours_settings', $settings);
+
     return [true, 'Termin erfolgreich abgesagt.'];
 }
 
@@ -40,7 +51,13 @@ function fsr_office_hours_sick_shortcode($atts) {
     $settings = fsr_office_hours_get_settings();
     $members = fsr_get_members_data('all')['members'];
     $current_member = null;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['fsr_oh_sick_submit'])) {
     [$ok, $message] = fsr_office_hours_handle_sick_submit();
+        // Redirect verhindert Refresh-Bug
+        $url = remove_query_arg(null, $_SERVER['REQUEST_URI']);
+        wp_safe_redirect($url . '&fsr_msg=' . urlencode($message));
+        exit;
+    }
     $member_id = absint($_POST['member_id'] ?? 0);
 
     ob_start();
