@@ -15,6 +15,7 @@ sort($unique_amter);
 $team_labels = [
     'gewaehlte' => 'Gewählte',
     'helfer' => 'Helfer',
+    'ehemalige' => 'Ehemalige'
 ];
 
 $layout_settings = isset($layout_settings) && is_array($layout_settings) ? $layout_settings : [];
@@ -156,6 +157,7 @@ $all_amt_tags_json = wp_json_encode(array_values($unique_amter));
                             <select class="fsr-team-selector" name="fsr_members_settings[members][<?php echo $index; ?>][team]">
                                 <option value="gewaehlte" <?php selected($member['team'] ?? '', 'gewaehlte'); ?>>Gewählte</option>
                                 <option value="helfer" <?php selected($member['team'] ?? '', 'helfer'); ?>>Helfer</option>
+                                <option value="ehemalige" <?php selected($member['team'] ?? '', 'ehemalige'); ?>>Ehemalige</option>
                             </select>
                         </label>
                         <label class="col-2">Ehemalige:<br>
@@ -231,7 +233,7 @@ jQuery(document).ready(function($) {
     }
 
     function teamLabel(value, isEhemalige) {
-        const labels = { gewaehlte: 'Gewählte', helfer: 'Helfer' };
+        const labels = { gewaehlte: 'Gewählte', helfer: 'Helfer', ehemalige: 'Ehemalige' };
         let label = labels[value] || value.charAt(0).toUpperCase() + value.slice(1);
         if (isEhemalige) {
             label += ' + Ehemalige';
@@ -357,6 +359,7 @@ jQuery(document).ready(function($) {
                         <select class="fsr-team-selector" name="fsr_members_settings[members][${index}][team]">
                             <option value="gewaehlte">Gewählte</option>
                             <option value="helfer">Helfer</option>
+                            <option value="ehemalige">Ehemalige</option>
                         </select>
                     </label>
                     <label class="col-2">Ehemalige:<br><input type="checkbox" class="fsr-is-ehemalige" name="fsr_members_settings[members][${index}][is_ehemalige]" value="1" /></label>
