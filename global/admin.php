@@ -30,6 +30,7 @@ function fsr_custom_settings_page() {
         <h2 class="nav-tab-wrapper">
             <a href="?page=fsr-etit-settings&tab=dokuwiki" class="nav-tab <?php echo $active_tab == 'dokuwiki' ? 'nav-tab-active' : ''; ?>">DokuWiki Connector</a>
             <a href="?page=fsr-etit-settings&tab=membercards" class="nav-tab <?php echo $active_tab == 'membercards' ? 'nav-tab-active' : ''; ?>">Mitgliedskarten</a>
+            <a href="?page=fsr-etit-settings&tab=officehours" class="nav-tab <?php echo $active_tab == 'officehours' ? 'nav-tab-active' : ''; ?>">Office Hours</a>
         </h2>
 
         <?php if ($active_tab == 'dokuwiki') : ?>
@@ -40,10 +41,18 @@ function fsr_custom_settings_page() {
                 submit_button();
                 ?>
             </form>
-        <?php else : ?>
+        <?php elseif ($active_tab == 'membercards') : ?>
             <div style="margin-top: 20px;">
                 <?php fsr_members_render_admin_interface(); ?>
             </div>
+        <?php else : ?>
+            <form method="post" action="options.php" style="margin-top: 20px;">
+                <?php
+                settings_fields('fsr_office_hours_settings');
+                fsr_office_hours_render_admin_interface();
+                submit_button('Office Hours speichern');
+                ?>
+            </form>
         <?php endif; ?>
     </div>
     <?php

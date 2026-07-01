@@ -15,7 +15,6 @@ sort($unique_amter);
 $team_labels = [
     'gewaehlte' => 'Gewählte',
     'helfer' => 'Helfer',
-    'ehemalige' => 'Ehemalige',
 ];
 ?>
 <datalist id="fsr-amter-list">
@@ -55,7 +54,7 @@ $team_labels = [
             <button type="button" class="button button-secondary" id="fsr-member-import-btn">Import starten</button>
         </div>
         <div class="fsr-import-hint">
-            JSON-Objekte können die Felder <code>first_name</code>, <code>last_name</code>, <code>image</code>, <code>studiengang</code>, <code>abschluss</code>, <code>pronomen</code>, <code>email_prefix</code>, <code>amt</code>, <code>erstes_jahr</code>, <code>semester_anzahl</code> und <code>team</code> enthalten.
+            JSON-Objekte können die Felder <code>first_name</code>, <code>last_name</code>, <code>image</code>, <code>studiengang</code>, <code>abschluss</code>, <code>pronomen</code>, <code>email_prefix</code>, <code>amt</code>, <code>erstes_jahr</code>, <code>semester_anzahl</code>, <code>team</code>, <code>is_ehemalige</code> und <code>abgang_jahr</code> enthalten.
         </div>
         <div id="fsr-import-status" aria-live="polite"></div>
     </div>
@@ -84,11 +83,18 @@ $team_labels = [
     <div id="fsr-sortable-members">
         <?php foreach ($members as $index => $member) :
             $team = $member['team'] ?? 'gewaehlte';
-            $team_class = 'fsr-team-' . $team;
+            $is_ehemalige = !empty($member['is_ehemalige']);
+            $team_classes = ['fsr-team-' . $team];
+            if ($is_ehemalige) {
+                $team_classes[] = 'fsr-team-ehemalige';
+            }
             $full_display_name = trim(($member['first_name'] ?? '') . ' ' . ($member['last_name'] ?? ''));
             $team_label = $team_labels[$team] ?? ucfirst($team);
+            if ($is_ehemalige) {
+                $team_label .= ' + Ehemalige';
+            }
         ?>
-            <div class="fsr-member-row <?php echo esc_attr($team_class); ?>" data-member-id="<?php echo esc_attr($member['id'] ?? 0); ?>">
+            <div class="fsr-member-row <?php echo esc_attr(implode(' ', $team_classes)); ?>" data-member-id="<?php echo esc_attr($member['id'] ?? 0); ?>">
                 <div class="fsr-row-header">
                     <div class="fsr-toggle-trigger">
                         <span class="fsr-arrow">▶</span>
@@ -124,9 +130,12 @@ $team_labels = [
                             <select class="fsr-team-selector" name="fsr_members_settings[members][<?php echo $index; ?>][team]">
                                 <option value="gewaehlte" <?php selected($member['team'] ?? '', 'gewaehlte'); ?>>Gewählte</option>
                                 <option value="helfer" <?php selected($member['team'] ?? '', 'helfer'); ?>>Helfer</option>
-                                <option value="ehemalige" <?php selected($member['team'] ?? '', 'ehemalige'); ?>>Ehemalige</option>
                             </select>
                         </label>
+                        <label class="col-2">Ehemalige:<br>
+                            <input type="checkbox" class="fsr-is-ehemalige" name="fsr_members_settings[members][<?php echo $index; ?>][is_ehemalige]" value="1" <?php checked(!empty($member['is_ehemalige'])); ?> />
+                        </label>
+                        <label class="col-2">Abgegangen im Jahr:<br><input type="text" name="fsr_members_settings[members][<?php echo $index; ?>][abgang_jahr]" value="<?php echo esc_attr($member['abgang_jahr'] ?? ''); ?>" placeholder="z. B. 2025" /></label>
                     </div>
 
                     <div class="fsr-row-footer-actions">
@@ -158,9 +167,26 @@ jQuery(document).ready(function($) {
             .replace(/'/g, '&#039;');
     }
 
-    function teamLabel(value) {
-        const labels = { gewaehte: 'Gewählte', helfer: 'Helfer', ehemalige: 'Ehemalige' };
-        return labels[value] || value.charAt(0).toUpperCase() + value.slice(1);
+    function teamLabel(value, isEhemalige) {
+        const labels = { gewaehlte: 'Gewählte', helfer: 'Helfer' };
+        let label = labels[value] || value.charAt(0).toUpperCase() + value.slice(1);
+        if (isEhemalige) {
+            label += ' + Ehemalige';
+        }
+        return label;
+    }
+
+    function applyRowTeamState(row) {
+        const val = row.find('.fsr-team-selector').val();
+        const isEhemalige = row.find('.fsr-is-ehemalige').is(':checked');
+
+        row.removeClass('fsr-team-gewaehlte fsr-team-helfer fsr-team-ehemalige');
+        row.addClass('fsr-team-' + val);
+        if (isEhemalige) {
+            row.addClass('fsr-team-ehemalige');
+        }
+
+        row.find('.badge-team-name').text(teamLabel(val, isEhemalige));
     }
 
     function triggerAutoSave() {
@@ -216,9 +242,10 @@ jQuery(document).ready(function($) {
                         <select class="fsr-team-selector" name="fsr_members_settings[members][${index}][team]">
                             <option value="gewaehlte">Gewählte</option>
                             <option value="helfer">Helfer</option>
-                            <option value="ehemalige">Ehemalige</option>
                         </select>
                     </label>
+                    <label class="col-2">Ehemalige:<br><input type="checkbox" class="fsr-is-ehemalige" name="fsr_members_settings[members][${index}][is_ehemalige]" value="1" /></label>
+                    <label class="col-2">Abgegangen im Jahr:<br><input type="text" name="fsr_members_settings[members][${index}][abgang_jahr]" placeholder="z. B. 2025" /></label>
                 </div>
                 <div class="fsr-row-footer-actions">
                     <button type="button" class="button button-link-delete remove-member">Dauerhaft löschen</button>
@@ -288,11 +315,9 @@ jQuery(document).ready(function($) {
         }
     });
 
-    $(document).on('change', '.fsr-team-selector', function() {
+    $(document).on('change', '.fsr-team-selector, .fsr-is-ehemalige', function() {
         const row = $(this).closest('.fsr-member-row');
-        const val = $(this).val();
-        row.removeClass('fsr-team-gewaehlte fsr-team-helfer fsr-team-ehemalige').addClass('fsr-team-' + val);
-        row.find('.badge-team-name').text(teamLabel(val));
+        applyRowTeamState(row);
     });
 
     $('.fsr-filter-btn').on('click', function() {
@@ -310,7 +335,9 @@ jQuery(document).ready(function($) {
 
     $('#add-member-btn').on('click', function() {
         const index = $('#fsr-sortable-members').children().length;
-        $('#fsr-sortable-members').prepend(createMemberRow(index));
+        const row = $(createMemberRow(index));
+        $('#fsr-sortable-members').prepend(row);
+        applyRowTeamState(row);
         triggerAutoSave();
     });
 
@@ -343,5 +370,9 @@ jQuery(document).ready(function($) {
             });
         });
     }
+
+    $('#fsr-sortable-members .fsr-member-row').each(function() {
+        applyRowTeamState($(this));
+    });
 });
 </script>

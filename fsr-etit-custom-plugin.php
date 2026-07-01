@@ -22,6 +22,9 @@ require_once FSR_PLUGIN_DIR . 'dokuwiki/dw-connector.php';
 // 3. Membercards-Modul laden
 require_once FSR_PLUGIN_DIR . 'membercards/members.php';
 
+// 4. Office-Hours-Modul laden
+require_once FSR_PLUGIN_DIR . 'officehours/office-hours.php';
+
 // Zentrale Asset-Verwaltung
 add_action('wp_enqueue_scripts', 'fsr_custom_enqueue_frontend_assets');
 function fsr_custom_enqueue_frontend_assets() {
@@ -32,5 +35,9 @@ function fsr_custom_enqueue_frontend_assets() {
     // Membercards CSS laden, falls die Datei existiert
     if (file_exists(FSR_PLUGIN_DIR . 'membercards/members.css')) {
         wp_enqueue_style('fsr-members-css', FSR_PLUGIN_URL . 'membercards/members.css', [], '5.3');
+    }
+    // Office Hours CSS laden, falls die Datei existiert
+    if (file_exists(FSR_PLUGIN_DIR . 'officehours/office-hours.css')) {
+        wp_enqueue_style('fsr-office-hours-css', FSR_PLUGIN_URL . 'officehours/office-hours.css', [], '1.0.0');
     }
 }

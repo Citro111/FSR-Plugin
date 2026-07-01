@@ -35,6 +35,7 @@ function fsr_register_member_post_type() {
 function fsr_member_default_record() {
     return [
         'id' => 0,
+        'sort_order' => 0,
         'first_name' => '',
         'last_name' => '',
         'image' => '',
@@ -45,13 +46,15 @@ function fsr_member_default_record() {
         'amt' => '',
         'erstes_jahr' => '',
         'semester_anzahl' => '',
+        'is_ehemalige' => 0,
+        'abgang_jahr' => '',
         'team' => 'gewaehlte',
     ];
 }
 
 function fsr_member_normalize_team($team) {
     $team = sanitize_key((string) $team);
-    return in_array($team, ['gewaehlte', 'helfer', 'ehemalige'], true) ? $team : 'gewaehlte';
+    return in_array($team, ['gewaehlte', 'helfer'], true) ? $team : 'gewaehlte';
 }
 
 function fsr_member_clean_text($value) {
@@ -59,7 +62,7 @@ function fsr_member_clean_text($value) {
 }
 
 function fsr_member_is_empty($member) {
-    foreach (['first_name', 'last_name', 'image', 'studiengang', 'abschluss', 'pronomen', 'email_prefix', 'amt', 'erstes_jahr', 'semester_anzahl'] as $key) {
+    foreach (['first_name', 'last_name', 'image', 'studiengang', 'abschluss', 'pronomen', 'email_prefix', 'amt', 'erstes_jahr', 'semester_anzahl', 'abgang_jahr'] as $key) {
         if (!empty($member[$key])) {
             return false;
         }
@@ -69,8 +72,10 @@ function fsr_member_is_empty($member) {
 
 function fsr_sanitize_member_record($member) {
     $member = wp_parse_args(is_array($member) ? $member : [], fsr_member_default_record());
+    $legacy_team = sanitize_key((string) $member['team']);
 
     $member['id'] = absint($member['id']);
+    $member['sort_order'] = absint($member['sort_order']);
     $member['first_name'] = fsr_member_clean_text($member['first_name']);
     $member['last_name'] = fsr_member_clean_text($member['last_name']);
     $member['image'] = esc_url_raw(trim((string) $member['image']));
@@ -81,7 +86,13 @@ function fsr_sanitize_member_record($member) {
     $member['amt'] = fsr_member_clean_text($member['amt']);
     $member['erstes_jahr'] = fsr_member_clean_text($member['erstes_jahr']);
     $member['semester_anzahl'] = $member['semester_anzahl'] === '' ? '' : absint($member['semester_anzahl']);
+    $member['is_ehemalige'] = !empty($member['is_ehemalige']) ? 1 : 0;
+    $member['abgang_jahr'] = fsr_member_clean_text($member['abgang_jahr']);
     $member['team'] = fsr_member_normalize_team($member['team']);
+
+    if ($legacy_team === 'ehemalige') {
+        $member['is_ehemalige'] = 1;
+    }
 
     return $member;
 }
@@ -113,7 +124,12 @@ function fsr_get_members_posts($team = 'all') {
         'order' => 'ASC',
     ];
 
-    if ($team !== 'all') {
+    if ($team === 'ehemalige') {
+        $query_args['meta_query'] = [[
+            'key' => 'is_ehemalige',
+            'value' => '1',
+        ]];
+    } elseif ($team !== 'all') {
         $query_args['meta_query'] = [[
             'key' => 'team',
             'value' => fsr_member_normalize_team($team),
@@ -133,6 +149,7 @@ function fsr_get_members_posts($team = 'all') {
 function fsr_member_post_to_record($post) {
     $record = fsr_member_default_record();
     $record['id'] = $post->ID;
+    $record['sort_order'] = (int) $post->menu_order;
     $record['first_name'] = (string) get_post_meta($post->ID, 'first_name', true);
     $record['last_name'] = (string) get_post_meta($post->ID, 'last_name', true);
     $record['image'] = (string) get_post_meta($post->ID, 'image', true);
@@ -143,7 +160,13 @@ function fsr_member_post_to_record($post) {
     $record['amt'] = (string) get_post_meta($post->ID, 'amt', true);
     $record['erstes_jahr'] = (string) get_post_meta($post->ID, 'erstes_jahr', true);
     $record['semester_anzahl'] = (string) get_post_meta($post->ID, 'semester_anzahl', true);
+    $record['abgang_jahr'] = (string) get_post_meta($post->ID, 'abgang_jahr', true);
+    $record['is_ehemalige'] = absint(get_post_meta($post->ID, 'is_ehemalige', true));
     $record['team'] = fsr_member_normalize_team(get_post_meta($post->ID, 'team', true));
+
+    if (sanitize_key((string) get_post_meta($post->ID, 'team', true)) === 'ehemalige') {
+        $record['is_ehemalige'] = 1;
+    }
 
     return $record;
 }
@@ -158,9 +181,13 @@ function fsr_get_members_data($team = 'all') {
     $legacy = get_option('fsr_members_settings', ['members' => []]);
     if (!empty($legacy['members']) && is_array($legacy['members'])) {
         $legacy_members = [];
-        foreach ($legacy['members'] as $member) {
+        foreach ($legacy['members'] as $index => $member) {
+            $member['sort_order'] = $index;
             $member = fsr_sanitize_member_record($member);
-            if ($team !== 'all' && $member['team'] !== fsr_member_normalize_team($team)) {
+            if ($team === 'ehemalige' && !$member['is_ehemalige']) {
+                continue;
+            }
+            if ($team !== 'all' && $team !== 'ehemalige' && $member['team'] !== fsr_member_normalize_team($team)) {
                 continue;
             }
             if (fsr_member_is_empty($member)) {
@@ -237,6 +264,8 @@ function fsr_upsert_member_records($members, $delete_missing = true) {
         update_post_meta($saved_id, 'amt', $member['amt']);
         update_post_meta($saved_id, 'erstes_jahr', $member['erstes_jahr']);
         update_post_meta($saved_id, 'semester_anzahl', $member['semester_anzahl']);
+        update_post_meta($saved_id, 'is_ehemalige', $member['is_ehemalige']);
+        update_post_meta($saved_id, 'abgang_jahr', $member['abgang_jahr']);
         update_post_meta($saved_id, 'team', $member['team']);
     }
 
@@ -313,6 +342,8 @@ function fsr_parse_member_import_payload($raw_payload) {
             'amt' => $row['amt'] ?? $row['aemter'] ?? $row['ämter'] ?? '',
             'erstes_jahr' => $row['erstes_jahr'] ?? $row['start_year'] ?? '',
             'semester_anzahl' => $row['semester_anzahl'] ?? $row['semester'] ?? '',
+            'is_ehemalige' => $row['is_ehemalige'] ?? $row['ehemalige'] ?? 0,
+            'abgang_jahr' => $row['abgang_jahr'] ?? $row['abgang'] ?? $row['departure_year'] ?? '',
             'team' => $row['team'] ?? $row['team_id'] ?? 'gewaehlte',
         ];
     }
@@ -412,13 +443,19 @@ function fsr_ajax_import_members_handler() {
 }
 
 function fsr_members_render_admin_interface() {
+    $data = fsr_get_members_data('all');
+    $members = $data['members'] ?? [];
     include plugin_dir_path(__FILE__) . 'templates/admin-interface.php';
 }
 
 function fsr_members_shortcode_renderer($atts) {
     $a = shortcode_atts(['team' => 'all'], $atts);
-    $team = fsr_member_normalize_team($a['team'] ?? 'all');
-    $data = fsr_get_members_data($team === 'all' ? 'all' : $team);
+    $team = sanitize_key((string) ($a['team'] ?? 'all'));
+    if (!in_array($team, ['all', 'gewaehlte', 'helfer', 'ehemalige'], true)) {
+        $team = 'all';
+    }
+
+    $data = fsr_get_members_data($team);
     $members = $data['members'] ?? [];
 
     if (empty($members)) {

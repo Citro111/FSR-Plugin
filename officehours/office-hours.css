@@ -1,0 +1,52 @@
+.fsr-office-hours-list {
+    display: grid;
+    gap: 16px;
+}
+
+.fsr-office-hours-item {
+    border: 1px solid var(--theme-palette-color-5);
+    border-radius: 14px;
+    padding: 16px;
+    background: var(--theme-palette-color-13);
+    color: var(--theme-palette-color-3);
+    box-shadow: 0 8px 20px var(--theme-palette-color-11);
+}
+
+.fsr-office-hours-item h4 {
+    margin: 0 0 8px;
+    color: var(--theme-palette-color-4);
+}
+
+.fsr-office-hours-item p {
+    margin: 6px 0;
+}
+
+.fsr-office-hours-empty,
+.fsr-office-hours-sick {
+    border: 1px solid var(--theme-palette-color-5);
+    border-radius: 14px;
+    padding: 16px;
+    background: var(--theme-palette-color-13);
+    color: var(--theme-palette-color-3);
+}
+
+.fsr-office-hours-sick-message {
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--theme-palette-color-5);
+    margin: 10px 0;
+}
+
+.fsr-office-hours-sick-message.is-success {
+    color: #0f766e;
+    background: #ecfeff;
+}
+
+.fsr-office-hours-sick-message.is-error {
+    color: #b91c1c;
+    background: #fef2f2;
+}
+
+.fsr-oh-rules-table .fsr-oh-members {
+    min-width: 220px;
+}

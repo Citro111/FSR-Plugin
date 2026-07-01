@@ -10,6 +10,22 @@ $teams = [
 foreach ($members as $m) {
     $t_id = $m['team'] ?? 'gewaehlte';
     if (isset($teams[$t_id])) { $teams[$t_id]['list'][] = $m; }
+    if (!empty($m['is_ehemalige'])) { $teams['ehemalige']['list'][] = $m; }
+}
+
+if (!empty($teams['ehemalige']['list'])) {
+    usort($teams['ehemalige']['list'], function ($a, $b) {
+        $year_a = !empty($a['abgang_jahr']) ? (int) preg_replace('/\D+/', '', (string) $a['abgang_jahr']) : 0;
+        $year_b = !empty($b['abgang_jahr']) ? (int) preg_replace('/\D+/', '', (string) $b['abgang_jahr']) : 0;
+
+        if ($year_a !== $year_b) {
+            return $year_b <=> $year_a;
+        }
+
+        $order_a = isset($a['sort_order']) ? (int) $a['sort_order'] : 0;
+        $order_b = isset($b['sort_order']) ? (int) $b['sort_order'] : 0;
+        return $order_a <=> $order_b;
+    });
 }
 
 if ($a['team'] !== 'all' && isset($teams[$a['team']])) { 
@@ -78,6 +94,7 @@ foreach ($teams as $team_id => $team_data) {
             <?php if ($team_id === 'ehemalige') : ?>
                 <div class="fsr-ehemalige-info">
                     <?php if(!empty($m['erstes_jahr'])): ?><div>Dabei seit: <?php echo esc_html($m['erstes_jahr']); ?></div><?php endif; ?>
+                    <?php if(!empty($m['abgang_jahr'])): ?><div>Abgegangen im Jahr: <?php echo esc_html($m['abgang_jahr']); ?></div><?php endif; ?>
                     <?php if(!empty($m['semester_anzahl'])): ?><div>Semester im FSR: <?php echo esc_html($m['semester_anzahl']); ?></div><?php endif; ?>
                 </div>
             <?php endif; ?>
