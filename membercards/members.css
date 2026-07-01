@@ -22,6 +22,19 @@
     margin-bottom: 18px;
 }
 
+.fsr-members-grid{
+    display:grid !important;
+    grid-template-columns:repeat(4,1fr) !important;
+    gap:20px !important;
+    background:red !important;
+}
+
+.fsr-member-card{
+    background:yellow !important;
+    min-height:150px;
+}
+
+/*
 .fsr-members-grid {
     display: grid;
     grid-template-columns: repeat(var(--fsr-cols-desktop, 4), minmax(0, 1fr));
@@ -38,7 +51,7 @@
     padding: 22px;
     overflow: hidden;
 }
-
+*/
 .fsr-member-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 10px 15px -3px var(--theme-palette-color-11);
