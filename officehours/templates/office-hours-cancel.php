@@ -36,11 +36,11 @@ function fsr_office_hours_sick_shortcode($atts) {
     ob_start();
     echo '<div class="fsr-office-hours-sick">';
     echo '<h3>Krankmeldung Office Hours</h3>';
+    echo '<p>';
+    echo '<label>Mitglied</label><br>';
     echo '<form method="post">';
     wp_nonce_field('fsr_oh_sick_submit', '_fsr_oh_sick_nonce');
     echo '<input type="hidden" name="fsr_oh_sick_submit" value="1">';
-    echo '<p>';
-    echo '<label>Mitglied</label><br>';
     echo '<select name="member_id" onchange="this.form.submit()">';
     foreach ($members as $m) {
         echo '<option value="' . esc_attr($m['id']) . '"';
@@ -52,7 +52,13 @@ function fsr_office_hours_sick_shortcode($atts) {
         echo '</option>';
     }
     echo '</select>';
+    echo '</form>';
     echo '</p>';
+    if ($member_id > 0) {
+        echo '<form method="post">';
+        wp_nonce_field('fsr_oh_sick_submit', '_fsr_oh_sick_nonce');
+        echo '<input type="hidden" name="fsr_oh_sick_submit" value="1">';
+        echo '<input type="hidden" name="member_id" value="'.$member_id.'">';
     echo '<p>Hallo ' . esc_html($members_map[$member_id]['first_name']) . ', hier kannst du den nächsten Termin absagen.</p>';
     $occurrences = fsr_office_hours_collect_occurrences($settings['rules'], 25);
     $choices = [];
@@ -104,6 +110,7 @@ function fsr_office_hours_sick_shortcode($atts) {
         'fsr_office_hours_settings',
         $settings
     );
+    }
 
     return ob_get_clean();
 }
