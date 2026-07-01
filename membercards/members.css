@@ -161,15 +161,15 @@
     box-shadow:0 0 18px var(--theme-palette-color-11);
 }
 
-.fsr-team-gewaehlte {
+.fsr-team-gewaehlte::before {
     background: linear-gradient(90deg,#2563eb,#3b82f6);
 }
 
-.fsr-team-helfer {
+.fsr-team-helfer::before {
     background: linear-gradient(90deg,#059669,#10b981);
 }
 
-.fsr-team-ehemalige {
+.fsr-team-ehemalige::before {
     background: linear-gradient(90deg,#6b7280,#9ca3af);
 }
 
