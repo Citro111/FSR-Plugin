@@ -82,7 +82,7 @@ function fsr_office_hours_render_admin_interface() {
                     <td>
                         <select name="fsr_office_hours_settings[rules][<?php echo $index; ?>][member_ids][]" multiple size="6" class="fsr-oh-members">
                             <?php foreach ($members_map as $member_id => $member_info) : ?>
-                                <option value="<?php echo esc_attr($member_id); ?>" <?php selected(in_array($member_id, $rule['member_ids'], true)); ?>><?php echo esc_html($member_info['name']); ?></option>
+                                <option value="<?php echo esc_attr($member_id); ?>" <?php selected(in_array($member_id, $rule['member_ids'], true)); ?>><?php echo esc_html($member_info['first_name'] . ' ' . $member_info['last_name']); ?></option>
                             <?php endforeach; ?>
                         </select>
                     </td>
@@ -118,7 +118,7 @@ function fsr_office_hours_render_admin_interface() {
                     ], $settings['sick_form_page']);
                     ?>
                     <tr>
-                        <td><?php echo esc_html($member_info['name']); ?></td>
+                        <td><?php echo esc_html($member_info['first_name'] . ' ' . $member_info['last_name']); ?></td>
                         <td><code><?php echo esc_html($link); ?></code></td>
                     </tr>
                 <?php endforeach; ?>
