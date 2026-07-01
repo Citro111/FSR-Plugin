@@ -97,34 +97,6 @@ function fsr_office_hours_render_admin_interface() {
         <p>
             <button type="button" class="button" id="fsr-oh-add-row">Office Hour hinzufügen</button>
         </p>
-
-        <h3>Krankmeldung (Member Self-Service)</h3>
-        <p>Erstelle eine Seite mit dem Shortcode <code>[fsr_office_hours_sick]</code> und trage hier die URL ein. Danach kannst du den Mitgliedern ihren persönlichen Link schicken.</p>
-        <input type="url" name="fsr_office_hours_settings[sick_form_page]" value="<?php echo esc_attr($settings['sick_form_page']); ?>" class="regular-text" placeholder="https://deine-seite.de/office-hours-krank/" />
-
-        <?php if (!empty($settings['sick_form_page'])) : ?>
-            <table class="widefat striped" style="margin-top:12px; max-width:860px;">
-                <thead>
-                <tr>
-                    <th>Mitglied</th>
-                    <th>Persönlicher Krankmelden-Link</th>
-                </tr>
-                </thead>
-                <tbody>
-                <?php foreach ($members_map as $member_id => $member_info) :
-                    $link = add_query_arg([
-                        'fsr_oh_member' => $member_id,
-                        'fsr_oh_token' => fsr_office_hours_member_token($member_id),
-                    ], $settings['sick_form_page']);
-                    ?>
-                    <tr>
-                        <td><?php echo esc_html($member_info['first_name'] . ' ' . $member_info['last_name']); ?></td>
-                        <td><code><?php echo esc_html($link); ?></code></td>
-                    </tr>
-                <?php endforeach; ?>
-                </tbody>
-            </table>
-        <?php endif; ?>
     </div>
 
     <script>

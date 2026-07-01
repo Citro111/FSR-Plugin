@@ -15,9 +15,8 @@ add_shortcode('fsr_office_hours_sick', 'fsr_office_hours_sick_shortcode');
 
 function fsr_office_hours_get_settings() {
     return wp_parse_args(get_option('fsr_office_hours_settings', []), [
-        'sick_form_page' => '',
         'rules' => [],
-        'cancellations' => [],
+        'cancellations' => []
     ]);
 }
 
@@ -67,7 +66,6 @@ function fsr_office_hours_sanitize_rule($rule, $index = 0) {
 
 function fsr_sanitize_office_hours_settings($input) {
     $clean = [
-        'sick_form_page' => esc_url_raw((string) ($input['sick_form_page'] ?? '')),
         'rules' => [],
         'cancellations' => [],
     ];

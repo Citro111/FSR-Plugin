@@ -25,7 +25,7 @@ function fsr_office_hours_collect_occurrences($rules, $limit = 12) {
                 if (!$date || $date < $today) {
                     continue;
                 }
-                if (fsr_office_hours_is_cancelled($settings['cancellations'] ?? [], $rule['id'], $date)) {
+                if (fsr_office_hours_member_is_cancelled($settings['cancellations'] ?? [], $rule['id'], $date)) {
                     continue;
                 }
                 $bucket[] = [
@@ -56,7 +56,7 @@ function fsr_office_hours_collect_occurrences($rules, $limit = 12) {
 
                 if (
                     $date >= $today &&
-                    !fsr_office_hours_is_cancelled(
+                    !fsr_office_hours_member_is_cancelled(
                         $settings['cancellations'] ?? [],
                         $rule['id'],
                         $date
@@ -179,6 +179,14 @@ function fsr_office_hours_shortcode($atts) {
 
             foreach ($item['member_ids'] as $id) {
                 if (!isset($members_map[$id])) continue;
+                if (fsr_office_hours_member_is_cancelled(
+                        $settings['cancellations'],
+                        $item['rule_id'],
+                        $id,
+                        $item['date']
+                )) {
+                    continue;
+                }
                 $members[] = $members_map[$id];
             }
             $first_names = array_map(fn($m) => $m['first_name'], $members);
@@ -230,11 +238,18 @@ function fsr_office_hours_shortcode($atts) {
     return ob_get_clean();
 }
 
-function fsr_office_hours_is_cancelled($cancellations, $rule_id, $date) {
+function fsr_office_hours_member_is_cancelled($cancellations, $rule_id, $member_id, $date) {
+
     foreach ($cancellations as $c) {
-        if (($c['rule_id'] ?? '') === $rule_id && ($c['occurrence_date'] ?? '') === $date) {
+
+        if (
+            ($c['rule_id'] ?? '') === $rule_id &&
+            ($c['occurrence_date'] ?? '') === $date &&
+            absint($c['member_id'] ?? 0) === absint($member_id)
+        ) {
             return true;
         }
     }
+
     return false;
 }

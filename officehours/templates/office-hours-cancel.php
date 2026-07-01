@@ -3,15 +3,6 @@ function fsr_office_hours_member_token($member_id) {
     return substr(hash_hmac('sha256', (string) absint($member_id), wp_salt('auth')), 0, 20);
 }
 
-function fsr_office_hours_validate_member_token($member_id, $token) {
-    $member_id = absint($member_id);
-    $token = trim((string) $token);
-    if ($member_id <= 0 || $token === '') {
-        return false;
-    }
-    return hash_equals(fsr_office_hours_member_token($member_id), $token);
-}
-
 function fsr_office_hours_handle_sick_submit($settings, $member_id, $token) {
     if (empty($_POST['fsr_oh_sick_submit'])) {
         return [false, ''];
@@ -19,10 +10,6 @@ function fsr_office_hours_handle_sick_submit($settings, $member_id, $token) {
 
     if (!wp_verify_nonce($_POST['_fsr_oh_sick_nonce'] ?? '', 'fsr_oh_sick_submit')) {
         return [false, 'Ungültige Anfrage. Bitte Seite neu laden.'];
-    }
-
-    if (!fsr_office_hours_validate_member_token($member_id, $token)) {
-        return [false, 'Token ungültig.'];
     }
 
     $occ_key = sanitize_text_field($_POST['occ_key'] ?? '');
@@ -46,7 +33,6 @@ function fsr_office_hours_handle_sick_submit($settings, $member_id, $token) {
 }
 
 function fsr_office_hours_sick_shortcode($atts) {
-    $atts = shortcode_atts(['member' => '', 'token' => ''], $atts);
     $settings = fsr_office_hours_get_settings();
     $members_raw = fsr_get_members_data('all')['members'];
     $members_map = [];
@@ -57,7 +43,6 @@ function fsr_office_hours_sick_shortcode($atts) {
         ];
     }
     $member_id = absint($_GET['fsr_oh_member'] ?? $atts['member']);
-    $token = sanitize_text_field((string) ($_GET['fsr_oh_token'] ?? $atts['token']));
 
     if ($member_id <= 0 || !isset($members_map[$member_id])) {
         return '<div class="fsr-office-hours-sick">Ungültiger Krankmeldelink (Mitglied fehlt).</div>';
@@ -83,7 +68,20 @@ function fsr_office_hours_sick_shortcode($atts) {
     ob_start();
     echo '<div class="fsr-office-hours-sick">';
     echo '<h3>Krankmeldung Office Hours</h3>';
-    echo '<p>Hallo ' . esc_html($members_map[$member_id]['name']) . ', hier kannst du den nächsten Termin absagen.</p>';
+    echo '<p>';
+    echo '<label>Mitglied</label><br>';
+    echo '<select name="member_id" required>';
+
+    foreach ($members as $member) {
+        echo '<option value="' . esc_attr($member['id']) . '">';
+        echo esc_html($member['first_name']);
+        echo '</option>';
+    }
+    $member_id = absint($_POST['member_id'] ?? 0);
+
+    echo '</select>';
+    echo '</p>';
+    echo '<p>Hallo ' . esc_html($members_map[$member_id]['first_name']) . ', hier kannst du den nächsten Termin absagen.</p>';
 
     if ($message !== '') {
         echo '<p class="fsr-office-hours-sick-message ' . ($ok ? 'is-success' : 'is-error') . '">' . esc_html($message) . '</p>';
@@ -114,6 +112,19 @@ function fsr_office_hours_sick_shortcode($atts) {
     echo '<p><label>Optionaler Grund:</label><br><input type="text" name="reason" class="regular-text" /></p>';
     echo '<button type="submit" class="button button-primary">Termin als krank melden</button>';
     echo '</form>';
+
+    $settings['cancellations'][] = [
+        'rule_id' => $rule_id,
+        'member_id' => $member_id,
+        'occurrence_date' => $date,
+        'reason' => $reason,
+        'created_at' => current_time('mysql'),
+    ];
+
+    update_option(
+        'fsr_office_hours_settings',
+        $settings
+    );
 
     return ob_get_clean();
 }
