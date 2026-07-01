@@ -60,17 +60,19 @@ function fsr_office_hours_collect_occurrences($rules, $limit = 12, $hide_fully_c
 
                 $settings = fsr_office_hours_get_settings();
 
-                if (
-                    $date >= $today &&
-                    !fsr_office_hours_member_is_cancelled(
-                        $settings['cancellations'] ?? [],
-                        $rule['id'],
-                        $date,
-                        $rule['member_ids'][0] ?? 0
-                    )
-                ) {
+                if ($date >= $today) {
+                    if (
+                        $hide_fully_cancelled &&
+                        fsr_office_hours_occurrence_is_cancelled(
+                            $rule,
+                            $date,
+                            $settings['cancellations'] ?? []
+                        )
+                    ) {
+                        continue;
+                    }
 
-                    $bucket[$rule['id'].'_'.$date] = [
+                    $bucket[$rule['id'] . '_' . $date] = [
                         'rule_id' => $rule['id'],
                         'date' => $date,
                         'start_time' => $rule['start_time'],
