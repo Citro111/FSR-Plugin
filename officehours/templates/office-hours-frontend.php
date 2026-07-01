@@ -23,11 +23,12 @@ function fsr_office_hours_collect_occurrences($rules, $limit = 12) {
                 $year = (int) date('Y', $month_ts);
                 $month = (int) date('n', $month_ts);
                 $date = fsr_office_hours_nth_weekday_date($year, $month, $rule['weekday'], $rule['nth_week']);
+                $settings = fsr_office_hours_get_settings();
                 if (!$date || $date < $today) {
                     continue;
                 }
 
-                if (fsr_office_hours_is_cancelled($GLOBALS['settings']['cancellations'] ?? [], $rule['id'], $date)) {
+                if (fsr_office_hours_is_cancelled($settings['cancellations'] ?? [], $rule['id'], $date)) {
                     continue;
                 }
                 
@@ -53,9 +54,10 @@ function fsr_office_hours_collect_occurrences($rules, $limit = 12) {
                 $delta = ($weekday - $current_weekday + 7) % 7;
                 $candidate_ts = strtotime('+' . $delta . ' day', $cursor);
                 $date = date('Y-m-d', $candidate_ts);
+                $settings = fsr_office_hours_get_settings();
 
                 if ($date >= $today) {
-                    if (fsr_office_hours_is_cancelled($GLOBALS['settings']['cancellations'] ?? [], $rule['id'], $date)) {
+                    if (fsr_office_hours_is_cancelled($settings['cancellations'] ?? [], $rule['id'], $date)) {
                         continue;
                     }
                     $bucket[] = [
@@ -150,4 +152,13 @@ function fsr_office_hours_shortcode($atts) {
     echo '</div>';
 
     return ob_get_clean();
+}
+
+function fsr_office_hours_is_cancelled($cancellations, $rule_id, $date) {
+    foreach ($cancellations as $c) {
+        if (($c['rule_id'] ?? '') === $rule_id && ($c['occurrence_date'] ?? '') === $date) {
+            return true;
+        }
+    }
+    return false;
 }

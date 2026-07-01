@@ -110,12 +110,3 @@ function fsr_office_hours_sick_shortcode($atts) {
 
     return ob_get_clean();
 }
-
-function fsr_office_hours_is_cancelled($cancellations, $rule_id, $date) {
-    foreach ($cancellations as $c) {
-        if (($c['rule_id'] ?? '') === $rule_id && ($c['occurrence_date'] ?? '') === $date) {
-            return true;
-        }
-    }
-    return false;
-}
