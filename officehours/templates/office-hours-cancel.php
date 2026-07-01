@@ -56,8 +56,9 @@ function fsr_office_hours_sick_shortcode($atts) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['fsr_oh_sick_submit'])) {
         [$ok, $message] = fsr_office_hours_handle_sick_submit();
         // Redirect verhindert Refresh-Bug
-        $url = remove_query_arg(null, $_SERVER['REQUEST_URI']);
-        wp_safe_redirect($url . '&fsr_msg=' . urlencode($message));
+        wp_safe_redirect(
+            add_query_arg('fsr_msg', urlencode($message), remove_query_arg('fsr_msg'))
+        );
         exit;
     }
     if (!empty($_GET['fsr_msg'])) {
