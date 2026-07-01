@@ -110,7 +110,7 @@ $all_amt_tags_json = wp_json_encode(array_values($unique_amter));
             }
             $full_display_name = trim(($member['first_name'] ?? '') . ' ' . ($member['last_name'] ?? ''));
             $team_label = $team_labels[$team] ?? ucfirst($team);
-            if ($is_ehemalige) {
+            if ($is_ehemalige && $team !== 'ehemalige') {
                 $team_label .= ' + Ehemalige';
             }
         ?>
@@ -235,7 +235,7 @@ jQuery(document).ready(function($) {
     function teamLabel(value, isEhemalige) {
         const labels = { gewaehlte: 'Gewählte', helfer: 'Helfer', ehemalige: 'Ehemalige' };
         let label = labels[value] || value.charAt(0).toUpperCase() + value.slice(1);
-        if (isEhemalige) {
+        if (isEhemalige && value !== 'ehemalige') {
             label += ' + Ehemalige';
         }
         return label;
