@@ -8,6 +8,16 @@ add_action('admin_enqueue_scripts', 'fsr_members_admin_assets');
 add_shortcode('fsr_members', 'fsr_members_shortcode_renderer');
 add_action('wp_ajax_fsr_save_member_order', 'fsr_ajax_save_member_order_handler');
 add_action('wp_ajax_fsr_import_members', 'fsr_ajax_import_members_handler');
+add_action('wp_enqueue_scripts', 'fsr_members_frontend_assets');
+
+function fsr_members_frontend_assets() {
+    wp_enqueue_style(
+        'fsr-members-css',
+        plugin_dir_url(__FILE__) . 'members.css',
+        [],
+        '1.0.0'
+    );
+}
 
 function fsr_members_admin_assets($hook) {
     if (strpos($hook, 'fsr-etit-settings') !== false) {
