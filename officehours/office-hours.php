@@ -162,6 +162,36 @@ function fsr_office_hours_search($search_term) {
         // Mitgliedsnamen ergänzen
         if (!empty($rule['member_ids'])) {
             $members = fsr_get_members_data();
+            foreach ($members as $key => $member) {
+
+    if (!is_array($member)) {
+        echo '<pre>Nicht Array: ';
+        var_dump($key, $member);
+        echo '</pre>';
+        continue;
+    }
+
+    if (!array_key_exists('id', $member)) {
+        echo '<pre>Keine ID: ';
+        print_r($member);
+        echo '</pre>';
+        continue;
+    }
+
+    if (in_array((int)$member['id'], $rule['member_ids'], true)) {
+
+        $searchable[] = trim(($member['first_name'] ?? '') . ' ' . ($member['last_name'] ?? ''));
+
+        if (!empty($member['amt'])) {
+            $searchable[] = $member['amt'];
+        }
+
+        if (!empty($member['team'])) {
+            $searchable[] = $member['team'];
+        }
+    }
+}
+            /*
             foreach ($members as $member) {
                 echo '<pre>';
                 print_r($rule['member_ids']);
@@ -170,15 +200,18 @@ function fsr_office_hours_search($search_term) {
                     echo '<pre>';
                         var_dump($member);
                     echo '</pre>';
-                    $searchable[] = $member['name'] ?? '';
-                    if (!empty($member['position'])) {
-                        $searchable[] = $member['position'];
+                    $searchable[] = trim(
+                        ($member['first_name'] ?? '') . ' ' .
+                        ($member['last_name'] ?? '')
+                    );
+                    if (!empty($member['amt'])) {
+                        $searchable[] = $member['amt'];
                     }
                     if (!empty($member['team'])) {
                         $searchable[] = $member['team'];
                     }
                 }
-            }
+            }*/
         }
 
         $searchableText = implode(' ', $searchable);
