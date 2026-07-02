@@ -60,7 +60,7 @@ function fsr_create_virtual_search_post(
     $excerpt = '',
     $content = '',
     $url = '',
-    $date = '',
+    $date,
     $type = 'page'
 ) {
 
