@@ -162,6 +162,12 @@ function fsr_office_hours_search($search_term) {
         if (!is_array($member) || empty($member['id'])) {
             continue;
         }
+        echo '<pre>';
+        echo "Processing member ID: " . $member['id'];
+        echo '</pre>';
+        echo '<pre>';
+        print_r($member);
+        echo '</pre>';
 
         $membersById[(int)$member['id']] = $member;
     }
@@ -169,7 +175,7 @@ function fsr_office_hours_search($search_term) {
     echo '<pre>';
     print_r(array_keys($membersById));
     echo '</pre>';
-    
+
     $output = '';
 
     foreach ($settings['rules'] as $rule) {
@@ -188,9 +194,6 @@ function fsr_office_hours_search($search_term) {
             foreach ($rule['member_ids'] as $memberId) {
 
                 $memberId = (int)$memberId;
-                echo '<pre>';
-                echo "Searching for member ID: $memberId";
-                echo '</pre>';
                 if(isset($membersById[$memberId])) {
                     echo '<pre>';
                     echo "Found member ID $memberId in membersById array.";
