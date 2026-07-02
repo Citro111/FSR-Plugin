@@ -55,7 +55,7 @@ function fsr_virtual_permalink($permalink, $post) {
     }
     echo "<p>DEBUG: Post object: " . print_r($post, true) . "</p>";
 
-    if ($post instanceof WP_Post === false) {
+    if (!($post instanceof WP_Post)) {
         echo "<p>DEBUG: Post is not an instance of WP_Post, returning original permalink</p>";
         return $permalink;
     }
