@@ -237,7 +237,7 @@ function fsr_office_hours_search($search_term) {
             fsr_next_virtual_post_id(),
             fsr_member_post_title($member),
             $searchable,
-            fsr_get_shortcode_usage_overview(['fsr_office_hours'])->get_permalink(),
+            fsr_get_shortcode_usage_overview(['fsr_office_hours'])->get_permalink()[0]['view_link'] ?? '',
             'page'
         );
     }
