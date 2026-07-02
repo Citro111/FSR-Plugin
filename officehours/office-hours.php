@@ -152,7 +152,8 @@ function fsr_office_hours_search($search_term) {
     }
 
     // Mitglieder nur einmal laden
-    $members = fsr_get_members_data();
+    $data = fsr_get_members_data();
+    $members = $data['members'] ?? [];
 
     // Nach ID indizieren
     $membersById = [];
