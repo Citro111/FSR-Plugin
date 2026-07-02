@@ -591,6 +591,7 @@ function fsr_membercards_search($search_term) {
         return '';
     }
     $virtual_posts = [];
+
     foreach ($query->posts as $post) {
 
         $member = fsr_member_post_to_record($post);
@@ -609,12 +610,15 @@ function fsr_membercards_search($search_term) {
             continue;
         }
 
-        $virtual_posts .= fsr_create_virtual_search_post(
+        $virtual_posts[] = fsr_create_virtual_search_post(
             fsr_next_virtual_post_id(),
-            $title = fsr_member_post_title($member),
-            $content = ''
+            fsr_member_post_title($member),
+            $searchable,
+            get_permalink(/* Seite mit [fsr_members] */),
+            'page'
         );
     }
+
     wp_reset_postdata();
 
     return $virtual_posts;
