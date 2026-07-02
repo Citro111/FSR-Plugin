@@ -1,6 +1,5 @@
 <?php
 if(!defined('ABSPATH')) exit;
-echo '<div style="background:red;color:white;padding:10px;">search.php geladen</div>';
 
 
 add_filter('the_posts', 'fsr_ensure_search_loop_runs', 10, 2);
@@ -51,9 +50,6 @@ function fsr_append_search_results($query) {
     if ($done || is_admin() || !$query->is_main_query() || !$query->is_search()) {
         return;
     }
-    echo '<div style="background:#8bc34a;padding:10px;margin:15px 0;font-weight:bold;">
-        DEBUG: Alle Bedingungen erfüllt.
-    </div>';
 
     $search = trim(get_search_query(false));
 
@@ -65,29 +61,40 @@ function fsr_append_search_results($query) {
     </div>';
 
     if ($members = fsr_membercards_search($search)) {
-        fsr_search_result('Mitglieder', $members, '', 'membercards-search-results-content');
         echo '<div class="membercards-search-results-content">';
         echo '<h3>Mitglieder</h3>';
         echo $members;
         echo '</div>';
     }
-
+    echo '<div style="background:#ffeb3b;padding:10px;margin:15px 0;font-weight:bold;">
+        DEBUG: fsr_membercards_search() abgeschlossen.
+    </div>';
     if ($hours = fsr_office_hours_search($search)) {
-        fsr_search_result('Sprechstunden', $hours, '', 'office-hours-search-results-content');
         echo '<div class="office-hours-search-results-content">';
         echo '<h3>Sprechstunden</h3>';
         echo $hours;
         echo '</div>';
     }
+    echo '<div style="background:#ffeb3b;padding:10px;margin:15px 0;font-weight:bold;">
+        DEBUG: fsr_office_hours_search() abgeschlossen.
+    </div>';
 
     if ($dw = fsr_dw_search($search)) {
-        fsr_search_result('Protokolle', $dw, '', 'dw-search-results-content');
+        echo '<div class="dw-search-results-content">';
+        echo '<h3>Protokolle</h3>';
+        echo $dw;
+        echo '</div>';
     }
-
+    echo '<div style="background:#ffeb3b;padding:10px;margin:15px 0;font-weight:bold;">
+        DEBUG: fsr_dw_search() abgeschlossen.
+    </div>'; 
     $done = true;
 }
 
 function fsr_mark_placeholder_post($classes, $class, $post_id) {
+    echo '<div style="background:#ffeb3b;padding:10px;margin:15px 0;font-weight:bold;">
+        DEBUG: fsr_mark_placeholder_post() aufgerufen für Post-ID: ' . esc_html($post_id) . '.
+    </div>';
     if ($post_id === -1) {
         $classes[] = 'search-placeholder';
     }

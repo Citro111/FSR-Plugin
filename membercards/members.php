@@ -601,8 +601,10 @@ function fsr_membercards_search($search_term) {
             $member['first_name'] ?? '',
             $member['last_name'] ?? '',
             $member['team'] ?? '',
-            $member['position'] ?? '',
             $member['email_prefix'] ?? '',
+            $member['amt'] ?? '',
+            $member['studiengang'] ?? '',
+            $member['abschluss'] ?? '',
         ]);
 
         if (stripos($searchable, $search_term) === false) {
@@ -612,8 +614,11 @@ function fsr_membercards_search($search_term) {
         $output .= fsr_search_result(
             $member['first_name'] . ' ' . $member['last_name'],
             [
-                $member['position'],
-                $member['team']
+                $member['email_prefix'] ? $member['email_prefix'] . '(at) fsr-etit.de' : '',
+                $member['amt'] ?? '',
+                $member['team'],
+                $member['studiengang'] ?? '',
+                $member['abschluss'] ?? '',
             ],
             '',
             'member'
