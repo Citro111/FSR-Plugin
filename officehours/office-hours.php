@@ -157,6 +157,11 @@ function fsr_office_hours_search($search_term) {
     // Nach ID indizieren
     $membersById = [];
 
+    echo '<pre>';
+    echo "Members data loaded: ";
+    print_r($members);
+    echo '</pre>';
+
     foreach ($members as $member) {
 
         if (!is_array($member) || empty($member['id'])) {
