@@ -104,6 +104,7 @@ function fsr_create_virtual_search_post(
         'post_type'          => $type,
         'post_name'          => sanitize_title($title),
         'guid'               => $url,
+        'url'                => $url,
         'post_author'        => 0,
         'post_date'          => $date ?: current_time('mysql'),
         'post_date_gmt'      => $date ? get_gmt_from_date($date) : current_time('mysql', true),
