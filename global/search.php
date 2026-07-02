@@ -1,5 +1,6 @@
 <?php
 if(!defined('ABSPATH')) exit;
+echo '<div style="background:red;color:white;padding:10px;">search.php geladen</div>';
 
 
 add_filter('the_posts', 'fsr_ensure_search_loop_runs', 10, 2);
@@ -50,6 +51,9 @@ function fsr_append_search_results($query) {
     if ($done || is_admin() || !$query->is_main_query() || !$query->is_search()) {
         return;
     }
+    echo '<div style="background:#8bc34a;padding:10px;margin:15px 0;font-weight:bold;">
+        DEBUG: Alle Bedingungen erfüllt.
+    </div>';
 
     $search = trim(get_search_query(false));
 

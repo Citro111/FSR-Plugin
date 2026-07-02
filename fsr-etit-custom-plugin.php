@@ -25,6 +25,9 @@ require_once FSR_PLUGIN_DIR . 'membercards/members.php';
 // 4. Office-Hours-Modul laden
 require_once FSR_PLUGIN_DIR . 'officehours/office-hours.php';
 
+// 5. Suchergebnisse erweitern
+require_once FSR_PLUGIN_DIR . 'global/search.php';
+
 // Zentrale Asset-Verwaltung
 add_action('wp_enqueue_scripts', 'fsr_custom_enqueue_frontend_assets');
 function fsr_custom_enqueue_frontend_assets() {
