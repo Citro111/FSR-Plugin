@@ -57,28 +57,41 @@ function fsr_next_virtual_post_id() {
 function fsr_create_virtual_search_post(
     $title = '',
     $excerpt = '',
-    $content = $excerpt,
+    $content = '',
     $url = '',
     $type = 'page'
 ) {
+
+    if ($content === '') {
+        $content = $excerpt;
+    }
+
+    $type = post_type_exists($type) ? $type : 'page';
+
     $id = fsr_next_virtual_post_id();
+
     $GLOBALS['fsr_virtual_posts'][$id] = [
         'url'  => $url,
         'type' => $type,
     ];
-    $post = (object)[
-        'ID' => $id,
-        'post_title' => $title,
-        'post_excerpt' => $excerpt,
-        'post_content' => $content,
-        'post_status' => 'publish',
-        'post_type' => $type,
-        'post_author' => 0,
-        'post_date' => current_time('mysql'),
-        'post_date_gmt' => current_time('mysql', 1),
-        'post_modified' => current_time('mysql'),
-        'post_modified_gmt' => current_time('mysql', 1),
-        'filter' => 'raw',
-    ];
-    return new WP_Post((object)$post);
+
+    return new WP_Post((object)[
+        'ID'                 => $id,
+        'post_title'         => $title,
+        'post_excerpt'       => $excerpt,
+        'post_content'       => $content,
+        'post_status'        => 'publish',
+        'post_type'          => $type,
+        'post_name'          => sanitize_title($title),
+        'guid'               => $url,
+        'post_author'        => 0,
+        'post_date'          => current_time('mysql'),
+        'post_date_gmt'      => current_time('mysql', true),
+        'post_modified'      => current_time('mysql'),
+        'post_modified_gmt'  => current_time('mysql', true),
+        'menu_order'         => 0,
+        'comment_status'     => 'closed',
+        'ping_status'        => 'closed',
+        'filter'             => 'raw',
+    ]);
 }
