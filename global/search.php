@@ -33,9 +33,19 @@ function fsr_mark_placeholder_post($classes, $class, $post_id) {
 
 //verbesserung nötig, da aktuell alle Seiten länger laden und hier eine Warnung werfen
 function fsr_virtual_permalink($permalink, $post) {
+
+    if (!is_search()) {
+        return $permalink;
+    }
+
+    if (empty($GLOBALS['fsr_virtual_posts'])) {
+        return $permalink;
+    }
+
     if (isset($GLOBALS['fsr_virtual_posts'][$post->ID])) {
         return $GLOBALS['fsr_virtual_posts'][$post->ID]['url'];
     }
+
     return $permalink;
 }
 
@@ -45,9 +55,10 @@ function fsr_next_virtual_post_id() {
 }
 
 function fsr_create_virtual_search_post(
-    $title,
-    $excerpt,
-    $url,
+    $title = '',
+    $excerpt = '',
+    $content = $excerpt,
+    $url = '',
     $type = 'page'
 ) {
     $id = fsr_next_virtual_post_id();
@@ -59,7 +70,7 @@ function fsr_create_virtual_search_post(
         'ID' => $id,
         'post_title' => $title,
         'post_excerpt' => $excerpt,
-        'post_content' => '',
+        'post_content' => $content,
         'post_status' => 'publish',
         'post_type' => $type,
         'post_author' => 0,

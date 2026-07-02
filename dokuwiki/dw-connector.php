@@ -53,9 +53,11 @@ function fsr_dw_search($query) {
     $xpath = new DOMXPath($dom);
     foreach ($xpath->query("//div[contains(@class,'search_fullpage_result')]") as $node) {
         $virtual_posts .= fsr_create_virtual_search_post(
-            $id = -1,
-            $title = trim($xpath->query(".//h3", $node)->item(0)->textContent ?? ''),
-            $content = trim($xpath->query(".//div[contains(@class,'search_result')]", $node)->item(0)->textContent ?? '')
+            $title = $node->getElementsByTagName('h3')[0]->textContent ?? 'Protokoll',
+            $excerpt = $node->getElementsByTagName('p')[0]->textContent ?? '',
+            $content = $excerpt,
+            $url = home_url('/wiki/' . ltrim($node->getElementsByTagName('a')[0]->getAttribute('href'), '/')),
+            $type = 'page'
         );
     }
     return $virtual_posts;

@@ -610,11 +610,11 @@ function fsr_membercards_search($search_term) {
         }
 
         $virtual_posts[] = fsr_create_virtual_search_post(
-            fsr_next_virtual_post_id(),
-            fsr_member_post_title($member),
-            $searchable,
-            $url_overview[0]['view_link'] ?? '',
-            'page'
+            $title = fsr_next_virtual_post_id(),
+            $excerpt = fsr_member_post_title($member),
+            $content = $searchable,
+            $url = $url_overview[0]['view_link'] ?? '',
+            $type = 'page'
         );
     }
 
