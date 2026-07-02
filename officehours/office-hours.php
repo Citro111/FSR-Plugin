@@ -136,3 +136,95 @@ function fsr_office_hours_in_next_workdays($ts, $days = 7) {
 
     return false;
 }
+
+function fsr_office_hours_search($search_term) {
+    $search_term = trim(wp_strip_all_tags($search_term));
+
+    $settings = fsr_office_hours_get_settings();
+
+    if (empty($settings['rules']) || !is_array($settings['rules'])) {
+        return '';
+    }
+
+    $output = '';
+
+    foreach ($settings['rules'] as $rule) {
+
+        if (!is_array($rule)) {
+            continue;
+        }
+
+        // Suchtext zusammenbauen
+        $searchable = [];
+        $searchable[] = $rule['title'] ?? '';
+        $searchable[] = $rule['location'] ?? '';
+
+        // Mitgliedsnamen ergänzen
+        if (!empty($rule['member_ids'])) {
+            $members = fsr_get_member_records();
+            foreach ($members as $member) {
+                if (in_array($member['id'], $rule['member_ids'], true)) {
+                    $searchable[] = $member['name'] ?? '';
+                    if (!empty($member['position'])) {
+                        $searchable[] = $member['position'];
+                    }
+                    if (!empty($member['team'])) {
+                        $searchable[] = $member['team'];
+                    }
+                }
+            }
+        }
+
+        $searchableText = implode(' ', $searchable);
+
+        if (stripos($searchableText, $search_term) === false) {
+            continue;
+        }
+
+        // Nächsten Termin bestimmen
+        $nextDate = '';
+        if (($rule['recurrence'] ?? '') === 'monthly_nth') {
+            foreach (fsr_office_hours_get_occurrences($rule, 16) as $date) {
+                if (
+                    $date >= current_time('Y-m-d')
+                    && !fsr_office_hours_occurrence_is_cancelled(
+                        $rule,
+                        $date,
+                        $settings['cancellations'] ?? []
+                    )
+                ) {
+                    $nextDate = $date;
+                    break;
+                }
+            }
+        } else {
+            $occurrences = fsr_office_hours_get_occurrences($rule, 16);
+            foreach ($occurrences as $date) {
+                if (
+                    $date >= current_time('Y-m-d')
+                    && !fsr_office_hours_occurrence_is_cancelled(
+                        $rule,
+                        $date,
+                        $settings['cancellations'] ?? []
+                    )
+                ) {
+                    $nextDate = $date;
+                    break;
+                }
+            }
+        }
+
+        // Ausgabe
+        $output .= fsr_search_result(
+            $rule['title'],
+            [
+                $nextDate,
+                $rule['start_time'] . ' - ' . $rule['end_time'],
+                $rule['location']
+            ],
+            '',
+            'office-hour'
+        );
+    }
+    return $output;
+}

@@ -304,7 +304,7 @@ jQuery(document).ready(function($) {
     }
 
     function triggerAutoSave() {
-        reindexRows();
+        reindeMemberxRows();
         $('#fsr-save-indicator').text('Speichert...').css({'color':'var(--theme-palette-color-6)', 'background':'var(--theme-palette-color-13)', 'border-color':'var(--theme-palette-color-5)'}).fadeIn();
         const formData = $('#fsr-sortable-members :input').serialize();
         $.ajax({
@@ -516,7 +516,7 @@ jQuery(document).ready(function($) {
         handleImport(textValue);
     });
 
-    function reindexRows() {
+    function reindexMemberRows() {
         $('#fsr-sortable-members .fsr-member-row').each(function(index, row) {
             $(row).find('input, select').each(function() {
                 const nameAttr = $(this).attr('name');

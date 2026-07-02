@@ -4,16 +4,13 @@ if (!defined('ABSPATH')) exit;
 // Hooks für DokuWiki
 add_action('init', 'fsr_dw_rewrite_rules');
 add_filter('query_vars', 'fsr_dw_query_vars');
-add_filter('template_include', 'fsr_dw_template_router');
-add_filter('the_posts', 'fsr_dw_ensure_search_loop_runs', 10, 2);
-add_action('loop_end', 'fsr_dw_append_search_results');
-add_filter('post_class', 'fsr_dw_mark_placeholder_post', 10, 3);
+add_filter('template_include', 'fsr_dw_template_router');   
 add_action('init', 'fsr_dw_asset_proxy');
 
 function fsr_dw_get_settings() {
     return wp_parse_args(get_option('dw_bridge_settings', []), [
         'base_url' => 'https://fsr-etit.de',
-        'cache_time' => 0,
+        'cache_time' => 100,
         'start_page' => 'aktuelles'
     ]);
 }
@@ -31,7 +28,12 @@ function fsr_dw_render_admin_fields() {
 function fsr_dw_rewrite_rules() { add_rewrite_rule('^wiki/?$', 'index.php?dw_page=start', 'top'); add_rewrite_rule('^wiki/(.+)/?$', 'index.php?dw_page=$matches[1]', 'top'); }
 function fsr_dw_query_vars($vars) { $vars[] = 'dw_page'; return $vars; }
 function fsr_dw_template_router($template) { $page = get_query_var('dw_page'); if ($page !== '' && $page !== null) { return FSR_PLUGIN_DIR . 'global/template.php'; } return $template; }
-function fsr_dw_mark_placeholder_post($classes, $class, $post_id) { if ((int)$post_id === -1) { $classes[] = 'dw-search-placeholder'; } return $classes; }
+function fsr_dw_mark_placeholder_post($classes, $class, $post_id) {
+    if ((int)$post_id === -1) {
+        $classes[] = 'dw-search-placeholder';
+    }
+    return $classes;
+}
 
 function fsr_dw_fetch($page) {
     $s = fsr_dw_get_settings(); if (!$page) $page = $s['start_page'];
@@ -48,17 +50,6 @@ function fsr_dw_search($query) {
     $html = wp_remote_retrieve_body($res); if (!$html) return '';
     libxml_use_internal_errors(true); $dom = new DOMDocument(); $dom->loadHTML('<?xml encoding="utf-8" ?>'.$html); $xpath = new DOMXPath($dom); $result = '';
     foreach ($xpath->query("//div[contains(@class,'search_fullpage_result')]") as $node) { $result .= $dom->saveHTML($node); $result .= '<br>'; } return fsr_dw_transform($result);
-}
-
-function fsr_dw_append_search_results($query) {
-    static $done = false; if ($done || is_admin() || !is_search()) return;
-    $search = get_search_query(false); if (!$search) return; $results = fsr_dw_search($search); if (!$results) return; $done = true;
-    echo '<div class="dw-search-results-content"><h3>Protokolle</h3>' . $results . '</div>';
-}
-
-function fsr_dw_ensure_search_loop_runs($posts, $query) {
-    if (is_admin() || !$query->is_main_query() || !$query->is_search()) return $posts; if (!empty($posts)) return $posts;
-    $dummy = new WP_Post((object) [ 'ID' => -1, 'post_author' => 0, 'post_date' => current_time('mysql'), 'post_date_gmt' => current_time('mysql', 1), 'post_content' => '', 'post_title' => '', 'post_excerpt' => '', 'post_status' => 'publish', 'comment_status' => 'closed', 'ping_status' => 'closed', 'post_password' => '', 'post_name' => 'dw-search-placeholder', 'to_ping' => '', 'pinged' => '', 'post_modified' => current_time('mysql'), 'post_modified_gmt' => current_time('mysql', 1), 'post_content_filtered'=> '', 'post_parent' => 0, 'guid' => '', 'menu_order' => 0, 'post_type' => 'post', 'post_mime_type' => '', 'comment_count' => 0, 'filter' => 'raw', ]); return [$dummy];
 }
 
 function fsr_dw_transform($html) {

@@ -102,12 +102,6 @@ function fsr_office_hours_render_admin_interface() {
     <script>
     jQuery(function($) {
 
-        function initSelect2(scope) {
-            scope.find('.fsr-oh-members').select2({
-                width: '100%'
-            });
-        }
-
         function bindRecurrenceToggle(scope) {
             scope.find('.fsr-oh-recurrence').on('change', function() {
                 const row = $(this).closest('.fsr-oh-row');
@@ -117,7 +111,7 @@ function fsr_office_hours_render_admin_interface() {
             });
         }
 
-        function reindexRows() {
+        function reindexOhRows() {
             $('#fsr-oh-rules-body .fsr-oh-row').each(function(index, row) {
                 $(row).find('input, select').each(function() {
                     const name = $(this).attr('name');
@@ -210,7 +204,7 @@ function fsr_office_hours_render_admin_interface() {
 
             const newRow = $('#fsr-oh-rules-body .fsr-oh-row:last');
 
-            reindexRows();
+            reindexOhRows();
             $(document).on('change', '.fsr-oh-recurrence', function() {
                 const row = $(this).closest('.fsr-oh-row');
                 const value = $(this).val();
@@ -220,7 +214,6 @@ function fsr_office_hours_render_admin_interface() {
             });
             function initSelect2(scope) {
                 if (!$.fn.select2) return;
-
                 scope.find('.fsr-oh-members').each(function () {
                     if (!$(this).data('select2')) {
                         $(this).select2({ width: '100%' });
@@ -232,7 +225,7 @@ function fsr_office_hours_render_admin_interface() {
 
         $(document).on('click', '.fsr-oh-remove-row', function() {
             $(this).closest('.fsr-oh-row').remove();
-            reindexRows();
+            reindexOhRows();
         });
 
     });

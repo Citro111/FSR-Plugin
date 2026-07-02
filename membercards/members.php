@@ -570,3 +570,57 @@ function fsr_get_membercards_layout_settings() {
     $settings = get_option('fsr_membercards_layout', []);
     return wp_parse_args(is_array($settings) ? $settings : [], fsr_membercards_layout_defaults());
 }
+
+function fsr_membercards_search($search_term) {
+
+    $search_term = trim(wp_strip_all_tags($search_term));
+
+    if ($search_term === '') {
+        return '';
+    }
+
+    $query = new WP_Query([
+        'post_type'      => 'fsr_member',
+        'post_status'    => 'publish',
+        'posts_per_page' => -1,
+        'orderby'        => 'menu_order',
+        'order'          => 'ASC',
+    ]);
+
+    if (!$query->have_posts()) {
+        return '';
+    }
+
+    $output = '';
+
+    foreach ($query->posts as $post) {
+
+        $member = fsr_member_post_to_record($post);
+
+        $searchable = implode(' ', [
+            $member['first_name'] ?? '',
+            $member['last_name'] ?? '',
+            $member['team'] ?? '',
+            $member['position'] ?? '',
+            $member['email_prefix'] ?? '',
+        ]);
+
+        if (stripos($searchable, $search_term) === false) {
+            continue;
+        }
+
+        $output .= fsr_search_result(
+            $member['first_name'] . ' ' . $member['last_name'],
+            [
+                $member['position'],
+                $member['team']
+            ],
+            '',
+            'member'
+        );
+    }
+
+    wp_reset_postdata();
+
+    return $output;
+}
