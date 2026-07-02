@@ -590,7 +590,7 @@ function fsr_membercards_search($search_term) {
     if (!$query->have_posts()) {
         return '';
     }
-
+    $virtual_posts = [];
     foreach ($query->posts as $post) {
 
         $member = fsr_member_post_to_record($post);
@@ -615,9 +615,6 @@ function fsr_membercards_search($search_term) {
             $content = ''
         );
     }
-
-
-
     wp_reset_postdata();
 
     return $virtual_posts;
