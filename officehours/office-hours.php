@@ -162,11 +162,11 @@ function fsr_office_hours_search($search_term) {
         // Mitgliedsnamen ergänzen
         if (!empty($rule['member_ids'])) {
             $members = fsr_get_members_data();
-            echo '<pre>';
-                print_r($members);
-            echo '</pre>';
             foreach ($members as $member) {
                 if (in_array($member['id'], $rule['member_ids'], true)) {
+                    echo '<pre>';
+                    var_dump($member);
+                    echo '</pre>';
                     $searchable[] = $member['name'] ?? '';
                     if (!empty($member['position'])) {
                         $searchable[] = $member['position'];
