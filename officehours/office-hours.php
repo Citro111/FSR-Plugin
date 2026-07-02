@@ -184,8 +184,13 @@ function fsr_office_hours_search($search_term) {
             foreach ($rule['member_ids'] as $memberId) {
 
                 $memberId = (int)$memberId;
+                echo <pre>Searching for member ID: $memberId</pre>;
+                if(isset($membersById[$memberId])) {
+                    echo <pre>Found member ID $memberId in membersById array.</pre>;
+                }
 
                 if (!isset($membersById[$memberId])) {
+                    echo <pre>Member ID $memberId not found in membersById array.</pre>;
                     continue;
                 }
 
