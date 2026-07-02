@@ -88,6 +88,7 @@ function fsr_create_virtual_search_post(
     $type = post_type_exists($type) ? $type : 'page';
 
     $id = fsr_next_virtual_post_id();
+    echo "<p>DEBUG: Creating virtual search post with ID: $id, title: $title, URL: $url</p>";
 
     $GLOBALS['fsr_virtual_posts'][$id] = [
         'url'  => $url,
