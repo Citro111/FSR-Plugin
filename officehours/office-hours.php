@@ -164,9 +164,12 @@ function fsr_office_hours_search($search_term) {
             $members = fsr_get_members_data();
             foreach ($members as $member) {
                 echo '<pre>';
-                    var_dump($member);
+                print_r($rule['member_ids']);
                 echo '</pre>';
                 if (in_array($member['id'], $rule['member_ids'], true)) {
+                    echo '<pre>';
+                        var_dump($member);
+                    echo '</pre>';
                     $searchable[] = $member['name'] ?? '';
                     if (!empty($member['position'])) {
                         $searchable[] = $member['position'];
