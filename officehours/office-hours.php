@@ -159,7 +159,7 @@ function fsr_office_hours_search($search_term) {
 
     echo '<pre>';
     echo "Members data loaded: ";
-    print_r($members);
+    print_r(array_keys($members));
     echo '</pre>';
 
     foreach ($members as $member) {
