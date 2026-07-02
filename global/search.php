@@ -37,11 +37,8 @@ function fsr_mark_placeholder_post($classes, $class, $post_id) {
 function fsr_virtual_permalink($permalink, $post) {
 
     echo '<p>';
-    echo "DEBUG: fsr_virtual_permalink called with permalink: $permalink, post ID: " . (is_object($post) ? $post->ID : $post);
-    echo "DEBUG: used hook: " . current_filter();
-    print_r($GLOBALS['fsr_virtual_posts'], true);
+    echo "DEBUG: fsr_virtual_permalink called with permalink: $permalink, post ID: " . (is_object($post) ? $post->ID : $post) . ", current filter: " . current_filter();
     echo '</p>';
-
 
     if (!is_search()) {
         return $permalink;
@@ -51,7 +48,6 @@ function fsr_virtual_permalink($permalink, $post) {
         return $permalink;
     }
 
-    // 🔥 WICHTIG: WP übergibt manchmal ID statt Objekt
     if (is_numeric($post)) {
         $post = get_post((int)$post);
     }
@@ -61,8 +57,10 @@ function fsr_virtual_permalink($permalink, $post) {
     }
 
     $id = $post->ID;
-
     if (isset($GLOBALS['fsr_virtual_posts'][$id])) {
+        echo '<p>';
+        echo "DEBUG: Found virtual post with ID: $id, returning URL: " . $GLOBALS['fsr_virtual_posts'][$id]['url'];
+        echo '</p>';
         return $GLOBALS['fsr_virtual_posts'][$id]['url'];
     }
 
@@ -81,7 +79,7 @@ function fsr_create_virtual_search_post(
     $url,
     $date,
     $type = 'page'
-) {
+ ) {
 
     if ($content === '') {
         $content = $excerpt;
@@ -96,11 +94,7 @@ function fsr_create_virtual_search_post(
         'type' => $type,
         'date' => $date,
     ];
-        echo '<p>';
-        echo "DEBUG: Creating virtual post with ID $id, title: $title, url: $url, type: $type, date: $date";
-        print_r($GLOBALS['fsr_virtual_posts'], true);
-        echo '</p>';
-
+    
     return new WP_Post((object)[
         'ID'                 => $id,
         'post_title'         => $title,
