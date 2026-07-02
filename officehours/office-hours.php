@@ -140,6 +140,7 @@ function fsr_office_hours_in_next_workdays($ts, $days = 7) {
 function fsr_office_hours_search($search_term) {
 
     $search_term = trim(wp_strip_all_tags($search_term));
+    $virtual_post = fsr_create_virtual_search_post();
 
     if ($search_term === '') {
         return '';
@@ -158,31 +159,14 @@ function fsr_office_hours_search($search_term) {
     // Nach ID indizieren
     $membersById = [];
 
-    echo '<pre>';
-    echo "Members data loaded: ";
-    print_r(array_keys($members));
-    echo '</pre>';
-
     foreach ($members as $member) {
 
         if (!is_array($member) || empty($member['id'])) {
             continue;
         }
-        echo '<pre>';
-        echo "Processing member ID: " . $member['id'];
-        echo '</pre>';
-        echo '<pre>';
-        print_r($member);
-        echo '</pre>';
 
         $membersById[(int)$member['id']] = $member;
     }
-
-    echo '<pre>';
-    print_r(array_keys($membersById));
-    echo '</pre>';
-
-    $output = '';
 
     foreach ($settings['rules'] as $rule) {
 
@@ -200,16 +184,8 @@ function fsr_office_hours_search($search_term) {
             foreach ($rule['member_ids'] as $memberId) {
 
                 $memberId = (int)$memberId;
-                if(isset($membersById[$memberId])) {
-                    echo '<pre>';
-                    echo "Found member ID $memberId in membersById array.";
-                    echo '</pre>';
-                }
 
                 if (!isset($membersById[$memberId])) {
-                    echo '<pre>';
-                    echo "Member ID $memberId not found in membersById array.";
-                    echo '</pre>';
                     continue;
                 }
 
@@ -258,13 +234,8 @@ function fsr_office_hours_search($search_term) {
             $lines[] = $time;
         }
 
-        $output .= fsr_search_result(
-            $rule['title'],
-            $lines,
-            '',
-            ['office-hours']
-        );
+        $virtual_post =
     }
 
-    return $output;
+    return $virtual_post;
 }

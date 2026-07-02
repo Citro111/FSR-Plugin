@@ -5,6 +5,7 @@ if(!defined('ABSPATH')) exit;
 add_filter('the_posts', 'fsr_ensure_search_loop_runs', 10, 2);
 add_action('loop_end', 'fsr_append_search_results');
 add_filter('post_class', 'fsr_mark_placeholder_post', 10, 3);
+add_filter('post_link', 'fsr_virtual_permalink', 10, 2);
 
 function fsr_ensure_search_loop_runs($posts, $query) {
     if (is_admin() || !$query->is_main_query() || !$query->is_search()) return $posts;
@@ -49,30 +50,14 @@ function fsr_append_search_results($query) {
     }
 
     $search = trim(get_search_query(false));
+    $virtual_posts = [
+        'membercards' => fsr_membercards_search($search),
+        'officehours' => fsr_office_hours_search($search),
+        'dokuwiki' => fsr_dw_search($search)
+    ];
 
     if ($search === '') {
         return;
-    }
-
-    if ($members = fsr_membercards_search($search)) {
-        echo '<div class="membercards-search-results-content">';
-        echo '<h3>Mitglieder</h3>';
-        echo $members;
-        echo '</div>';
-    }
-
-    if ($hours = fsr_office_hours_search($search)) {
-        echo '<div class="office-hours-search-results-content">';
-        echo '<h3>Sprechstunden</h3>';
-        echo $hours;
-        echo '</div>';
-    }
-
-    if ($dw = fsr_dw_search($search)) {
-        echo '<div class="dw-search-results-content">';
-        echo '<h3>Protokolle</h3>';
-        echo $dw;
-        echo '</div>';
     }
 
     $done = true;
@@ -85,37 +70,38 @@ function fsr_mark_placeholder_post($classes, $class, $post_id) {
     return $classes;
 }
 
-function fsr_search_result($title, array $lines = [], $url = '', $class = []) {
-    /**
-     * Erzeugt einen einheitlichen Suchtreffer.
-     *
-     * @param string       $title   Überschrift des Treffers.
-     * @param array        $lines   Zusätzliche Zeilen unter dem Titel.
-     * @param string|null  $url     Optionaler Link.
-     * @param string       $class   Zusätzliche CSS-Klasse(n).
-     *
-     * @return string
-     */
-    $classes = ['fsr-search-result'];
-    if (!empty($class)) {
-        $classes[] = sanitize_html_class($class);
+function fsr_search_results($title = '', $excerpt = '', $content = '') {
+
+    static $virtualId = -1000;
+    $post = new WP_Page((object)[
+        'ID' => $virtualId--,
+        'post_title' => $title,
+        'post_excerpt' => $excerpt,
+        'post_content' => $content,
+        'post_status' => 'publish',
+        'post_type' => 'page'
+    ]);
+
+    $GLOBALS['fsr_virtual_posts'][$post->ID] = $result;
+    return $post;
+}
+
+function fsr_virtual_permalink($permalink, $post) {
+    if ($post->ID === -1) {
+        return home_url('/?fsr_search_placeholder=1');
     }
-    $html = '<div class="' . esc_attr(implode(' ', $classes)) . '">';
-    if (!empty($url)) {
-        $html .= sprintf(
-            '<a href="%s"><strong>%s</strong></a>',
-            esc_url($url),
-            esc_html($title)
-        );
-    } else {
-        $html .= '<strong>' . esc_html($title) . '</strong>';
-    }
-    foreach ($lines as $line) {
-        if ($line === '' || $line === null) {
-            continue;
-        }
-        $html .= '<br>' . esc_html($line);
-    }
-    $html .= '</div>';
-    return $html;
+    return $permalink;
+}
+
+function fsr_create_virtual_search_post() {
+    $post = new WP_Page((object)[
+        'ID' => -1,
+        'post_title' => '',
+        'post_excerpt' => '',
+        'post_content' => '',
+        'post_status' => 'publish',
+        'post_type' => 'page'
+    ]);
+
+    return $post;
 }
