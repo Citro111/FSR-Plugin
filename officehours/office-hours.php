@@ -140,7 +140,6 @@ function fsr_office_hours_in_next_workdays($ts, $days = 7) {
 function fsr_office_hours_search($search_term) {
 
     $search_term = trim(wp_strip_all_tags($search_term));
-    $virtual_post = fsr_create_virtual_search_post();
 
     if ($search_term === '') {
         return '';
@@ -233,8 +232,11 @@ function fsr_office_hours_search($search_term) {
 
             $lines[] = $time;
         }
-
-        $virtual_post =
+        $virtual_post = fsr_create_virtual_search_post(
+            $id = -1,
+            $title = $rule['title'] ?? 'Office Hour',
+            $content = implode('<br>', $lines)
+        );
     }
 
     return $virtual_post;

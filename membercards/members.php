@@ -591,8 +591,6 @@ function fsr_membercards_search($search_term) {
         return '';
     }
 
-    $output = '';
-
     foreach ($query->posts as $post) {
 
         $member = fsr_member_post_to_record($post);
@@ -611,21 +609,16 @@ function fsr_membercards_search($search_term) {
             continue;
         }
 
-        $output .= fsr_search_result(
-            $member['first_name'] . ' ' . $member['last_name'],
-            [
-                $member['email_prefix'] ? $member['email_prefix'] . '(at) fsr-etit.de' : '',
-                $member['amt'] ?? '',
-                $member['team'],
-                $member['studiengang'] ?? '',
-                $member['abschluss'] ?? '',
-            ],
-            '',
-            'member'
+        $virtual_posts .= fsr_create_virtual_search_post(
+            $id = -1,
+            $title = fsr_member_post_title($member),
+            $content = ''
         );
     }
 
+
+
     wp_reset_postdata();
 
-    return $output;
+    return $virtual_posts;
 }

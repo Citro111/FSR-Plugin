@@ -70,22 +70,6 @@ function fsr_mark_placeholder_post($classes, $class, $post_id) {
     return $classes;
 }
 
-function fsr_search_results($title = '', $excerpt = '', $content = '') {
-
-    static $virtualId = -1000;
-    $post = new WP_Page((object)[
-        'ID' => $virtualId--,
-        'post_title' => $title,
-        'post_excerpt' => $excerpt,
-        'post_content' => $content,
-        'post_status' => 'publish',
-        'post_type' => 'page'
-    ]);
-
-    $GLOBALS['fsr_virtual_posts'][$post->ID] = $result;
-    return $post;
-}
-
 function fsr_virtual_permalink($permalink, $post) {
     if ($post->ID === -1) {
         return home_url('/?fsr_search_placeholder=1');
@@ -93,14 +77,31 @@ function fsr_virtual_permalink($permalink, $post) {
     return $permalink;
 }
 
-function fsr_create_virtual_search_post() {
-    $post = new WP_Page((object)[
-        'ID' => -1,
-        'post_title' => '',
+function fsr_create_virtual_search_post($id = -1, $title = '', $content = '') {
+    $post = new WP_Post((object)[
+        'ID' => $id,
+        'post_title' => $title,
         'post_excerpt' => '',
-        'post_content' => '',
+        'post_content' => $content,
         'post_status' => 'publish',
-        'post_type' => 'page'
+        'post_type' => 'page',
+        'post_author' => 0,
+        'post_date' => current_time('mysql'),
+        'post_date_gmt' => current_time('mysql', 1),
+        'post_modified' => current_time('mysql'),
+        'post_modified_gmt' => current_time('mysql', 1),
+        'post_parent' => 0,
+        'menu_order' => 0,
+        'post_mime_type' => '',
+        'comment_status' => 'closed',
+        'ping_status' => 'closed',
+        'post_password' => '',
+        'to_ping' => '',
+        'pinged' => '',
+        'guid' => '',
+        'comment_count' => 0,
+        'filter' => 'raw',
+
     ]);
 
     return $post;

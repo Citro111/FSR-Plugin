@@ -39,11 +39,26 @@ function fsr_dw_fetch($page) {
 }
 
 function fsr_dw_search($query) {
-    $s = fsr_dw_get_settings(); $url = rtrim($s['base_url'], '/') . '/aktuelles?do=search&id=' . urlencode('protokolle:sitzungsprotokolle') . '&sf=1&q=' . urlencode(trim($query) . ' @protokolle') . '&srt=mtime';
-    $res = wp_remote_get($url, ['timeout' => 12, 'user-agent' => 'Mozilla/5.0']); if (is_wp_error($res)) return '';
-    $html = wp_remote_retrieve_body($res); if (!$html) return '';
-    libxml_use_internal_errors(true); $dom = new DOMDocument(); $dom->loadHTML('<?xml encoding="utf-8" ?>'.$html); $xpath = new DOMXPath($dom); $result = '';
-    foreach ($xpath->query("//div[contains(@class,'search_fullpage_result')]") as $node) { $result .= $dom->saveHTML($node); $result .= '<br>'; } return fsr_dw_transform($result);
+    $s = fsr_dw_get_settings();
+    $url =  rtrim($s['base_url'], '/') .'/aktuelles?do=search&id=' .
+            urlencode('protokolle:sitzungsprotokolle') . '&sf=1&q=' .
+            urlencode(trim($query) . ' @protokolle') . '&srt=mtime';
+    $res = wp_remote_get($url, ['timeout' => 12, 'user-agent' => 'Mozilla/5.0']);
+    if (is_wp_error($res)) return '';
+    $html = wp_remote_retrieve_body($res);
+    if (!$html) return '';
+    libxml_use_internal_errors(true);
+    $dom = new DOMDocument();
+    $dom->loadHTML('<?xml encoding="utf-8" ?>'.$html);
+    $xpath = new DOMXPath($dom);
+    foreach ($xpath->query("//div[contains(@class,'search_fullpage_result')]") as $node) {
+        $virtual_posts .= fsr_create_virtual_search_post(
+            $id = -1,
+            $title = trim($xpath->query(".//h3", $node)->item(0)->textContent ?? ''),
+            $content = trim($xpath->query(".//div[contains(@class,'search_result')]", $node)->item(0)->textContent ?? '')
+        );
+    }
+    return $virtual_posts;
 }
 
 function fsr_dw_transform($html) {
