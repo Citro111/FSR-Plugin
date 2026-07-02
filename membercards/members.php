@@ -589,6 +589,7 @@ function fsr_membercards_search($search_term) {
         return '';
     }
     $virtual_posts = [];
+    $url_overview = fsr_get_shortcode_usage_overview(['fsr_members']);
 
     foreach ($query->posts as $post) {
 
@@ -612,7 +613,7 @@ function fsr_membercards_search($search_term) {
             fsr_next_virtual_post_id(),
             fsr_member_post_title($member),
             $searchable,
-            fsr_get_shortcode_usage_overview(['fsr_members'])->get_permalink()[0]['view_link'] ?? '',
+            $url_overview[0]['view_link'] ?? '',
             'page'
         );
     }
