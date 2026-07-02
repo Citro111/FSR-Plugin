@@ -43,6 +43,9 @@ function fsr_ensure_search_loop_runs($posts, $query) {
 function fsr_append_search_results($query) {
 
     static $done = false;
+     echo '<div style="background:#ffeb3b;padding:10px;margin:15px 0;font-weight:bold;">
+        DEBUG: fsr_append_search_results() wurde aufgerufen.
+    </div>';
 
     if ($done || is_admin() || !$query->is_main_query() || !$query->is_search()) {
         return;
@@ -53,8 +56,12 @@ function fsr_append_search_results($query) {
     if ($search === '') {
         return;
     }
+    echo '<div style="background:#ffeb3b;padding:10px;margin:15px 0;font-weight:bold;">
+        DEBUG: Suche nach "' . esc_html($search) . '".
+    </div>';
 
     if ($members = fsr_membercards_search($search)) {
+        fsr_search_result('Mitglieder', $members, '', 'membercards-search-results-content');
         echo '<div class="membercards-search-results-content">';
         echo '<h3>Mitglieder</h3>';
         echo $members;
@@ -62,6 +69,7 @@ function fsr_append_search_results($query) {
     }
 
     if ($hours = fsr_office_hours_search($search)) {
+        fsr_search_result('Sprechstunden', $hours, '', 'office-hours-search-results-content');
         echo '<div class="office-hours-search-results-content">';
         echo '<h3>Sprechstunden</h3>';
         echo $hours;
@@ -69,10 +77,7 @@ function fsr_append_search_results($query) {
     }
 
     if ($dw = fsr_dw_search($search)) {
-        echo '<div class="dw-search-results-content">';
-        echo '<h3>Protokolle</h3>';
-        echo $dw;
-        echo '</div>';
+        fsr_search_result('Protokolle', $dw, '', 'dw-search-results-content');
     }
 
     $done = true;
