@@ -138,12 +138,32 @@ function fsr_office_hours_in_next_workdays($ts, $days = 7) {
 }
 
 function fsr_office_hours_search($search_term) {
+
     $search_term = trim(wp_strip_all_tags($search_term));
+
+    if ($search_term === '') {
+        return '';
+    }
 
     $settings = fsr_office_hours_get_settings();
 
     if (empty($settings['rules']) || !is_array($settings['rules'])) {
         return '';
+    }
+
+    // Mitglieder nur einmal laden
+    $members = fsr_get_members_data();
+
+    // Nach ID indizieren
+    $membersById = [];
+
+    foreach ($members as $member) {
+
+        if (!is_array($member) || empty($member['id'])) {
+            continue;
+        }
+
+        $membersById[(int)$member['id']] = $member;
     }
 
     $output = '';
@@ -154,116 +174,73 @@ function fsr_office_hours_search($search_term) {
             continue;
         }
 
-        // Suchtext zusammenbauen
         $searchable = [];
+
         $searchable[] = $rule['title'] ?? '';
         $searchable[] = $rule['location'] ?? '';
 
-        // Mitgliedsnamen ergänzen
-        if (!empty($rule['member_ids'])) {
-            $members = fsr_get_members_data();
-            foreach ($members as $key => $member) {
+        if (!empty($rule['member_ids']) && is_array($rule['member_ids'])) {
 
-    if (!is_array($member)) {
-        echo '<pre>Nicht Array: ';
-        var_dump($key, $member);
-        echo '</pre>';
-        continue;
-    }
+            foreach ($rule['member_ids'] as $memberId) {
 
-    if (!array_key_exists('id', $member)) {
-        echo '<pre>Keine ID: ';
-        print_r($member);
-        echo '</pre>';
-        continue;
-    }
+                $memberId = (int)$memberId;
 
-    if (in_array((int)$member['id'], $rule['member_ids'], true)) {
-
-        $searchable[] = trim(($member['first_name'] ?? '') . ' ' . ($member['last_name'] ?? ''));
-
-        if (!empty($member['amt'])) {
-            $searchable[] = $member['amt'];
-        }
-
-        if (!empty($member['team'])) {
-            $searchable[] = $member['team'];
-        }
-    }
-}
-            /*
-            foreach ($members as $member) {
-                echo '<pre>';
-                print_r($rule['member_ids']);
-                echo '</pre>';
-                if (in_array($member['id'], $rule['member_ids'], true)) {
-                    echo '<pre>';
-                        var_dump($member);
-                    echo '</pre>';
-                    $searchable[] = trim(
-                        ($member['first_name'] ?? '') . ' ' .
-                        ($member['last_name'] ?? '')
-                    );
-                    if (!empty($member['amt'])) {
-                        $searchable[] = $member['amt'];
-                    }
-                    if (!empty($member['team'])) {
-                        $searchable[] = $member['team'];
-                    }
+                if (!isset($membersById[$memberId])) {
+                    continue;
                 }
-            }*/
+
+                $member = $membersById[$memberId];
+
+                $searchable[] = trim(
+                    ($member['first_name'] ?? '') . ' ' .
+                    ($member['last_name'] ?? '')
+                );
+
+                if (!empty($member['amt'])) {
+                    $searchable[] = $member['amt'];
+                }
+
+                if (!empty($member['team'])) {
+                    $searchable[] = $member['team'];
+                }
+
+                if (!empty($member['email_prefix'])) {
+                    $searchable[] = $member['email_prefix'];
+                }
+            }
         }
 
-        $searchableText = implode(' ', $searchable);
+        $haystack = mb_strtolower(implode(' ', $searchable));
+        $needle   = mb_strtolower($search_term);
 
-        if (stripos($searchableText, $search_term) === false) {
+        if (mb_stripos($haystack, $needle) === false) {
             continue;
         }
 
-        // Nächsten Termin bestimmen
-        $nextDate = '';
-        if (($rule['recurrence'] ?? '') === 'monthly_nth') {
-            foreach (fsr_office_hours_get_occurrences($rule, 16) as $date) {
-                if (
-                    $date >= current_time('Y-m-d')
-                    && !fsr_office_hours_occurrence_is_cancelled(
-                        $rule,
-                        $date,
-                        $settings['cancellations'] ?? []
-                    )
-                ) {
-                    $nextDate = $date;
-                    break;
-                }
-            }
-        } else {
-            $occurrences = fsr_office_hours_get_occurrences($rule, 16);
-            foreach ($occurrences as $date) {
-                if (
-                    $date >= current_time('Y-m-d')
-                    && !fsr_office_hours_occurrence_is_cancelled(
-                        $rule,
-                        $date,
-                        $settings['cancellations'] ?? []
-                    )
-                ) {
-                    $nextDate = $date;
-                    break;
-                }
-            }
+        $lines = [];
+
+        if (!empty($rule['location'])) {
+            $lines[] = $rule['location'];
         }
 
-        // Ausgabe
+        if (!empty($rule['start_time'])) {
+
+            $time = $rule['start_time'];
+
+            if (!empty($rule['end_time'])) {
+                $time .= ' - ' . $rule['end_time'];
+            }
+
+            $lines[] = $time;
+        }
+
         $output .= fsr_search_result(
-            $rule['title'], 
-            [
-                $nextDate,
-                $rule['start_time'] . ' - ' . $rule['end_time'],
-                $rule['location']
-            ],
+            $rule['title'],
+            $lines,
             '',
-            'office-hour'
+            ['office-hours']
         );
     }
+
     return $output;
 }
