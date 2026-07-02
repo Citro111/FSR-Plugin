@@ -236,9 +236,10 @@ function fsr_office_hours_search($search_term) {
             $lines[] = $time;
         }
         $virtual_posts[] = fsr_create_virtual_search_post(
-            $title = fsr_next_virtual_post_id(),
+            $id = fsr_next_virtual_post_id(),
+            $title = $rule['title'] ?? 'Office Hour',
             $excerpt = fsr_member_post_title($member),
-            $content = $searchable,
+            $content = implode("\n", $searchable),
             $url = $url_overview[0]['view_link'] ?? '',
             $type = 'page'
         );

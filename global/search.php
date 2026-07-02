@@ -31,24 +31,24 @@ function fsr_mark_placeholder_post($classes, $class, $post_id) {
     return $classes;
 }
 
-//verbesserung nötig, da aktuell alle Seiten länger laden und hier eine Warnung werfen
 function fsr_virtual_permalink($permalink, $post) {
-
     if (!is_search()) {
         return $permalink;
     }
-
     if (empty($GLOBALS['fsr_virtual_posts'])) {
         return $permalink;
     }
-
+    if (is_numeric($post)) {
+        $post = get_post($post);
+    }
+    if (!is_object($post) || empty($post->ID)) {
+        return $permalink;
+    }
     if (isset($GLOBALS['fsr_virtual_posts'][$post->ID])) {
         return $GLOBALS['fsr_virtual_posts'][$post->ID]['url'];
     }
-
     return $permalink;
 }
-
 function fsr_next_virtual_post_id() {
     static $id = -100000;
     return $id--;
