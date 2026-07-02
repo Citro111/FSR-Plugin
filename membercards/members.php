@@ -453,10 +453,9 @@ function fsr_ajax_import_members_handler() {
     ]);
 }
 
-function fsr_get_shortcode_usage_overview() {
+function fsr_get_shortcode_usage_overview($shortcodes = ['fsr_members', 'fsr_office_hours', 'fsr_office_hours_sick'];) {
     global $wpdb;
 
-    $shortcodes = ['fsr_members', 'fsr_office_hours', 'fsr_office_hours_sick'];
     $like_parts = [];
     $like_values = [];
 
@@ -495,7 +494,6 @@ function fsr_get_shortcode_usage_overview() {
             'view_link' => get_permalink((int) $row->ID),
         ];
     }
-
     return $usage;
 }
 
@@ -614,7 +612,7 @@ function fsr_membercards_search($search_term) {
             fsr_next_virtual_post_id(),
             fsr_member_post_title($member),
             $searchable,
-            get_permalink(/* Seite mit [fsr_members] */),
+            fsr_get_shortcode_usage_overview(['fsr_members'])->get_permalink(),
             'page'
         );
     }

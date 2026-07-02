@@ -233,10 +233,12 @@ function fsr_office_hours_search($search_term) {
 
             $lines[] = $time;
         }
-        $virtual_posts .= fsr_create_virtual_search_post(
+        $virtual_posts[] = fsr_create_virtual_search_post(
             fsr_next_virtual_post_id(),
-            $title = $rule['title'] ?? 'Office Hour',
-            $content = implode('<br>', $lines)
+            fsr_member_post_title($member),
+            $searchable,
+            fsr_get_shortcode_usage_overview(['fsr_office_hours'])->get_permalink(),
+            'page'
         );
     }
 
