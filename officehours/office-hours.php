@@ -161,7 +161,7 @@ function fsr_office_hours_search($search_term) {
 
         // Mitgliedsnamen ergänzen
         if (!empty($rule['member_ids'])) {
-            $members = fsr_get_member_records();
+            $members = fsr_get_members_data();
             foreach ($members as $member) {
                 if (in_array($member['id'], $rule['member_ids'], true)) {
                     $searchable[] = $member['name'] ?? '';
@@ -216,7 +216,7 @@ function fsr_office_hours_search($search_term) {
 
         // Ausgabe
         $output .= fsr_search_result(
-            $rule['title'],
+            $rule['title'], 
             [
                 $nextDate,
                 $rule['start_time'] . ' - ' . $rule['end_time'],
