@@ -58,6 +58,7 @@ function fsr_dw_search($query) {
             $excerpt = $node->getElementsByTagName('p')[0]->textContent ?? '',
             $content = $excerpt,
             $url = home_url('/wiki/' . ltrim($node->getElementsByTagName('a')[0]->getAttribute('href'), '/')),
+            $date = $node->getElementsByTagName('span')[0]->textContent ?? '',
             $type = 'page'
         );
     }
