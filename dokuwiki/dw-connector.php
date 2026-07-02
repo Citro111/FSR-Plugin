@@ -53,7 +53,6 @@ function fsr_dw_search($query) {
     $xpath = new DOMXPath($dom);
     foreach ($xpath->query("//div[contains(@class,'search_fullpage_result')]") as $node) {
         $virtual_posts[] = fsr_create_virtual_search_post(
-            $id = fsr_next_virtual_post_id(),
             $title = $node->getElementsByTagName('h3')[0]->textContent ?? 'Protokoll',
             $excerpt = $node->getElementsByTagName('p')[0]->textContent ?? '',
             $content = $excerpt,

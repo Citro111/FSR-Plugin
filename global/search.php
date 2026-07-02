@@ -32,6 +32,9 @@ function fsr_mark_placeholder_post($classes, $class, $post_id) {
 }
 
 function fsr_virtual_permalink($permalink, $post) {
+    echo "<p>DEBUG: permalink: $permalink, post: </p>";
+    print_r($post);
+
     if (!is_search()) {
         return $permalink;
     }
@@ -49,17 +52,17 @@ function fsr_virtual_permalink($permalink, $post) {
     }
     return $permalink;
 }
+
 function fsr_next_virtual_post_id() {
     static $id = -100000;
     return $id--;
 }
 
 function fsr_create_virtual_search_post(
-    $id = -1,
     $title = '',
     $excerpt = '',
     $content = '',
-    $url = '',
+    $url,
     $date,
     $type = 'page'
 ) {
@@ -77,6 +80,10 @@ function fsr_create_virtual_search_post(
         'type' => $type,
         'date' => $date,
     ];
+        echo '<p>';
+        echo "DEBUG: Creating virtual post with ID $id, title: $title, url: $url, type: $type, date: $date";
+        print_r($GLOBALS['fsr_virtual_posts'], true);
+        echo '</p>';
 
     return new WP_Post((object)[
         'ID'                 => $id,
