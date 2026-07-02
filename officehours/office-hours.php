@@ -166,6 +166,10 @@ function fsr_office_hours_search($search_term) {
         $membersById[(int)$member['id']] = $member;
     }
 
+    echo '<pre>';
+    print_r(array_keys($membersById));
+    echo '</pre>';
+    
     $output = '';
 
     foreach ($settings['rules'] as $rule) {
