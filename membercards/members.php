@@ -610,7 +610,7 @@ function fsr_membercards_search($search_term) {
         }
 
         $virtual_posts .= fsr_create_virtual_search_post(
-            $id = -1,
+            fsr_next_virtual_post_id(),
             $title = fsr_member_post_title($member),
             $content = ''
         );

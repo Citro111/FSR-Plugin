@@ -154,6 +154,7 @@ function fsr_office_hours_search($search_term) {
     // Mitglieder nur einmal laden
     $data = fsr_get_members_data();
     $members = $data['members'] ?? [];
+    $virtual_posts = [];
 
     // Nach ID indizieren
     $membersById = [];
@@ -232,12 +233,12 @@ function fsr_office_hours_search($search_term) {
 
             $lines[] = $time;
         }
-        $virtual_post = fsr_create_virtual_search_post(
-            $id = -1,
+        $virtual_posts .= fsr_create_virtual_search_post(
+            fsr_next_virtual_post_id(),
             $title = $rule['title'] ?? 'Office Hour',
             $content = implode('<br>', $lines)
         );
     }
 
-    return $virtual_post;
+    return $virtual_posts;
 }
