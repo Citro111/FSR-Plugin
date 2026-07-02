@@ -4,12 +4,11 @@ if(!defined('ABSPATH')) exit;
 
 add_filter('the_posts', 'fsr_extend_search_results', 10, 2);
 add_filter('post_class', 'fsr_mark_placeholder_post', 10, 3);
-/*
 add_filter('post_link', 'fsr_virtual_permalink', 10, 2);
 add_filter('page_link', 'fsr_virtual_permalink', 10, 2);
 add_filter('post_type_link', 'fsr_virtual_permalink', 10, 2);
 add_filter('get_permalink', 'fsr_virtual_permalink', 10, 2);
-add_filter('the_permalink', 'fsr_virtual_permalink', 10, 2);*/
+add_filter('the_permalink', 'fsr_virtual_permalink', 10, 2);
 
 function fsr_extend_search_results($posts, $query) {
     if (is_admin() || !$query->is_main_query() || !$query->is_search()) {
@@ -36,6 +35,13 @@ function fsr_mark_placeholder_post($classes, $class, $post_id) {
 }
 
 function fsr_virtual_permalink($permalink, $post) {
+
+    echo '<p>';
+    echo "DEBUG: fsr_virtual_permalink called with permalink: $permalink, post ID: " . (is_object($post) ? $post->ID : $post);
+    echo "DEBUG: used hook: " . current_filter();
+    print_r($GLOBALS['fsr_virtual_posts'], true);
+    echo '</p>';
+
 
     if (!is_search()) {
         return $permalink;
