@@ -25,7 +25,10 @@ function fsr_dw_render_admin_fields() {
 }
 
 // RESTLICHE INTERNE DOKUWIKI CONNECTOR LOGIK (Aus dw-bridge 3.3 gekapselt)[cite: 1]
-function fsr_dw_rewrite_rules() { add_rewrite_rule('^wiki/?$', 'index.php?dw_page=start', 'top'); add_rewrite_rule('^wiki/(.+)/?$', 'index.php?dw_page=$matches[1]', 'top'); }
+function fsr_dw_rewrite_rules() {
+    add_rewrite_rule('^wiki/?$', 'index.php?dw_page=start', 'top');
+    add_rewrite_rule('^wiki/(.+)/?$', 'index.php?dw_page=$matches[1]', 'top');
+}
 function fsr_dw_query_vars($vars) { $vars[] = 'dw_page'; return $vars; }
 function fsr_dw_template_router($template) { $page = get_query_var('dw_page'); if ($page !== '' && $page !== null) { return FSR_PLUGIN_DIR . 'global/template.php'; } return $template; }
 
@@ -57,7 +60,7 @@ function fsr_dw_search($query) {
             $excerpt = $node->getElementsByTagName('p')[0]->textContent ?? '',
             $content = $excerpt,
             $url = home_url('/wiki/' . ltrim($node->getElementsByTagName('a')[0]->getAttribute('href'), '/')),
-            $date = $node->getElementsByTagName('span')[0]->textContent ?? '',
+            $date = '',
             $type = 'page'
         );
     }
