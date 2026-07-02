@@ -453,7 +453,7 @@ function fsr_ajax_import_members_handler() {
     ]);
 }
 
-function fsr_get_shortcode_usage_overview($shortcodes = ['fsr_members', 'fsr_office_hours', 'fsr_office_hours_sick'];) {
+function fsr_get_shortcode_usage_overview($shortcodes = ['fsr_members', 'fsr_office_hours', 'fsr_office_hours_sick']) {
     global $wpdb;
 
     $like_parts = [];
