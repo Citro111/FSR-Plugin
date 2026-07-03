@@ -1,21 +1,28 @@
 <?php
 if (!defined('ABSPATH')) exit;
+
 get_header();
-$page = get_query_var('dw_page');
-$content = fsr_dw_fetch($page); // Ruft die gekapselte Funktion auf
+
+$wiki = fsr_dw_current_page();
+$title = $wiki['title'] ?? '';
+$content = $wiki['content'] ?? '';
 ?>
-<div class="container">
-    <div class="dw-wrapper site-main">
-        <div class="dw-content entry-content">
-            <?php 
-            if ($content !== false) {
-                echo $content;
-            } else {
-                echo "<p>Fehler beim Laden der Wiki-Inhalte.</p>";
-            }
-            ?>
-        </div>
+
+<div class="dw-page">
+    <div class="dw-hero">
+        <a class="dw-back" href="<?php echo home_url('/wiki'); ?>">
+            ← Wiki Übersicht
+        </a>
+
+        <h1 class="dw-title">
+            <?php echo esc_html($title); ?>
+        </h1>
     </div>
+
+    <div class="dw-content">
+        <?php echo $content; ?>
+    </div>
+
 </div>
-<?php
-get_footer();
+
+<?php get_footer(); ?>

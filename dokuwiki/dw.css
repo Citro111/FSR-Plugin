@@ -75,6 +75,4 @@
     margin-top: 0;
 }
 
-.ct-hero .page-title {
-    display: none !important;
-}
+.is-wiki .ct-hero { display: none; }

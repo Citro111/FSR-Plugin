@@ -5,26 +5,19 @@ if (!defined('ABSPATH')) exit;
 add_action('init', 'fsr_dw_rewrite_rules');
 add_filter('query_vars', 'fsr_dw_query_vars');
 add_action('init', 'fsr_dw_asset_proxy');
-add_filter('the_content', 'fsr_dw_the_content');
-add_filter('pre_get_document_title', function ($title) {
+add_filter('template_include', function ($template) {
 
-    if (!fsr_dw_is_wiki_request()) {
-        return $title;
+    if (get_query_var('dw_page') === null) {
+        return $template;
     }
 
-    $wiki_title = fsr_dw_get_title();
-
-    return $wiki_title ?: $title;
+    return FSR_PLUGIN_DIR . 'dokuwiki/dw-template.php';
 });
-add_filter('the_content', function ($content) {
-
-    if (!fsr_dw_is_wiki_request()) {
-        return $content;
+add_filter('body_class', function ($classes) {
+    if (get_query_var('dw_page')) {
+        $classes[] = 'is-wiki';
     }
-
-    $hero = fsr_dw_render_hero();
-
-    return $hero . $content;
+    return $classes;
 });
 
 function fsr_dw_get_title() {
@@ -51,18 +44,13 @@ function fsr_dw_render_hero() {
         return;
     }
 
-    $link = home_url('/wiki');
+    $link = home_url('/wiki/protokolle:sitzungsprotokolle/');
 
     echo '<div class="dw-hero">';
 
-    echo '<h1 class="dw-hero-title">';
+    echo '<h1 class="entry-content is-layout-constrained" href="' . esc_url($link) . '">';
     echo esc_html($wiki['title']);
     echo '</h1>';
-
-    echo '<a class="dw-hero-back" href="' . esc_url($link) . '">';
-    echo '← Zur Wiki-Übersicht';
-    echo '</a>';
-
     echo '</div>';
 }
 
