@@ -4,11 +4,8 @@ if(!defined('ABSPATH')) exit;
 
 add_filter('the_posts', 'fsr_extend_search_results', 10, 2);
 add_filter('post_class', 'fsr_mark_placeholder_post', 10, 3);
-add_filter('post_link', 'fsr_virtual_permalink', 10, 2);
-add_filter('page_link', 'fsr_virtual_permalink', 10, 2);
 add_filter('post_type_link', 'fsr_virtual_permalink', 10, 2);
-add_filter('get_permalink', 'fsr_virtual_permalink', 10, 2);
-add_filter('the_permalink', 'fsr_virtual_permalink', 10, 2);
+add_filter('page_link', 'fsr_virtual_permalink', 10, 2);
 
 function fsr_extend_search_results($posts, $query) {
     if (is_admin() || !$query->is_main_query() || !$query->is_search()) {
@@ -32,6 +29,20 @@ function fsr_mark_placeholder_post($classes, $class, $post_id) {
         $classes[] = 'search-placeholder';
     }
     return $classes;
+}
+
+function fsr_virtual_permalink($permalink, $post) {
+    if (!is_search()) {
+        return $permalink;
+    }
+    if (empty($GLOBALS['fsr_virtual_posts'])) {
+        return $permalink;
+    }
+    $post_id = is_object($post) ? (int) $post->ID : (int) $post;
+    if (isset($GLOBALS['fsr_virtual_posts'][$post_id])) {
+        return $GLOBALS['fsr_virtual_posts'][$post_id]['url'];
+    }
+    return $permalink;
 }
 
 function fsr_virtual_permalink($permalink, $post) {
