@@ -84,8 +84,9 @@ function fsr_dw_search($search_term) {
     $virtual_posts = [];
 
     foreach ($xpath->query("//div[contains(@class,'search_fullpage_result')]") as $result) {
-
-        $link = $xpath->query(".//h3//a", $result)->item(0);
+        echo htmlentities($dom->saveHTML($result));
+        exit;
+        $link = $result->getElementsByTagName('a')->item(0);
 
         if (!$link) {
             continue;
