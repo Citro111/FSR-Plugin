@@ -142,21 +142,18 @@ function fsr_office_hours_search($search_term) {
     $search_term = trim(wp_strip_all_tags($search_term));
 
     if ($search_term === '') {
-        return '';
+        return [];
     }
 
     $settings = fsr_office_hours_get_settings();
 
     if (empty($settings['rules']) || !is_array($settings['rules'])) {
-        return '';
+        return [];
     }
 
-    // Mitglieder nur einmal laden
     $data = fsr_get_members_data();
     $members = $data['members'] ?? [];
-    $virtual_posts = [];
 
-    // Nach ID indizieren
     $membersById = [];
 
     foreach ($members as $member) {
@@ -170,6 +167,9 @@ function fsr_office_hours_search($search_term) {
 
     $url_overview = fsr_get_shortcode_usage_overview(['fsr_office_hours']);
 
+    $excerpt_lines = [];
+    $content_lines = [];
+
     foreach ($settings['rules'] as $rule) {
 
         if (!is_array($rule)) {
@@ -180,6 +180,9 @@ function fsr_office_hours_search($search_term) {
 
         $searchable[] = $rule['title'] ?? '';
         $searchable[] = $rule['location'] ?? '';
+        $searchable[] = $rule['weekday'] ?? '';
+
+        $member_names = [];
 
         if (!empty($rule['member_ids']) && is_array($rule['member_ids'])) {
 
@@ -193,36 +196,44 @@ function fsr_office_hours_search($search_term) {
 
                 $member = $membersById[$memberId];
 
-                $searchable[] = trim(
+                $name = trim(
                     ($member['first_name'] ?? '') . ' ' .
                     ($member['last_name'] ?? '')
                 );
 
-                if (!empty($member['amt'])) {
-                    $searchable[] = $member['amt'];
-                }
+                $member_names[] = $name;
 
-                if (!empty($member['team'])) {
-                    $searchable[] = $member['team'];
-                }
-
-                if (!empty($member['email_prefix'])) {
-                    $searchable[] = $member['email_prefix'];
-                }
+                $searchable[] = $name;
+                $searchable[] = $member['amt'] ?? '';
+                $searchable[] = $member['team'] ?? '';
+                $searchable[] = $member['email_prefix'] ?? '';
+                $searchable[] = $member['studiengang'] ?? '';
+                $searchable[] = $member['abschluss'] ?? '';
             }
         }
 
-        $haystack = mb_strtolower(implode(' ', $searchable));
-        $needle   = mb_strtolower($search_term);
+        if (!empty($rule['start_time'])) {
+            $searchable[] = $rule['start_time'];
+        }
 
-        if (mb_stripos($haystack, $needle) === false) {
+        if (!empty($rule['end_time'])) {
+            $searchable[] = $rule['end_time'];
+        }
+
+        $haystack = mb_strtolower(implode(' ', array_filter($searchable)));
+
+        if (mb_stripos($haystack, mb_strtolower($search_term)) === false) {
             continue;
         }
 
-        $lines = [];
+        //------------------------------------
+        // Excerpt
+        //------------------------------------
 
-        if (!empty($rule['location'])) {
-            $lines[] = $rule['location'];
+        $line = [];
+
+        if (!empty($rule['weekday'])) {
+            $line[] = ucfirst($rule['weekday']);
         }
 
         if (!empty($rule['start_time'])) {
@@ -230,21 +241,43 @@ function fsr_office_hours_search($search_term) {
             $time = $rule['start_time'];
 
             if (!empty($rule['end_time'])) {
-                $time .= ' - ' . $rule['end_time'];
+                $time .= '–' . $rule['end_time'];
             }
 
-            $lines[] = $time;
+            $line[] = $time;
         }
-        print_r($url_overview[0]['view_link'], true);
-        $virtual_posts[] = fsr_create_virtual_search_post(
-            $title = $rule['title'] ?? 'Sprechstunde',
-            $excerpt = $haystack,
-            $content = $haystack,
-            $url = $url_overview[0]['view_link'] ?? '',
-            $date = '',
-            $type = 'page'
-        );
+
+        if (!empty($rule['location'])) {
+            $line[] = $rule['location'];
+        }
+
+        $excerpt = implode(' · ', $line);
+
+        if (!empty($member_names)) {
+            $excerpt .= "\n" . implode(', ', $member_names);
+        }
+
+        $excerpt_lines[] = $excerpt;
+
+        //------------------------------------
+        // Content (nur für Suche)
+        //------------------------------------
+
+        $content_lines[] = implode(' ', array_filter($searchable));
     }
 
-    return $virtual_posts;
+    if (empty($excerpt_lines)) {
+        return [];
+    }
+
+    return [
+        fsr_create_virtual_search_post(
+            'Office Hours',
+            implode("\n\n", $excerpt_lines),
+            implode("\n", $content_lines),
+            $url_overview[0]['view_link'] ?? '',
+            '',
+            'page'
+        )
+    ];
 }

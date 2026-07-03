@@ -608,11 +608,12 @@ function fsr_membercards_search($search_term) {
         if (stripos($searchable, $search_term) === false) {
             continue;
         }
+        $content = $member['first_name'] . ' ' . $member['last_name'] . ' ' . $member['amt'];
 
         $virtual_posts[] = fsr_create_virtual_search_post(
             $title = fsr_member_post_title($member),
-            $excerpt = trim($searchable),
-            $content = trim($searchable),
+            $excerpt = $content,
+            $content = $content,
             $url = $url_overview[0]['view_link'] ?? '',
             $date = '',
             $type = 'page'

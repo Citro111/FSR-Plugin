@@ -107,9 +107,10 @@ function fsr_dw_search($search_term) {
         }
 
         $title = basename(str_replace(':', '/', $page));
-
         $title = str_replace('_', ' ', $title);
-
+        $title = str_replace('ae', 'ä', $title);
+        $title = str_replace('oe', 'ö', $title);
+        $title = str_replace('ue', 'ü', $title);
         $title = ucwords($title);
 
         // ---------------- URL ----------------
