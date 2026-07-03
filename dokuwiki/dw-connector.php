@@ -5,32 +5,21 @@ if (!defined('ABSPATH')) exit;
 add_action('init', 'fsr_dw_rewrite_rules');
 add_filter('query_vars', 'fsr_dw_query_vars');
 add_action('init', 'fsr_dw_asset_proxy');
-add_action(
-    'blocksy:hero:custom_title:before',
-    function () {
-        do_action('qm/debug', func_get_args());
-    },
-    1,
-    20
-);
+add_filter('the_title', function ($title, $post_id) {
 
-add_action(
-    'blocksy:hero:title:before',
-    function () {
-        do_action('qm/debug', func_get_args());
-    },
-    1,
-    20
-);
+    if (!fsr_dw_is_wiki_request()) {
+        return $title;
+    }
 
-add_action(
-    'blocksy:hero:title:after',
-    function () {
-        do_action('qm/debug', func_get_args());
-    },
-    1,
-    20
-);
+    $wiki_page = get_page_by_path('wiki');
+
+    if (!$wiki_page || $wiki_page->ID != $post_id) {
+        return $title;
+    }
+
+    return fsr_dw_get_title() ?: $title;
+
+}, 999, 2);
 
 
 
