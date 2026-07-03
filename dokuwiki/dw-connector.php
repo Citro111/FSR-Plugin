@@ -22,6 +22,22 @@ add_filter('document_title_parts', function ($parts) {
 
     return $parts;
 });
+add_action('blocksy:hero:custom_title:after', function () {
+
+    if (!is_page('wiki')) {
+        return;
+    }
+
+    $wiki = fsr_dw_current_page();
+
+    if (empty($wiki['title'])) {
+        return;
+    }
+
+    echo '<h1 class="page-title dw-hero-title">';
+    echo esc_html($wiki['title']);
+    echo '</h1>';
+});
 
 function fsr_dw_the_content($content) {
 
