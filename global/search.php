@@ -45,6 +45,7 @@ function fsr_virtual_permalink($permalink, $post) {
     return $permalink;
 }
 
+/*
 function fsr_virtual_permalink($permalink, $post) {
 
     echo '<p>';
@@ -81,7 +82,7 @@ function fsr_virtual_permalink($permalink, $post) {
 
     return $permalink;
 }
-
+*/
 function fsr_next_virtual_post_id() {
     static $id = -100000;
     return $id--;
