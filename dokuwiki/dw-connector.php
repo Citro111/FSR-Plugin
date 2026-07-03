@@ -40,8 +40,13 @@ function fsr_dw_the_content($content) {
     }
 
     $wiki = fsr_dw_current_page();
-    if ($wiki === false) {
-        return '<div class="dw-content"><p>Fehler beim Laden der Wiki-Inhalte.</p></div>';
+
+    if (!is_array($wiki)) {
+        return '<p>Wiki konnte nicht geladen werden.</p>';
+    }
+
+    if (empty($wiki['content'])) {
+        return '<p>Wiki konnte nicht geladen werden.</p>';
     }
 
     return '<div class="dw-content">' . $wiki['content'] . '</div>';
