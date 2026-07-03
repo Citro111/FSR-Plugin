@@ -70,7 +70,7 @@ function fsr_dw_search($search_term) {
 
     $html = wp_remote_retrieve_body($response);
 
-    if (empty($html)) {
+    if (!$html) {
         return [];
     }
 
@@ -84,80 +84,61 @@ function fsr_dw_search($search_term) {
     $virtual_posts = [];
 
     foreach ($xpath->query("//div[contains(@class,'search_fullpage_result')]") as $result) {
-        echo htmlentities($dom->saveHTML($result));
-        exit;
+
+        // ---------------- Link ----------------
+
         $link = $result->getElementsByTagName('a')->item(0);
 
         if (!$link) {
             continue;
         }
 
-        //---------------------------------------
-        // Titel
-        //---------------------------------------
+        $href = $link->getAttribute('href');
 
-        $title = trim($link->textContent);
+        // ---------------- Titel ----------------
 
-        //---------------------------------------
-        // Wiki-ID -> WordPress URL
-        //---------------------------------------
+        $page = $link->getAttribute('data-wiki-id');
 
-        $href = html_entity_decode(
-            $link->getAttribute('href'),
-            ENT_QUOTES
-        );
-
-        $page = '';
-
-        if (str_contains($href, 'doku.php')) {
+        if ($page === '') {
 
             parse_str(parse_url($href, PHP_URL_QUERY), $query);
 
             $page = $query['id'] ?? '';
-
-        } else {
-
-            $page = ltrim($href, ':/');
-
         }
+
+        $title = basename(str_replace(':', '/', $page));
+
+        $title = str_replace('_', ' ', $title);
+
+        $title = ucwords($title);
+
+        // ---------------- URL ----------------
 
         $url = home_url('/wiki/' . $page);
 
-        //---------------------------------------
-        // Suchauszug
-        //---------------------------------------
+        // ---------------- Snippet ----------------
 
         $excerpt = '';
 
-        $snippet = $xpath->query(
-            ".//*[contains(@class,'search_snippet') or contains(@class,'search_excerpt')]",
-            $result
-        )->item(0);
+        $snippet = $xpath->query(".//dd[contains(@class,'snippet')]", $result)->item(0);
 
         if ($snippet) {
+
             $excerpt = trim(
-                preg_replace('/\s+/', ' ', $snippet->textContent)
+                preg_replace('/\s+/', ' ', strip_tags($snippet->textContent))
             );
         }
 
-        //---------------------------------------
-        // Datum
-        //---------------------------------------
+        // ---------------- Datum ----------------
 
         $date = '';
 
-        $dateNode = $xpath->query(
-            ".//*[contains(@class,'date')]",
-            $result
-        )->item(0);
+        $time = $result->getElementsByTagName('time')->item(0);
 
-        if ($dateNode) {
-            $date = trim($dateNode->textContent);
+        if ($time) {
+
+            $date = $time->getAttribute('datetime');
         }
-
-        //---------------------------------------
-        // Virtuellen Post erzeugen
-        //---------------------------------------
 
         $virtual_posts[] = fsr_create_virtual_search_post(
             $title,
