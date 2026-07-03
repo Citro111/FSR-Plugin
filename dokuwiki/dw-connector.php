@@ -12,7 +12,7 @@ add_action(
         if (!fsr_dw_is_wiki_request()) {
             return;
         }
-        do_action('qm/debug',$args);
+        do_action('qm/debug',func_get_args());
 
     },
     1,
