@@ -4,8 +4,8 @@ get_header();
 $page = get_query_var('dw_page');
 $content = fsr_dw_fetch($page); // Ruft die gekapselte Funktion auf
 ?>
-<div class="dw-wrapper site-main">
-    <div class="container">
+<div class="container">
+    <div class="dw-wrapper site-main">
         <div class="dw-content">
             <?php 
             if ($content !== false) {
