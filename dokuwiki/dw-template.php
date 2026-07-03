@@ -10,12 +10,7 @@ $content = $wiki['content'] ?? '';
 
 <div class="dw-page">
     <div class="dw-hero">
-        <a class="dw-back" href="<?php echo home_url('/wiki'); ?>">
-            ← Wiki Übersicht
-        </a>
-
-        <h1 class="dw-title">
-            <?php echo esc_html($title); ?>
+        <h1 class="dw-title" <?php echo esc_html($title); ?> href="<?php echo home_url('/wiki'); ?>">
         </h1>
     </div>
 
