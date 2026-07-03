@@ -9,6 +9,8 @@
 .dw-wrapper {
     padding-top: 40px;
     padding-bottom: 40px;
+    margin-right: auto;
+    margin-left: auto;
 }
 .site-main .dw-wrapper {
     margin-top: 60px;
