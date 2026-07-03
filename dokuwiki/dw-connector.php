@@ -6,37 +6,19 @@ add_action('init', 'fsr_dw_rewrite_rules');
 add_filter('query_vars', 'fsr_dw_query_vars');
 add_action('init', 'fsr_dw_asset_proxy');
 add_filter('the_content', 'fsr_dw_the_content');
-add_filter('document_title_parts', function ($parts) {
+add_filter('pre_get_document_title', function ($title) {
 
-    $page = get_query_var('dw_page', null);
-
-    if ($page === null) {
-        return $parts;
+    if (!is_page('wiki')) {
+        return $title;
     }
 
     $wiki = fsr_dw_current_page();
 
     if (!empty($wiki['title'])) {
-        $parts['title'] = $wiki['title'];
+        return $wiki['title'];
     }
 
-    return $parts;
-});
-add_action('blocksy:hero:custom_title:after', function () {
-
-    if (!is_page('wiki')) {
-        return;
-    }
-
-    $wiki = fsr_dw_current_page();
-
-    if (empty($wiki['title'])) {
-        return;
-    }
-
-    echo '<h1 class="page-title dw-hero-title">';
-    echo esc_html($wiki['title']);
-    echo '</h1>';
+    return $title;
 });
 
 function fsr_dw_the_content($content) {
@@ -103,21 +85,6 @@ function fsr_dw_rewrite_rules() {
         'top'
     );
 }
-
-function fsr_dw_page_title($title, $post_id) {
-    if (!is_page('wiki')) {
-        return $title;
-    }
-    if (!in_the_loop() && !is_admin()) {
-        $wiki = fsr_dw_current_page();
-        if ($wiki && !empty($wiki['title'])) {
-            return $wiki['title'];
-        }
-    }
-    return $title;
-}
-
-
 
 function fsr_dw_current_page() {
     static $wiki = null;
