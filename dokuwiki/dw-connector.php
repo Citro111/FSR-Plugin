@@ -30,7 +30,7 @@ function fsr_dw_rewrite_rules() {
     add_rewrite_rule('^wiki/(.+)/?$', 'index.php?dw_page=$matches[1]', 'top');
 }
 function fsr_dw_query_vars($vars) { $vars[] = 'dw_page'; return $vars; }
-function fsr_dw_template_router($template) { $page = get_query_var('dw_page'); if ($page !== '' && $page !== null) { return FSR_PLUGIN_DIR . 'global/template.php'; } return $template; }
+function fsr_dw_template_router($template) { $page = get_query_var('dw_page'); if ($page !== '' && $page !== null) { return FSR_PLUGIN_DIR . 'dw-template.php'; } return $template; }
 
 function fsr_dw_fetch($page) {
     $s = fsr_dw_get_settings(); if (!$page) $page = $s['start_page'];
