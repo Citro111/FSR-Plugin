@@ -40,11 +40,6 @@ function fsr_dw_render_admin_fields() {
     echo '</table>';
 }
 
-// RESTLICHE INTERNE DOKUWIKI CONNECTOR LOGIK (Aus dw-bridge 3.3 gekapselt)[cite: 1]
-function fsr_dw_rewrite_rules() {
-    add_rewrite_rule('^wiki/?$', 'index.php?dw_page=start', 'top');
-    add_rewrite_rule('^wiki/(.+)/?$', 'index.php?dw_page=$matches[1]', 'top');
-}
 function fsr_dw_query_vars($vars) { $vars[] = 'dw_page'; return $vars; }
 
 function fsr_dw_fetch($page) {
