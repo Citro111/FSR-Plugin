@@ -41,53 +41,133 @@ function fsr_dw_fetch($page) {
     $html = fsr_dw_transform($html); set_transient($cache_key, $html, intval($s['cache_time'])); return $html;
 }
 
-function fsr_dw_search($query) {
-    $s = fsr_dw_get_settings();
-    $url =  rtrim($s['base_url'], '/') .'/aktuelles?do=search&id=' .
-            urlencode('protokolle:sitzungsprotokolle') . '&sf=1&q=' .
-            urlencode(trim($query) . ' @protokolle') . '&srt=mtime';
-    $res = wp_remote_get($url, ['timeout' => 12, 'user-agent' => 'Mozilla/5.0']);
-    if (is_wp_error($res)) return '';
-    $html = wp_remote_retrieve_body($res);
-    if (!$html) return '';
+function fsr_dw_search($search_term) {
+
+    $search_term = trim($search_term);
+
+    if ($search_term === '') {
+        return [];
+    }
+
+    $settings = fsr_dw_get_settings();
+
+    $url =
+        rtrim($settings['base_url'], '/') .
+        '/aktuelles?do=search&id=' .
+        urlencode('protokolle:sitzungsprotokolle') .
+        '&sf=1&q=' .
+        urlencode($search_term . ' @protokolle') .
+        '&srt=mtime';
+
+    $response = wp_remote_get($url, [
+        'timeout' => 15,
+        'user-agent' => 'Mozilla/5.0'
+    ]);
+
+    if (is_wp_error($response)) {
+        return [];
+    }
+
+    $html = wp_remote_retrieve_body($response);
+
+    if (empty($html)) {
+        return [];
+    }
+
     libxml_use_internal_errors(true);
+
     $dom = new DOMDocument();
     $dom->loadHTML('<?xml encoding="utf-8" ?>'.$html);
-    $xpath = new DOMXPath($dom);
-    foreach ($xpath->query("//div[contains(@class,'search_fullpage_result')]") as $node) {
 
-        $link = $xpath->query(".//h3/a", $node)->item(0);
+    $xpath = new DOMXPath($dom);
+
+    $virtual_posts = [];
+
+    foreach ($xpath->query("//div[contains(@class,'search_fullpage_result')]") as $result) {
+
+        $link = $xpath->query(".//h3//a", $result)->item(0);
 
         if (!$link) {
             continue;
         }
 
+        //---------------------------------------
+        // Titel
+        //---------------------------------------
+
         $title = trim($link->textContent);
 
-        $href = $link->getAttribute('href');
+        //---------------------------------------
+        // Wiki-ID -> WordPress URL
+        //---------------------------------------
 
-        parse_str(parse_url($href, PHP_URL_QUERY), $query);
+        $href = html_entity_decode(
+            $link->getAttribute('href'),
+            ENT_QUOTES
+        );
 
-        $page = $query['id'] ?? '';
+        $page = '';
 
-        $snippetNode = $xpath->query(
+        if (str_contains($href, 'doku.php')) {
+
+            parse_str(parse_url($href, PHP_URL_QUERY), $query);
+
+            $page = $query['id'] ?? '';
+
+        } else {
+
+            $page = ltrim($href, ':/');
+
+        }
+
+        $url = home_url('/wiki/' . $page);
+
+        //---------------------------------------
+        // Suchauszug
+        //---------------------------------------
+
+        $excerpt = '';
+
+        $snippet = $xpath->query(
             ".//*[contains(@class,'search_snippet') or contains(@class,'search_excerpt')]",
-            $node
+            $result
         )->item(0);
 
-        $excerpt = $snippetNode
-            ? trim($snippetNode->textContent)
-            : '';
+        if ($snippet) {
+            $excerpt = trim(
+                preg_replace('/\s+/', ' ', $snippet->textContent)
+            );
+        }
+
+        //---------------------------------------
+        // Datum
+        //---------------------------------------
+
+        $date = '';
+
+        $dateNode = $xpath->query(
+            ".//*[contains(@class,'date')]",
+            $result
+        )->item(0);
+
+        if ($dateNode) {
+            $date = trim($dateNode->textContent);
+        }
+
+        //---------------------------------------
+        // Virtuellen Post erzeugen
+        //---------------------------------------
 
         $virtual_posts[] = fsr_create_virtual_search_post(
             $title,
             $excerpt,
             $excerpt,
-            home_url('/wiki/' . $page),
-            '',
+            $url,
+            $date,
             'page'
         );
     }
+
     return $virtual_posts;
 }
 
