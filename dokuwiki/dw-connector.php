@@ -18,7 +18,7 @@ add_filter('pre_get_document_title', function ($title) {
 });
 add_filter('the_content', function ($content) {
 
-    if (get_query_var('dw_page') === null) {
+    if (!fsr_dw_is_wiki_request()) {
         return $content;
     }
 
@@ -64,6 +64,10 @@ function fsr_dw_render_hero() {
     echo '</a>';
 
     echo '</div>';
+}
+
+function fsr_dw_is_wiki_request(): bool {
+    return get_query_var('dw_page') !== null;
 }
 
 function fsr_dw_the_content($content) {
