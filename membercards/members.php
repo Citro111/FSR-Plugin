@@ -611,8 +611,8 @@ function fsr_membercards_search($search_term) {
 
         $virtual_posts[] = fsr_create_virtual_search_post(
             $title = fsr_member_post_title($member),
-            $excerpt = fsr_member_post_title($member),
-            $content = $searchable,
+            $excerpt = implode("\n", $searchable),
+            $content = implode("\n", $searchable),
             $url = $url_overview[0]['view_link'] ?? '',
             $date = '',
             $type = 'page'
