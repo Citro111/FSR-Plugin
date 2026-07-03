@@ -5,32 +5,26 @@ if (!defined('ABSPATH')) exit;
 add_action('init', 'fsr_dw_rewrite_rules');
 add_filter('query_vars', 'fsr_dw_query_vars');
 add_action('init', 'fsr_dw_asset_proxy');
-add_filter('blocksy:hero:element:render', function ($render) {
+add_action('wp', function () {
 
-    if (get_query_var('dw_page') !== null) {
-        return false; // Hero komplett deaktivieren für Wiki
-    }
-
-    return $render;
-});
-add_action('blocksy:content:before', function () {
-
-    if (get_query_var('dw_page') === null) {
+    if (!fsr_dw_is_wiki_request()) {
         return;
     }
 
-    $wiki = fsr_dw_current_page();
-    if (!$wiki || empty($wiki['title'])) {
+    global $post;
+
+    if (!$post) {
         return;
     }
 
-    echo '<div class="dw-hero">';
-    echo '<div class="ct-container">'; // <- wichtig: Blocksy spacing übernehmen!
-    echo '<h1 class="dw-title"href="' . home_url('wiki/protokolle:sitzungsprotokolle/') . '">' . esc_html($wiki['title']) . '</h1>';
+    $title = fsr_dw_get_title();
 
-    echo '</div>';
-    echo '</div>';
+    if ($title) {
+        $post->post_title = $title;
+    }
+
 });
+
 
 
 function fsr_dw_get_title() {
