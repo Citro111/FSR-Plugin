@@ -20,6 +20,20 @@ add_filter('pre_get_document_title', function ($title) {
 
     return $title;
 });
+add_filter('blocksy:hero:title', function ($title) {
+
+    if (!is_page('wiki')) {
+        return $title;
+    }
+
+    $wiki = fsr_dw_current_page();
+
+    if (!empty($wiki['title'])) {
+        return $wiki['title'];
+    }
+
+    return $title;
+});
 
 function fsr_dw_the_content($content) {
 
