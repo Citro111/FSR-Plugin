@@ -9,9 +9,6 @@
 .dw-wrapper {
     padding-top: 40px;
     padding-bottom: 40px;
-    
-    margin-right: 
-    margin-left:
 }
 .site-main .dw-wrapper {
     margin-top: 60px;
@@ -76,4 +73,8 @@
 .dw-search-results-content .dw-content {
     padding-top: 0;
     margin-top: 0;
+}
+
+.ct-hero .page-title {
+    display: none !important;
 }

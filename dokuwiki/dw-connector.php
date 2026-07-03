@@ -8,32 +8,63 @@ add_action('init', 'fsr_dw_asset_proxy');
 add_filter('the_content', 'fsr_dw_the_content');
 add_filter('pre_get_document_title', function ($title) {
 
-    if (!is_page('wiki')) {
+    if (!fsr_dw_is_wiki_request()) {
+        return $title;
+    }
+
+    $wiki_title = fsr_dw_get_title();
+
+    return $wiki_title ?: $title;
+});
+add_filter('the_content', function ($content) {
+
+    if (get_query_var('dw_page') === null) {
+        return $content;
+    }
+
+    $hero = fsr_dw_render_hero();
+
+    return $hero . $content;
+});
+
+function fsr_dw_get_title() {
+    static $title = null;
+
+    if ($title !== null) {
         return $title;
     }
 
     $wiki = fsr_dw_current_page();
 
-    if (!empty($wiki['title'])) {
-        return $wiki['title'];
-    }
+    $title = !empty($wiki['title'])
+        ? $wiki['title']
+        : '';
 
     return $title;
-});
-add_filter('the_title', function ($title) {
+}
 
-    if (!is_page('wiki')) {
-        return $title;
-    }
+function fsr_dw_render_hero() {
 
     $wiki = fsr_dw_current_page();
 
-    if (!empty($wiki['title'])) {
-        return $wiki['title'];
+    if (empty($wiki['title'])) {
+        return;
     }
 
-    return $title;
-});
+    $link = home_url('/wiki');
+
+    echo '<div class="dw-hero">';
+
+    echo '<h1 class="dw-hero-title">';
+    echo esc_html($wiki['title']);
+    echo '</h1>';
+
+    echo '<a class="dw-hero-back" href="' . esc_url($link) . '">';
+    echo '← Zur Wiki-Übersicht';
+    echo '</a>';
+
+    echo '</div>';
+}
 
 function fsr_dw_the_content($content) {
 
