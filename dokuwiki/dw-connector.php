@@ -12,8 +12,9 @@ add_action(
         if (!fsr_dw_is_wiki_request()) {
             return;
         }
-
+        echo '</p>';
         print_r(func_get_args(), true);
+        echo '<p>';
 
     },
     1,
