@@ -6,6 +6,7 @@ add_action('init', 'fsr_dw_rewrite_rules');
 add_filter('query_vars', 'fsr_dw_query_vars');
 add_action('init', 'fsr_dw_asset_proxy');
 add_filter('the_content', 'fsr_dw_the_content');
+add_filter('the_title', 'fsr_dw_page_title', 10, 2);
 
 function fsr_dw_the_content($content) {
 
@@ -14,13 +15,12 @@ function fsr_dw_the_content($content) {
         return $content;
     }
 
-    $wiki = fsr_dw_fetch($page);
-
+    $wiki = fsr_dw_current_page();
     if ($wiki === false) {
         return '<div class="dw-content"><p>Fehler beim Laden der Wiki-Inhalte.</p></div>';
     }
 
-    return '<div class="dw-content">'.$wiki.'</div>';
+    return '<div class="dw-content">' . $wiki['content'] . '</div>';
 }
 
 function fsr_dw_get_settings() {
@@ -44,11 +44,18 @@ function fsr_dw_query_vars($vars) { $vars[] = 'dw_page'; return $vars; }
 
 function fsr_dw_fetch($page) {
     $s = fsr_dw_get_settings(); if (!$page) $page = $s['start_page'];
-    $cache_key = 'dw_' . md5($page); $cached = get_transient($cache_key); if ($cached) return $cached;
+    $cache_key = 'dw_' . md5($page);
+    $cached = get_transient($cache_key);
+    if ($cached !== false) {
+        return $cached;
+    }
     $url = rtrim($s['base_url'], '/') . '/doku.php?id=' . urlencode($page) . '&do=export_xhtmlbody';
     $res = wp_remote_get($url, ['timeout' => 12]); if (is_wp_error($res)) return false;
-    $html = wp_remote_retrieve_body($res); if (!$html) return false;
-    $html = fsr_dw_transform($html); set_transient($cache_key, $html, intval($s['cache_time'])); return $html;
+    $html = wp_remote_retrieve_body($res);
+    if (!$html) return false;
+    $html = fsr_dw_transform($html);
+    set_transient($cache_key, $html, intval($s['cache_time']));
+    return $html;
 }
 
 function fsr_dw_rewrite_rules() {
@@ -64,6 +71,30 @@ function fsr_dw_rewrite_rules() {
         'index.php?pagename=wiki&dw_page=$matches[1]',
         'top'
     );
+}
+
+function fsr_dw_page_title($title, $post_id) {
+    if (!is_page('wiki')) {
+        return $title;
+    }
+    if (!in_the_loop() && !is_admin()) {
+        $wiki = fsr_dw_current_page();
+        if ($wiki && !empty($wiki['title'])) {
+            return $wiki['title'];
+        }
+    }
+    return $title;
+}
+
+
+
+function fsr_dw_current_page() {
+    static $wiki = null;
+    if ($wiki === null) {
+        $wiki = fsr_dw_fetch(get_query_var('dw_page'));
+    }
+
+    return $wiki;
 }
 
 function fsr_dw_search($search_term) {
@@ -180,14 +211,47 @@ function fsr_dw_search($search_term) {
 }
 
 function fsr_dw_transform($html) {
-    libxml_use_internal_errors(true); $dom = new DOMDocument(); $dom->loadHTML('<?xml encoding="utf-8" ?>' . $html); $s = fsr_dw_get_settings(); $base_url = rtrim($s['base_url'], '/');
+    libxml_use_internal_errors(true);
+    $dom = new DOMDocument();
+    $dom->loadHTML('<?xml encoding="utf-8" ?>' . $html);
+    $title = '';
+    $h1 = $dom->getElementsByTagName('h1')->item(0);
+    if ($h1) {
+        $title = trim($h1->textContent);
+
+        // H1 aus dem Content entfernen
+        $h1->parentNode->removeChild($h1);
+    }
+    $s = fsr_dw_get_settings();
+    $base_url = rtrim($s['base_url'], '/');
     foreach ($dom->getElementsByTagName('a') as $a) {
         $href = trim($a->getAttribute('href')); if (!$href) continue; $clean_href = strtok($href, '?');
         $open_in_new_tab = false;
         if (!str_starts_with($href, 'http') && !str_starts_with($href, '#') && !str_starts_with($href, '/wiki/')) {
-            if (!str_contains($href, '/') || str_contains($href, ':')) { $clean_href = ltrim($clean_href, ':'); $target_page = ltrim($clean_href, '/'); $a->setAttribute('href', home_url('/wiki/' . $target_page)); $open_in_new_tab = fsr_dw_should_open_in_new_tab($target_page); if ($open_in_new_tab) { $a->setAttribute('target', '_blank'); $a->setAttribute('rel', 'noopener noreferrer'); } continue; }
+            if (!str_contains($href, '/') || str_contains($href, ':')) {
+                $clean_href = ltrim($clean_href, ':');
+                $target_page = ltrim($clean_href, '/');
+                $a->setAttribute('href', home_url('/wiki/' . $target_page));
+                $open_in_new_tab = fsr_dw_should_open_in_new_tab($target_page);
+                if ($open_in_new_tab) {
+                    $a->setAttribute('target', '_blank');
+                    $a->setAttribute('rel', 'noopener noreferrer');
+                }
+                continue;
+            }
         }
-        if (str_contains($href, 'doku.php?id=')) { parse_str(parse_url($href, PHP_URL_QUERY), $query); if (!empty($query['id'])) { $page = ltrim($query['id'], ':'); $a->setAttribute('href', home_url('/wiki/' . ltrim($page, '/'))); $open_in_new_tab = fsr_dw_should_open_in_new_tab($page); if ($open_in_new_tab) { $a->setAttribute('target', '_blank'); $a->setAttribute('rel', 'noopener noreferrer'); } } }
+        if (str_contains($href, 'doku.php?id=')) {
+            parse_str(parse_url($href, PHP_URL_QUERY), $query);
+            if (!empty($query['id'])) {
+                $page = ltrim($query['id'], ':');
+                $a->setAttribute('href', home_url('/wiki/' . ltrim($page, '/')));
+                $open_in_new_tab = fsr_dw_should_open_in_new_tab($page);
+                if ($open_in_new_tab) {
+                    $a->setAttribute('target', '_blank');
+                    $a->setAttribute('rel', 'noopener noreferrer');
+                }
+            }
+        }
         if (str_starts_with($href, '/wiki/')) {
             $page = ltrim(substr($clean_href, strlen('/wiki/')), '/');
             if (fsr_dw_should_open_in_new_tab($page)) {
@@ -196,13 +260,35 @@ function fsr_dw_transform($html) {
             }
         }
     }
+
     foreach ($dom->getElementsByTagName('img') as $img) {
-        $src = trim($img->getAttribute('src')); if (!$src) continue; $src = html_entity_decode($src, ENT_QUOTES, 'UTF-8');
-        if (!str_starts_with($src, 'http://') && !str_starts_with($src, 'https://')) { $src = $base_url . '/' . ltrim($src, '/'); }
+        $src = trim($img->getAttribute('src'));
+        if (!$src) continue;
+        $src = html_entity_decode($src, ENT_QUOTES, 'UTF-8');
+        if (!str_starts_with($src, 'http://') && !str_starts_with($src, 'https://')) {
+            $src = $base_url . '/' . ltrim($src, '/');
+        }
         $img->setAttribute('src', home_url('/?dw_asset=' . urlencode($src)));
-        $current_class = $img->getAttribute('class'); $img->setAttribute('class', $current_class . ' dw-attached-image'); $img->setAttribute('loading', 'lazy');
+        $current_class = $img->getAttribute('class');
+        $img->setAttribute('class', $current_class . ' dw-attached-image');
+        $img->setAttribute('loading', 'lazy');
     }
-    return $dom->saveHTML();
+
+    foreach ($dom->getElementsByTagName('table') as $table) {
+        $wrapper = $dom->createElement('div');
+        $wrapper->setAttribute('class', 'dw-table');
+        $table->parentNode->insertBefore($wrapper, $table);
+        $wrapper->appendChild($table);
+    }
+
+    $xpath = new DOMXPath($dom);
+    foreach ($xpath->query("//div[starts-with(@class,'level')]") as $div) {
+        fsr_dw_unwrap($div);
+    }
+    return [
+        'title'   => $title,
+        'content' => $dom->saveHTML(),
+    ];
 }
 
 function fsr_dw_should_open_in_new_tab($page) {
@@ -215,10 +301,25 @@ function fsr_dw_should_open_in_new_tab($page) {
 }
 
 function fsr_dw_asset_proxy() {
-    if (!isset($_GET['dw_asset'])) return; $url = rawurldecode($_GET['dw_asset']); $s = fsr_dw_get_settings(); $base = rtrim($s['base_url'], '/');
+    if (!isset($_GET['dw_asset'])) return;
+    $url = rawurldecode($_GET['dw_asset']);
+    $s = fsr_dw_get_settings(); $base = rtrim($s['base_url'], '/');
     if (strpos($url, $base) !== 0) { status_header(403); exit; }
     $res = wp_remote_get($url, [ 'timeout' => 15, 'user-agent' => 'Mozilla/5.0' ]);
-    if (is_wp_error($res) || wp_remote_retrieve_response_code($res) !== 200) { status_header(404); exit; }
-    $content_type = wp_remote_retrieve_header($res, 'content-type'); if ($content_type) header('Content-Type: ' . $content_type);
+    if (is_wp_error($res) || wp_remote_retrieve_response_code($res) !== 200) {
+        status_header(404); exit;
+    }
+    $content_type = wp_remote_retrieve_header($res, 'content-type');
+    if ($content_type) header('Content-Type: ' . $content_type);
     echo wp_remote_retrieve_body($res); exit;
+}
+
+function fsr_dw_unwrap($element) {
+    while ($element->firstChild) {
+        $element->parentNode->insertBefore(
+            $element->firstChild,
+            $element
+        );
+    }
+    $element->parentNode->removeChild($element);
 }
