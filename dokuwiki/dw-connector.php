@@ -5,21 +5,10 @@ if (!defined('ABSPATH')) exit;
 add_action('init', 'fsr_dw_rewrite_rules');
 add_filter('query_vars', 'fsr_dw_query_vars');
 add_action('init', 'fsr_dw_asset_proxy');
-add_filter('the_title', function ($title, $post_id) {
-
-    if (!fsr_dw_is_wiki_request()) {
-        return $title;
-    }
-
-    $wiki_page = get_page_by_path('wiki');
-
-    if (!$wiki_page || $wiki_page->ID != $post_id) {
-        return $title;
-    }
-
-    return fsr_dw_get_title() ?: $title;
-
-}, 999, 2);
+add_filter('the_title', 'fsr_dw_filter_title', 999, 2);
+add_filter('the_content', 'fsr_dw_the_content', 999);
+add_filter('the_title', 'fsr_dw_filter_title', 999, 2);
+add_filter('pre_get_document_title', 'fsr_dw_filter_document_title', 999);
 
 
 
@@ -39,24 +28,6 @@ function fsr_dw_get_title() {
     return $title;
 }
 
-function fsr_dw_render_hero() {
-
-    $wiki = fsr_dw_current_page();
-
-    if (empty($wiki['title'])) {
-        return;
-    }
-
-    $link = home_url('/wiki/protokolle:sitzungsprotokolle/');
-
-    echo '<div class="dw-hero">';
-
-    echo '<h1 class="entry-content is-layout-constrained" href="' . esc_url($link) . '">';
-    echo esc_html($wiki['title']);
-    echo '</h1>';
-    echo '</div>';
-}
-
 function fsr_dw_is_wiki_request(): bool {
     return get_query_var('dw_page') !== null;
 }
@@ -74,6 +45,30 @@ function fsr_dw_the_content($content) {
     }
 
     return '<div class="dw-content">' . $wiki['content'] . '</div>';
+}
+
+function fsr_dw_filter_document_title($title) {
+
+    if (!fsr_dw_is_wiki_request()) {
+        return $title;
+    }
+
+    return fsr_dw_get_title() ?: $title;
+}
+
+function fsr_dw_filter_title($title, $post_id) {
+
+    if (!fsr_dw_is_wiki_request()) {
+        return $title;
+    }
+
+    $wiki = get_page_by_path('wiki');
+
+    if (!$wiki || $wiki->ID != $post_id) {
+        return $title;
+    }
+
+    return fsr_dw_get_title() ?: $title;
 }
 
 function fsr_dw_get_settings() {
