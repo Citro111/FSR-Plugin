@@ -94,6 +94,8 @@ function fsr_dw_fetch($page) {
     $s = fsr_dw_get_settings(); if (!$page) $page = $s['start_page'];
     $cache_key = 'dw_' . md5($page);
     $cached = get_transient($cache_key);
+    var_dump(gettype($cached));
+    die();
     if ($cached !== false) {
         return $cached;
     }
