@@ -4,8 +4,24 @@ if (!defined('ABSPATH')) exit;
 // Hooks für DokuWiki
 add_action('init', 'fsr_dw_rewrite_rules');
 add_filter('query_vars', 'fsr_dw_query_vars');
-add_filter('template_include', 'fsr_dw_template_router');   
 add_action('init', 'fsr_dw_asset_proxy');
+add_filter('the_content', 'fsr_dw_the_content');
+
+function fsr_dw_the_content($content) {
+
+    $page = get_query_var('dw_page', null);
+    if ($page === null) {
+        return $content;
+    }
+
+    $wiki = fsr_dw_fetch($page);
+
+    if ($wiki === false) {
+        return '<div class="dw-content"><p>Fehler beim Laden der Wiki-Inhalte.</p></div>';
+    }
+
+    return '<div class="dw-content">'.$wiki.'</div>';
+}
 
 function fsr_dw_get_settings() {
     return wp_parse_args(get_option('dw_bridge_settings', []), [
@@ -30,7 +46,6 @@ function fsr_dw_rewrite_rules() {
     add_rewrite_rule('^wiki/(.+)/?$', 'index.php?dw_page=$matches[1]', 'top');
 }
 function fsr_dw_query_vars($vars) { $vars[] = 'dw_page'; return $vars; }
-function fsr_dw_template_router($template) { $page = get_query_var('dw_page'); if ($page !== '' && $page !== null) { return FSR_PLUGIN_DIR . 'dw-template.php'; } return $template; }
 
 function fsr_dw_fetch($page) {
     $s = fsr_dw_get_settings(); if (!$page) $page = $s['start_page'];
@@ -39,6 +54,21 @@ function fsr_dw_fetch($page) {
     $res = wp_remote_get($url, ['timeout' => 12]); if (is_wp_error($res)) return false;
     $html = wp_remote_retrieve_body($res); if (!$html) return false;
     $html = fsr_dw_transform($html); set_transient($cache_key, $html, intval($s['cache_time'])); return $html;
+}
+
+function fsr_dw_rewrite_rules() {
+
+    add_rewrite_rule(
+        '^wiki/?$',
+        'index.php?pagename=wiki',
+        'top'
+    );
+
+    add_rewrite_rule(
+        '^wiki/(.+)/?$',
+        'index.php?pagename=wiki&dw_page=$matches[1]',
+        'top'
+    );
 }
 
 function fsr_dw_search($search_term) {

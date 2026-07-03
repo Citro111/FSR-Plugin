@@ -4,20 +4,18 @@ get_header();
 $page = get_query_var('dw_page');
 $content = fsr_dw_fetch($page); // Ruft die gekapselte Funktion auf
 ?>
-<div class="ct-container-full" data-content="normal" data-vertical-spacing="top:bottom">
-    <article>
-        <div class="entry-content is-layout-constrained">
-            <div class="dw-content">
-                <?php 
-                if ($content !== false) {
-                    echo $content;
-                } else {
-                    echo "<p>Fehler beim Laden der Wiki-Inhalte.</p>";
-                }
-                ?>
-            </div>
+<div class="container">
+    <div class="dw-wrapper site-main">
+        <div class="dw-content entry-content">
+            <?php 
+            if ($content !== false) {
+                echo $content;
+            } else {
+                echo "<p>Fehler beim Laden der Wiki-Inhalte.</p>";
+            }
+            ?>
         </div>
-    </article>
+    </div>
 </div>
 <?php
 get_footer();

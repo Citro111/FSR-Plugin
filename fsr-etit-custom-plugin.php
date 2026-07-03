@@ -28,6 +28,25 @@ require_once FSR_PLUGIN_DIR . 'officehours/office-hours.php';
 // 5. Suchergebnisse erweitern
 require_once FSR_PLUGIN_DIR . 'global/search.php';
 
+register_activation_hook(__FILE__, 'fsr_dw_activate');
+
+function fsr_dw_activate() {
+
+    if (!get_page_by_path('wiki')) {
+
+        wp_insert_post([
+            'post_title'   => 'Wiki',
+            'post_name'    => 'wiki',
+            'post_content' => '',
+            'post_status'  => 'publish',
+            'post_type'    => 'page'
+        ]);
+    }
+
+    fsr_dw_rewrite_rules();
+    flush_rewrite_rules();
+}
+
 // Zentrale Asset-Verwaltung
 add_action('wp_enqueue_scripts', 'fsr_custom_enqueue_frontend_assets');
 function fsr_custom_enqueue_frontend_assets() {
