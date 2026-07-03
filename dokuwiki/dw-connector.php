@@ -5,25 +5,20 @@ if (!defined('ABSPATH')) exit;
 add_action('init', 'fsr_dw_rewrite_rules');
 add_filter('query_vars', 'fsr_dw_query_vars');
 add_action('init', 'fsr_dw_asset_proxy');
-add_action('wp', function () {
+add_action(
+    'blocksy:hero:element:render',
+    function () {
 
-    if (!fsr_dw_is_wiki_request()) {
-        return;
-    }
+        if (!fsr_dw_is_wiki_request()) {
+            return;
+        }
 
-    global $post;
+        print_r(func_get_args(), true);
 
-    if (!$post) {
-        return;
-    }
-
-    $title = fsr_dw_get_title();
-
-    if ($title) {
-        $post->post_title = $title;
-    }
-
-});
+    },
+    1,
+    20
+);
 
 
 
