@@ -177,10 +177,25 @@ function fsr_office_hours_search($search_term) {
         }
 
         $searchable = [];
+        $weekday_names = [
+            0 => 'Sonntag',
+            1 => 'Montag',
+            2 => 'Dienstag',
+            3 => 'Mittwoch',
+            4 => 'Donnerstag',
+            5 => 'Freitag',
+            6 => 'Samstag',
+        ];
+
+        $weekday = $rule['weekday'] ?? '';
+
+        if (is_numeric($weekday)) {
+            $weekday = $weekday_names[(int)$weekday] ?? '';
+        }
 
         $searchable[] = $rule['title'] ?? '';
         $searchable[] = $rule['location'] ?? '';
-        $searchable[] = $rule['weekday'] ?? '';
+        $searchable[] = $weekday;
 
         $member_names = [];
 
@@ -231,10 +246,7 @@ function fsr_office_hours_search($search_term) {
         //------------------------------------
 
         $line = [];
-
-        if (!empty($rule['weekday'])) {
-            $line[] = ucfirst($rule['weekday']);
-        }
+        $line[] = $weekday;
 
         if (!empty($rule['start_time'])) {
 
