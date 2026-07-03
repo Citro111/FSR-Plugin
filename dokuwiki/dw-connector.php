@@ -6,7 +6,22 @@ add_action('init', 'fsr_dw_rewrite_rules');
 add_filter('query_vars', 'fsr_dw_query_vars');
 add_action('init', 'fsr_dw_asset_proxy');
 add_filter('the_content', 'fsr_dw_the_content');
-add_filter('the_title', 'fsr_dw_page_title', 10, 2);
+add_filter('document_title_parts', function ($parts) {
+
+    $page = get_query_var('dw_page', null);
+
+    if ($page === null) {
+        return $parts;
+    }
+
+    $wiki = fsr_dw_current_page();
+
+    if (!empty($wiki['title'])) {
+        $parts['title'] = $wiki['title'];
+    }
+
+    return $parts;
+});
 
 function fsr_dw_the_content($content) {
 
