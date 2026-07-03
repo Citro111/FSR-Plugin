@@ -55,13 +55,37 @@ function fsr_dw_search($query) {
     $dom->loadHTML('<?xml encoding="utf-8" ?>'.$html);
     $xpath = new DOMXPath($dom);
     foreach ($xpath->query("//div[contains(@class,'search_fullpage_result')]") as $node) {
+
+        $link = $xpath->query(".//h3/a", $node)->item(0);
+
+        if (!$link) {
+            continue;
+        }
+
+        $title = trim($link->textContent);
+
+        $href = $link->getAttribute('href');
+
+        parse_str(parse_url($href, PHP_URL_QUERY), $query);
+
+        $page = $query['id'] ?? '';
+
+        $snippetNode = $xpath->query(
+            ".//*[contains(@class,'search_snippet') or contains(@class,'search_excerpt')]",
+            $node
+        )->item(0);
+
+        $excerpt = $snippetNode
+            ? trim($snippetNode->textContent)
+            : '';
+
         $virtual_posts[] = fsr_create_virtual_search_post(
-            $title = trim($node->getElementsByTagName('h3')[0]->textContent),
-            $excerpt = trim($node->getElementsByTagName('p')[0]->textContent),
-            $content = $excerpt,
-            $url = home_url('/wiki/' . ltrim($node->getElementsByTagName('a')[0]->getAttribute('href'), '/')),
-            $date = '',
-            $type = 'page'
+            $title,
+            $excerpt,
+            $excerpt,
+            home_url('/wiki/' . $page),
+            '',
+            'page'
         );
     }
     return $virtual_posts;
