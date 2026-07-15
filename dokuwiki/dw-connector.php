@@ -116,7 +116,7 @@ function fsr_dw_fetch($page) {
         do_action('qm/debug', [
             'Transient vorhanden' => $cached !== false,
             'Transient Key' => $cache_key,
-            'Transient Ablauf' => get_option('_transient_timeout_' . $cache_key),
+            'Transient Ablauf' => get_option('_transient_timeout_' . $cache_key) . ' ('.date('Y-m-d H:i:s', get_option('_transient_timeout_' . $cache_key)).')',
             'Transient Länge' => is_string($cached) ? strlen($cached) : gettype($cached)
         ]);
         if ($cached !== false) {
@@ -129,6 +129,7 @@ function fsr_dw_fetch($page) {
     }
     do_action('qm/debug', [
         'DW Cache' => 'Nicht vorhanden, lade neu',
+        'Cache-Dauer' => $s['cache_time'],
         'Page' => $page
     ]);
     $url = rtrim($s['base_url'], '/') .
