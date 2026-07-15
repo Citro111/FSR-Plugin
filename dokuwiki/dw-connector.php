@@ -9,6 +9,7 @@ add_filter('the_title', 'fsr_dw_filter_title', 999, 2);
 add_filter('the_content', 'fsr_dw_the_content', 999);
 add_filter('the_title', 'fsr_dw_filter_title', 999, 2);
 add_filter('pre_get_document_title', 'fsr_dw_filter_document_title', 999);
+add_action('admin_init', 'fsr_dw_handle_cache_clear');
 
 
 function fsr_dw_get_title() {
@@ -89,11 +90,16 @@ function fsr_dw_get_settings() {
 
 function fsr_dw_render_admin_fields() {
     $s = fsr_dw_get_settings();
-    echo '<h3>DokuWiki Bridge Einstellungen</h3><table class="form-table">';
+    echo '<h3>DokuWiki Einstellungen</h3><table class="form-table">';
     echo "<tr><th>DokuWiki URL</th><td><input style='width:400px' name='dw_bridge_settings[base_url]' value='".esc_attr($s['base_url'])."'></td></tr>";
     echo "<tr><th>Startseite</th><td><input name='dw_bridge_settings[start_page]' value='".esc_attr($s['start_page'])."'></td></tr>";
     echo "<tr><th>Cache (Sekunden)</th><td><input type='number' name='dw_bridge_settings[cache_time]' value='".esc_attr($s['cache_time'])."'></td></tr>";
     echo '</table>';
+    echo '<p>';
+    echo '<button type="submit" name="dw_clear_cache" value="1" class="button">';
+    echo 'DokuWiki Cache löschen';
+    echo '</button>';
+    echo '</p>';
 }
 
 function fsr_dw_query_vars($vars) { $vars[] = 'dw_page'; return $vars; }
@@ -104,21 +110,23 @@ function fsr_dw_fetch($page) {
         $page = $s['start_page'];
     }
     $cache_key = 'dw_cacheKey_' . md5($page);
-    $cached = get_transient($cache_key);
-    do_action('qm/debug', [
-        'Transient vorhanden' => $cached !== false,
-        'Transient Key' => $cache_key,
-        'Transient Ablauf' => get_option('_transient_timeout_' . $cache_key),
-        'Transient Länge' => is_string($cached) ? strlen($cached) : gettype($cached)
-    ]);
-    if ($cached !== false) {
+    $cache_time = intval($s['cache_time']);
+    if ($cache_time > 0) {
+        $cached = get_transient($cache_key);
         do_action('qm/debug', [
-            'DW Cache' => 'Treffer',
-            'Key' => $cache_key,
-            'Page' => $page
+            'Transient vorhanden' => $cached !== false,
+            'Transient Key' => $cache_key,
+            'Transient Ablauf' => get_option('_transient_timeout_' . $cache_key),
+            'Transient Länge' => is_string($cached) ? strlen($cached) : gettype($cached)
         ]);
-
-        return $cached;
+        if ($cached !== false) {
+            do_action('qm/debug', [
+                'DW Cache' => 'Treffer',
+                'Key' => $cache_key,
+                'Page' => $page
+            ]);
+            return $cached;
+        }
     }
     do_action('qm/debug', [
         'DW Cache' => 'Nicht vorhanden, lade neu',
@@ -154,11 +162,13 @@ function fsr_dw_fetch($page) {
         return false;
     }
     $html = fsr_dw_transform($html);
-    set_transient(
-        $cache_key,
-        $html,
-        intval($s['cache_time'])
-    );
+    if($cache_time > 0) {
+        set_transient(
+            $cache_key,
+            $html,
+            intval($s['cache_time'])
+        );
+    }
     do_action('qm/debug', [
         'DW Cache geschrieben' => $s['cache_time'] . ' Sekunden'
     ]);
@@ -300,6 +310,29 @@ function fsr_dw_search($search_term) {
     }
 
     return $virtual_posts;
+}
+
+function fsr_dw_handle_cache_clear() {
+    if (!isset($_POST['dw_clear_cache'])) {
+        return;
+    }
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+    global $wpdb;
+    $wpdb->query(
+        "
+        DELETE FROM {$wpdb->options}
+        WHERE option_name LIKE '_transient_dw_%'
+        OR option_name LIKE '_transient_timeout_dw_%'
+        "
+    );
+    add_settings_error(
+        'dw_bridge_settings',
+        'dw_cache_cleared',
+        'DokuWiki Cache wurde gelöscht.',
+        'updated'
+    );
 }
 
 function fsr_dw_transform($html) {
