@@ -7,7 +7,6 @@ add_filter('query_vars', 'fsr_dw_query_vars');
 add_action('init', 'fsr_dw_asset_proxy');
 add_filter('the_title', 'fsr_dw_filter_title', 999, 2);
 add_filter('the_content', 'fsr_dw_the_content', 999);
-add_filter('the_title', 'fsr_dw_filter_title', 999, 2);
 add_filter('pre_get_document_title', 'fsr_dw_filter_document_title', 999);
 add_action('admin_init', 'fsr_dw_handle_cache_clear');
 
@@ -92,43 +91,6 @@ function fsr_dw_render_admin_fields() {
 
     $s = fsr_dw_get_settings();
 
-    global $wpdb;
-
-    echo '<h3>DokuWiki Cache</h3>';
-
-    $transients = $wpdb->get_results(
-        "
-        SELECT option_name, option_value
-        FROM {$wpdb->options}
-        WHERE option_name LIKE '_transient_timeout_dw_%'
-        "
-    );
-
-    if ($transients) {
-
-        foreach ($transients as $transient) {
-
-            $name = str_replace('_transient_timeout_', '', $transient->option_name);
-            $time = intval($transient->option_value);
-
-            echo '<p>';
-            echo esc_html($name) . ': ';
-            echo $time . ' (' . date('Y-m-d H:i:s', $time) . ')';
-
-            if ($time < time()) {
-                echo ' <strong>(abgelaufen)</strong>';
-            }
-
-            echo '</p>';
-        }
-
-    } else {
-
-        echo '<p>Keine Cache-Einträge gefunden.</p>';
-
-    }
-
-
     echo '<h3>DokuWiki Einstellungen</h3>';
 
     echo '<table class="form-table">';
@@ -161,6 +123,33 @@ function fsr_dw_render_admin_fields() {
 
     echo '</table>';
 
+    global $wpdb;
+
+    echo '<h3>DokuWiki Cache</h3>';
+
+    $transients = $wpdb->get_results(
+        "
+        SELECT option_name, option_value
+        FROM {$wpdb->options}
+        WHERE option_name LIKE '_transient_timeout_dw_%'
+        "
+    );
+
+    if ($transients) {
+        foreach ($transients as $transient) {
+            $name = str_replace('_transient_timeout_', '', $transient->option_name);
+            $time = intval($transient->option_value);
+            echo '<p>';
+            echo esc_html($name) . ': ';
+            echo $time . ' (' . date('Y-m-d H:i:s', $time) . ')';
+            if ($time < time()) {
+                echo ' <strong>(abgelaufen)</strong>';
+            }
+            echo '</p>';
+        }
+    } else {
+        echo '<p>Keine Cache-Einträge gefunden.</p>';
+    }
     echo '<p>';
     echo '<button type="submit" name="dw_clear_cache" value="1" class="button">';
     echo 'DokuWiki Cache löschen';
@@ -178,10 +167,11 @@ function fsr_dw_fetch($page) {
     $cache_time = intval($s['cache_time']);
     if ($cache_time > 0) {
         $cached = get_transient($cache_key);
+        $timeout = get_option('_transient_timeout_' . $cache_key);
         do_action('qm/debug', [
             'Transient vorhanden' => $cached !== false,
             'Transient Key' => $cache_key,
-            'Transient Ablauf' => get_option('_transient_timeout_' . $cache_key) . ' ('.date('Y-m-d H:i:s', get_option('_transient_timeout_' . $cache_key)).')',
+            'Transient Ablauf' => $timeout ? date('Y-m-d H:i:s', $timeout) : 'kein Ablauf',
             'Transient Länge' => is_string($cached) ? strlen($cached) : gettype($cached)
         ]);
         if ($cached !== false) {
