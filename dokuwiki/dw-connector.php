@@ -103,12 +103,13 @@ function fsr_dw_fetch($page) {
     if (!$page) {
         $page = $s['start_page'];
     }
-    $cache_key = 'dw_v2_' . md5($page);
+    $cache_key = 'dw_cacheKey_' . md5($page);
     $cached = get_transient($cache_key);
     do_action('qm/debug', [
         'Transient vorhanden' => $cached !== false,
         'Transient Key' => $cache_key,
-        'Transient Ablauf' => get_option('_transient_timeout_' . $cache_key)
+        'Transient Ablauf' => get_option('_transient_timeout_' . $cache_key),
+        'Transient Länge' => is_string($cached) ? strlen($cached) : gettype($cached)
     ]);
     if ($cached !== false) {
         do_action('qm/debug', [
