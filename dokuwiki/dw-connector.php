@@ -9,6 +9,11 @@ add_filter('the_title', 'fsr_dw_filter_title', 999, 2);
 add_filter('the_content', 'fsr_dw_the_content', 999);
 add_filter('pre_get_document_title', 'fsr_dw_filter_document_title', 999);
 add_action('admin_init', 'fsr_dw_handle_cache_clear');
+add_filter('the_posts', 'fsr_dw_create_virtual_post', 10, 2);
+add_action('pre_get_posts', 'fsr_dw_force_virtual_page_query');
+
+
+require_once __DIR__ . '/dw-admin.php';
 
 
 function fsr_dw_get_title() {
@@ -29,6 +34,69 @@ function fsr_dw_get_title() {
 
 function fsr_dw_is_wiki_request(): bool {
     return get_query_var('dw_page') !== null;
+}
+
+function fsr_dw_create_virtual_post($posts, $query) {
+
+    if (is_admin() || !$query->is_main_query()) {
+        return $posts;
+    }
+
+    if (get_query_var('dw_virtual') != 1) {
+        return $posts;
+    }
+
+    $page = get_query_var('dw_page');
+
+    if (!$page) {
+        $page = fsr_dw_get_settings()['start_page'];
+    }
+
+    $wiki = fsr_dw_fetch($page);
+
+    if (!$wiki) {
+        return $posts;
+    }
+
+    $virtual = new WP_Post((object)[
+        'ID' => -200000,
+        'post_title' => $wiki['title'],
+        'post_content' => $wiki['content'],
+        'post_status' => 'publish',
+        'post_type' => 'page',
+        'post_name' => sanitize_title($page),
+        'post_author' => 0,
+        'post_date' => current_time('mysql'),
+        'post_date_gmt' => current_time('mysql', true),
+        'comment_status' => 'closed',
+        'ping_status' => 'closed',
+        'filter' => 'raw'
+    ]);
+
+    return [$virtual];
+}
+
+function fsr_dw_force_virtual_page_query($query) {
+
+    if (
+        is_admin() ||
+        !$query->is_main_query()
+    ) {
+        return;
+    }
+
+    if (get_query_var('dw_virtual') != 1) {
+        return;
+    }
+
+    $query->is_home = false;
+    $query->is_archive = false;
+
+    $query->is_page = true;
+    $query->is_singular = true;
+
+    $query->set('post_type', 'page');
+    $query->set('posts_per_page', 1);
 }
 
 function fsr_dw_the_content($content) {
@@ -70,12 +138,6 @@ function fsr_dw_filter_title($title, $post_id) {
         return $title;
     }
 
-    $wiki = get_page_by_path('wiki');
-
-    if (!$wiki || $wiki->ID != $post_id) {
-        return $title;
-    }
-
     return fsr_dw_get_title() ?: $title;
 }
 
@@ -87,75 +149,7 @@ function fsr_dw_get_settings() {
     ]);
 }
 
-function fsr_dw_render_admin_fields() {
 
-    $s = fsr_dw_get_settings();
-
-    echo '<h3>DokuWiki Einstellungen</h3>';
-
-    echo '<table class="form-table">';
-
-    echo "<tr>
-        <th>DokuWiki URL</th>
-        <td>
-            <input style='width:400px' 
-            name='dw_bridge_settings[base_url]' 
-            value='".esc_attr($s['base_url'])."'>
-        </td>
-    </tr>";
-
-    echo "<tr>
-        <th>Startseite</th>
-        <td>
-            <input name='dw_bridge_settings[start_page]' 
-            value='".esc_attr($s['start_page'])."'>
-        </td>
-    </tr>";
-
-    echo "<tr>
-        <th>Cache (Sekunden)</th>
-        <td>
-            <input type='number' 
-            name='dw_bridge_settings[cache_time]' 
-            value='".esc_attr($s['cache_time'])."'>
-        </td>
-    </tr>";
-
-    echo '</table>';
-
-    global $wpdb;
-
-    echo '<h3>DokuWiki Cache</h3>';
-
-    $transients = $wpdb->get_results(
-        "
-        SELECT option_name, option_value
-        FROM {$wpdb->options}
-        WHERE option_name LIKE '_transient_timeout_dw_%'
-        "
-    );
-
-    if ($transients) {
-        foreach ($transients as $transient) {
-            $name = str_replace('_transient_timeout_', '', $transient->option_name);
-            $time = intval($transient->option_value);
-            echo '<p>';
-            echo esc_html($name) . ': ';
-            echo $time . ' (' . date('Y-m-d H:i:s', $time) . ')';
-            if ($time < time()) {
-                echo ' <strong>(abgelaufen)</strong>';
-            }
-            echo '</p>';
-        }
-    } else {
-        echo '<p>Keine Cache-Einträge gefunden.</p>';
-    }
-    echo '<p>';
-    echo '<button type="submit" name="dw_clear_cache" value="1" class="button">';
-    echo 'DokuWiki Cache löschen';
-    echo '</button>';
-    echo '</p>';
-}   
 function fsr_dw_query_vars($vars) {
     $vars[] = 'dw_page';
     $vars[] = 'dw_virtual';

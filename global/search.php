@@ -45,44 +45,6 @@ function fsr_virtual_permalink($permalink, $post) {
     return $permalink;
 }
 
-/*
-function fsr_virtual_permalink($permalink, $post) {
-
-    echo '<p>';
-    echo "DEBUG: fsr_virtual_permalink called with permalink: $permalink, post ID: " . (is_object($post) ? $post->ID : $post) . ", current filter: " . current_filter();
-    echo '</p>';
-
-    if (!is_search()) {
-        return $permalink;
-    }
-    echo "<p>DEBUG: is_search() is true</p>";
-
-    if (empty($GLOBALS['fsr_virtual_posts'])) {
-        return $permalink;
-    }
-    echo "<p>DEBUG: Found " . count($GLOBALS['fsr_virtual_posts']) . " virtual posts</p>";
-
-    if (is_numeric($post)) {
-        $post = get_post((int)$post);
-    }
-    echo "<p>DEBUG: Post object: " . print_r($post, true) . "</p>";
-
-    if (!($post instanceof WP_Post)) {
-        echo "<p>DEBUG: Post is not an instance of WP_Post, returning original permalink</p>";
-        return $permalink;
-    }
-
-    $id = $post->ID;
-    if (isset($GLOBALS['fsr_virtual_posts'][$id])) {
-        echo '<p>';
-        echo "DEBUG: Found virtual post with ID: $id, returning URL: " . $GLOBALS['fsr_virtual_posts'][$id]['url'];
-        echo '</p>';
-        return $GLOBALS['fsr_virtual_posts'][$id]['url'];
-    }
-
-    return $permalink;
-}
-*/
 function fsr_next_virtual_post_id() {
     static $id = -100000;
     return $id--;
