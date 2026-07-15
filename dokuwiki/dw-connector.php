@@ -122,7 +122,6 @@ function fsr_dw_fetch($page) {
         if ($cached !== false) {
             do_action('qm/debug', [
                 'DW Cache' => 'Treffer',
-                'Key' => $cache_key,
                 'Page' => $page
             ]);
             return $cached;
@@ -130,7 +129,6 @@ function fsr_dw_fetch($page) {
     }
     do_action('qm/debug', [
         'DW Cache' => 'Nicht vorhanden, lade neu',
-        'Key' => $cache_key,
         'Page' => $page
     ]);
     $url = rtrim($s['base_url'], '/') .
@@ -155,9 +153,6 @@ function fsr_dw_fetch($page) {
         return false;
     }
     $html = wp_remote_retrieve_body($res);
-    do_action('qm/debug', [
-        'DW Antwort Länge' => strlen($html)
-    ]);
     if (!$html) {
         return false;
     }
@@ -169,9 +164,6 @@ function fsr_dw_fetch($page) {
             intval($s['cache_time'])
         );
     }
-    do_action('qm/debug', [
-        'DW Cache geschrieben' => $s['cache_time'] . ' Sekunden'
-    ]);
     return $html;
 }
 
