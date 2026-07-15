@@ -156,8 +156,11 @@ function fsr_dw_render_admin_fields() {
     echo '</button>';
     echo '</p>';
 }   
-function fsr_dw_query_vars($vars) { $vars[] = 'dw_page'; return $vars; }
-
+function fsr_dw_query_vars($vars) {
+    $vars[] = 'dw_page';
+    $vars[] = 'dw_virtual';
+    return $vars;
+}
 function fsr_dw_fetch($page) {
     $s = fsr_dw_get_settings();
     if (!$page) {
@@ -224,16 +227,14 @@ function fsr_dw_fetch($page) {
 }
 
 function fsr_dw_rewrite_rules() {
-
     add_rewrite_rule(
         '^wiki/?$',
-        'index.php?pagename=wiki',
+        'index.php?dw_virtual=1',
         'top'
     );
-
     add_rewrite_rule(
         '^wiki/(.+)/?$',
-        'index.php?pagename=wiki&dw_page=$matches[1]',
+        'index.php?dw_virtual=1&dw_page=$matches[1]',
         'top'
     );
 }
