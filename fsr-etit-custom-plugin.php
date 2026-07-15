@@ -46,8 +46,10 @@ function fsr_dw_activate() {
         ]);
     }
 
-    fsr_dw_rewrite_rules();
-    flush_rewrite_rules();
+    update_option(
+        'fsr_dw_flush_rewrite',
+        1
+    );
 }
 
 // Zentrale Asset-Verwaltung
@@ -67,16 +69,13 @@ function fsr_custom_enqueue_frontend_assets() {
     }
 }
 
-add_action('plugins_loaded', 'fsr_dw_check_version');
-function fsr_dw_check_version() {
-    $installed = get_option('fsr_plugin_version');
-    if ($installed !== FSR_PLUGIN_VERSION) {
-        if (function_exists('fsr_dw_rewrite_rules')) {
-            fsr_dw_activate();
-        }
-        update_option(
-            'fsr_plugin_version',
-            FSR_PLUGIN_VERSION
+add_action('init', 'fsr_dw_activation_flush', 5);
+function fsr_dw_activation_flush() {
+    if (get_option('fsr_dw_flush_rewrite')) {
+        fsr_dw_rewrite_rules();
+        flush_rewrite_rules(false);
+        delete_option(
+            'fsr_dw_flush_rewrite'
         );
     }
 }
