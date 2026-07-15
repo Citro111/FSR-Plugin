@@ -37,42 +37,47 @@ function fsr_dw_is_wiki_request(): bool {
 }
 
 function fsr_dw_create_virtual_post($posts, $query) {
-
-    if (is_admin() || !$query->is_main_query()) {
+    if (
+        is_admin() ||
+        !$query->is_main_query() ||
+        get_query_var('dw_virtual') != 1
+    ) {
         return $posts;
     }
-
-    if (get_query_var('dw_virtual') != 1) {
-        return $posts;
-    }
-
     $page = get_query_var('dw_page');
-
     if (!$page) {
         $page = fsr_dw_get_settings()['start_page'];
     }
-
     $wiki = fsr_dw_fetch($page);
-
     if (!$wiki) {
         return $posts;
     }
-
     $virtual = new WP_Post((object)[
         'ID' => -200000,
-        'post_title' => $wiki['title'],
-        'post_content' => $wiki['content'],
-        'post_status' => 'publish',
-        'post_type' => 'page',
-        'post_name' => sanitize_title($page),
-        'post_author' => 0,
+        'post_author' => 1,
         'post_date' => current_time('mysql'),
         'post_date_gmt' => current_time('mysql', true),
+        'post_content' => $wiki['content'],
+        'post_title' => $wiki['title'],
+        'post_excerpt' => '',
+        'post_status' => 'publish',
         'comment_status' => 'closed',
         'ping_status' => 'closed',
+        'post_password' => '',
+        'post_name' => sanitize_title($page),
+        'to_ping' => '',
+        'pinged' => '',
+        'post_modified' => current_time('mysql'),
+        'post_modified_gmt' => current_time('mysql', true),
+        'post_content_filtered' => '',
+        'post_parent' => 0,
+        'guid' => home_url('/wiki/'.$page),
+        'menu_order' => 0,
+        'post_type' => 'page',
+        'post_mime_type' => '',
+        'comment_count' => 0,
         'filter' => 'raw'
     ]);
-
     return [$virtual];
 }
 
@@ -125,7 +130,7 @@ function fsr_dw_the_content($content) {
 
 function fsr_dw_filter_document_title($title) {
 
-    if (!fsr_dw_is_wiki_request()) {
+    if (!fsr_dw_is_wiki_request() || !is_singular()) {
         return $title;
     }
 
@@ -133,11 +138,15 @@ function fsr_dw_filter_document_title($title) {
 }
 
 function fsr_dw_filter_title($title, $post_id) {
-
+    if (!is_main_query()) {
+        return $title;
+    }
+    if (!is_singular()) {
+        return $title;
+    }
     if (!fsr_dw_is_wiki_request()) {
         return $title;
     }
-
     return fsr_dw_get_title() ?: $title;
 }
 
