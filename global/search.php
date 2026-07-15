@@ -89,13 +89,13 @@ function fsr_next_virtual_post_id() {
 }
 
 function fsr_create_virtual_search_post(
-    $title = '',
-    $excerpt = '',
-    $content = '',
+    $title,
+    $excerpt,
+    $content,
     $url,
     $date,
     $type = 'page'
- ) {
+) {
 
     if ($content === '') {
         $content = $excerpt;
