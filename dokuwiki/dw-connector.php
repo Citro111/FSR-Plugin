@@ -11,7 +11,6 @@ add_filter('the_title', 'fsr_dw_filter_title', 999, 2);
 add_filter('pre_get_document_title', 'fsr_dw_filter_document_title', 999);
 
 
-
 function fsr_dw_get_title() {
     static $title = null;
 
@@ -96,18 +95,63 @@ function fsr_dw_render_admin_fields() {
 function fsr_dw_query_vars($vars) { $vars[] = 'dw_page'; return $vars; }
 
 function fsr_dw_fetch($page) {
-    $s = fsr_dw_get_settings(); if (!$page) $page = $s['start_page'];
+    $s = fsr_dw_get_settings();
+    if (!$page) {
+        $page = $s['start_page'];
+    }
     $cache_key = 'dw_v2_' . md5($page);
     $cached = get_transient($cache_key);
     if ($cached !== false) {
+        do_action('qm/debug', [
+            'DW Cache' => 'Treffer',
+            'Key' => $cache_key,
+            'Page' => $page
+        ]);
+
         return $cached;
     }
-    $url = rtrim($s['base_url'], '/') . '/doku.php?id=' . urlencode($page) . '&do=export_xhtmlbody';
-    $res = wp_remote_get($url, ['timeout' => 12]); if (is_wp_error($res)) return false;
+    do_action('qm/debug', [
+        'DW Cache' => 'Nicht vorhanden, lade neu',
+        'Key' => $cache_key,
+        'Page' => $page
+    ]);
+    $url = rtrim($s['base_url'], '/') .
+        '/doku.php?id=' . urlencode($page) .
+        '&do=export_xhtmlbody';
+    do_action('qm/debug', [
+        'DW Request URL' => $url
+    ]);
+    $res = wp_remote_get($url, [
+        'timeout' => 12,
+        'headers' => [
+            'Cache-Control' => 'no-cache',
+            'Pragma' => 'no-cache'
+        ]
+    ]);
+    if (is_wp_error($res)) {
+
+        do_action('qm/error', [
+            'DW Fehler' => $res->get_error_message()
+        ]);
+
+        return false;
+    }
     $html = wp_remote_retrieve_body($res);
-    if (!$html) return false;
+    do_action('qm/debug', [
+        'DW Antwort Länge' => strlen($html)
+    ]);
+    if (!$html) {
+        return false;
+    }
     $html = fsr_dw_transform($html);
-    set_transient($cache_key, $html, intval($s['cache_time']));
+    set_transient(
+        $cache_key,
+        $html,
+        intval($s['cache_time'])
+    );
+    do_action('qm/debug', [
+        'DW Cache geschrieben' => $s['cache_time'] . ' Sekunden'
+    ]);
     return $html;
 }
 
