@@ -33,6 +33,10 @@ function fsr_dw_is_wiki_request(): bool {
 
 function fsr_dw_the_content($content) {
 
+    do_action('qm/debug', [
+        'DW Content Filter' => 'ausgeführt',
+        'Zeit' => current_time('mysql')
+    ]);
     $page = get_query_var('dw_page', null);
     if ($page === null) {
         return $content;
@@ -101,6 +105,11 @@ function fsr_dw_fetch($page) {
     }
     $cache_key = 'dw_v2_' . md5($page);
     $cached = get_transient($cache_key);
+    do_action('qm/debug', [
+        'Transient vorhanden' => $cached !== false,
+        'Transient Key' => $cache_key,
+        'Transient Ablauf' => get_option('_transient_timeout_' . $cache_key)
+    ]);
     if ($cached !== false) {
         do_action('qm/debug', [
             'DW Cache' => 'Treffer',
