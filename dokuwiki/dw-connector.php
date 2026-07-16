@@ -76,6 +76,8 @@ function fsr_dw_create_virtual_post($posts, $query) {
     // wichtig:
     global $wp_query;
     $wp_query->post = $virtual;
+    global $post;
+    $post = $virtual;
     $wp_query->posts = $posts;
     $wp_query->queried_object = $virtual;
     $wp_query->queried_object_id = $virtual->ID;
@@ -89,7 +91,7 @@ function fsr_dw_create_virtual_post($posts, $query) {
             'post_type' => isset($wp_query->post->post_type) ? $wp_query->post->post_type : 'kein post_type'
         ]
     ]);
-    
+
     global $post;
     do_action('qm/debug', [
         'Global Post' => is_object($post)
