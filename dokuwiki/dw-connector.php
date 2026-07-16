@@ -169,6 +169,30 @@ function fsr_dw_get_settings() {
     ]);
 }
 
+add_action('wp', 'fsr_dw_set_virtual_global_post');
+function fsr_dw_set_virtual_global_post() {
+
+    if (get_query_var('dw_virtual') != 1) {
+        return;
+    }
+
+    global $wp_query, $post;
+
+    if (!empty($wp_query->post) && $wp_query->post instanceof WP_Post) {
+
+        $post = $wp_query->post;
+
+        setup_postdata($post);
+
+        do_action('qm/debug', [
+            'DW wp Hook' => [
+                'id' => $post->ID,
+                'type' => $post->post_type,
+                'title' => $post->post_title
+            ]
+        ]);
+    }
+}
 
 function fsr_dw_query_vars($vars) {
     $vars[] = 'dw_page';
