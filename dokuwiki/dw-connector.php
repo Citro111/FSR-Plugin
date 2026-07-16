@@ -70,23 +70,15 @@ function fsr_dw_create_virtual_post($posts, $query) {
         'ping_status' => 'closed',
         'filter' => 'raw'
     ]);
-    global $wp_query, $post;
-
-    $post = $virtual;
-
-    $wp_query->post = $virtual;
-    $wp_query->queried_object = $virtual;
-    $wp_query->queried_object_id = $virtual->ID;
     do_action('qm/debug', [
-        'DW Early Post' => [
-            'global_post' => isset($post) ? get_class($post) : 'NULL',
-            'id' => $post->ID ?? null,
-            'type' => $post->post_type ?? null,
+        'DW Virtual Post Created' => [
+            'id' => $virtual->ID,
+            'type' => $virtual->post_type,
+            'title' => $virtual->post_title
         ]
     ]);
     return [$virtual];
 }
-
 
 function fsr_dw_force_virtual_page_query($query) {
 
@@ -169,7 +161,7 @@ function fsr_dw_get_settings() {
     ]);
 }
 
-add_action('wp', 'fsr_dw_set_virtual_global_post');
+//add_action('wp', 'fsr_dw_set_virtual_global_post');
 function fsr_dw_set_virtual_global_post() {
 
     if (get_query_var('dw_virtual') != 1) {
@@ -194,11 +186,22 @@ function fsr_dw_set_virtual_global_post() {
     }
 }
 
+add_filter('pre_get_shortlink', 'fsr_dw_disable_shortlink', 10, 4);
+function fsr_dw_disable_shortlink($shortlink, $id, $context, $allow_slugs) {
+
+    if (fsr_dw_is_wiki_request()) {
+        return '';
+    }
+
+    return $shortlink;
+}
+
 function fsr_dw_query_vars($vars) {
     $vars[] = 'dw_page';
     $vars[] = 'dw_virtual';
     return $vars;
 }
+
 function fsr_dw_fetch($page) {
     $s = fsr_dw_get_settings();
     if (!$page) {
