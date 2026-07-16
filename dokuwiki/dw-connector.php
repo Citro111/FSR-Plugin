@@ -17,23 +17,19 @@ require_once __DIR__ . '/dw-admin.php';
 
 
 function fsr_dw_get_title() {
-    static $title = null;
-
-    if ($title !== null) {
-        return $title;
+    if (!fsr_dw_is_wiki_request()) {
+        return '';
     }
-
     $wiki = fsr_dw_current_page();
-
-    $title = !empty($wiki['title'])
-        ? $wiki['title']
-        : '';
-
-    return $title;
+    if (!is_array($wiki)) {
+        return '';
+    }
+    return !empty($wiki['title'])
+        ? $wiki['title'] : '';
 }
 
 function fsr_dw_is_wiki_request(): bool {
-    return get_query_var('dw_page') !== null;
+    return ( get_query_var('dw_virtual') == 1 && get_query_var('dw_page') !== null );
 }
 
 function fsr_dw_create_virtual_post($posts, $query) {
@@ -138,15 +134,17 @@ function fsr_dw_filter_document_title($title) {
 }
 
 function fsr_dw_filter_title($title, $post_id) {
-    if (!is_main_query()) {
+
+    if (
+        !in_the_loop()
+        ||
+        !is_main_query()
+        ||
+        !fsr_dw_is_wiki_request()
+    ) {
         return $title;
     }
-    if (!is_singular()) {
-        return $title;
-    }
-    if (!fsr_dw_is_wiki_request()) {
-        return $title;
-    }
+
     return fsr_dw_get_title() ?: $title;
 }
 
