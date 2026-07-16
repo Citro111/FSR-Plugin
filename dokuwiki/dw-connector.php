@@ -89,6 +89,17 @@ function fsr_dw_create_virtual_post($posts, $query) {
             'post_type' => isset($wp_query->post->post_type) ? $wp_query->post->post_type : 'kein post_type'
         ]
     ]);
+    
+    global $post;
+    do_action('qm/debug', [
+        'Global Post' => is_object($post)
+            ? [
+                'class' => get_class($post),
+                'id' => $post->ID,
+                'type' => $post->post_type,
+            ]
+            : 'NULL'
+    ]);
     return $posts;
 }
 
