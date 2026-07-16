@@ -74,6 +74,14 @@ function fsr_dw_create_virtual_post($posts, $query) {
         'comment_count' => 0,
         'filter' => 'raw'
     ]);
+
+    global $wp_query;
+    $wp_query->queried_object = $virtual;
+    $wp_query->queried_object_id = $virtual->ID;
+    $wp_query->is_page = true;
+    $wp_query->is_singular = true;
+    $wp_query->is_home = false;
+    $wp_query->is_archive = false;
     return [$virtual];
 }
 
