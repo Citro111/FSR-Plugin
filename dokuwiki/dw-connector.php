@@ -70,13 +70,6 @@ function fsr_dw_create_virtual_post($posts, $query) {
         'ping_status' => 'closed',
         'filter' => 'raw'
     ]);
-    do_action('qm/debug', [
-        'DW Early Post' => [
-            'global_post' => isset($post) ? get_class($post) : 'NULL',
-            'id' => $post->ID ?? null,
-            'type' => $post->post_type ?? null,
-        ]
-    ]);
     global $wp_query, $post;
 
     $post = $virtual;
@@ -84,6 +77,13 @@ function fsr_dw_create_virtual_post($posts, $query) {
     $wp_query->post = $virtual;
     $wp_query->queried_object = $virtual;
     $wp_query->queried_object_id = $virtual->ID;
+    do_action('qm/debug', [
+        'DW Early Post' => [
+            'global_post' => isset($post) ? get_class($post) : 'NULL',
+            'id' => $post->ID ?? null,
+            'type' => $post->post_type ?? null,
+        ]
+    ]);
     return [$virtual];
 }
 
