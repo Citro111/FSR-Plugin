@@ -9,7 +9,7 @@ add_filter('the_title', 'fsr_dw_filter_title', 999, 2);
 add_filter('the_content', 'fsr_dw_the_content', 999);
 add_filter('pre_get_document_title', 'fsr_dw_filter_document_title', 999);
 add_action('admin_init', 'fsr_dw_handle_cache_clear');
-add_filter('the_posts', 'fsr_dw_create_virtual_post', 10, 2);
+add_filter('posts_pre_query', 'fsr_dw_create_virtual_post', 10, 2);
 add_action('pre_get_posts', 'fsr_dw_force_virtual_page_query');
 
 
@@ -35,11 +35,11 @@ function fsr_dw_is_wiki_request(): bool {
 function fsr_dw_create_virtual_post($posts, $query) {
 
     if (is_admin() || !$query->is_main_query()) {
-        return $posts;
+        return null;
     }
 
     if (get_query_var('dw_virtual') != 1) {
-        return $posts;
+        return null;
     }
 
     $page = get_query_var('dw_page');
@@ -51,7 +51,7 @@ function fsr_dw_create_virtual_post($posts, $query) {
     $wiki = fsr_dw_fetch($page);
 
     if (!$wiki) {
-        return $posts;
+        return null;
     }
 
     $virtual = new WP_Post((object)[
@@ -70,39 +70,7 @@ function fsr_dw_create_virtual_post($posts, $query) {
         'ping_status' => 'closed',
         'filter' => 'raw'
     ]);
-
-    $posts = [$virtual];
-
-    // wichtig:
-    global $wp_query;
-    $wp_query->post = $virtual;
-    global $post;
-    $post = $virtual;
-    $wp_query->posts = $posts;
-    $wp_query->queried_object = $virtual;
-    $wp_query->queried_object_id = $virtual->ID;
-    $wp_query->post_count = 1;
-
-    do_action('qm/debug', [
-        'DW Virtual Debug' => [
-            'post' => isset($wp_query->post) ? get_class($wp_query->post) : 'kein post',
-            'queried_object' => isset($wp_query->queried_object) ? get_class($wp_query->queried_object) : 'kein object',
-            'queried_id' => $wp_query->queried_object_id ?? null,
-            'post_type' => isset($wp_query->post->post_type) ? $wp_query->post->post_type : 'kein post_type'
-        ]
-    ]);
-
-    global $post;
-    do_action('qm/debug', [
-        'Global Post' => is_object($post)
-            ? [
-                'class' => get_class($post),
-                'id' => $post->ID,
-                'type' => $post->post_type,
-            ]
-            : 'NULL'
-    ]);
-    return $posts;
+    return [$virtual];
 }
 
 
