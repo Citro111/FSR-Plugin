@@ -14,7 +14,20 @@ if (!defined('ABSPATH')) exit;
 // Pfad-Konstanten für einfache Einbindung
 define('FSR_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('FSR_PLUGIN_URL', plugin_dir_url(__FILE__));
-define('FSR_PLUGIN_VERSION', plugin_dir_version(__FILE__));
+define(
+    'FSR_PLUGIN_FILE',
+    __FILE__
+);
+$plugin_data = get_file_data(
+    __FILE__,
+    [
+        'Version' => 'Version'
+    ]
+);
+define(
+    'FSR_PLUGIN_VERSION',
+    $plugin_data['Version']
+);
 
 // 1. Globale Admin-Oberfläche laden
 require_once FSR_PLUGIN_DIR . 'global/admin.php';
