@@ -36,6 +36,10 @@ function fsr_updates_settings() {
 
 
 function fsr_updates_sanitize_settings($input) {
+    do_action(
+        'qm/debug',
+        'Sanitize Input: ' . print_r($input, true)
+    );
     return [
         'github_repo' => sanitize_text_field(
             $input['github_repo'] ?? ''
@@ -176,7 +180,11 @@ function fsr_updates_check_for_update($transient) {
     ) {
         return $transient;
     }
-    $remote = fsr_updates_get_remote_version();
+    if ($settings['mode'] === 'branch') {
+        $remote = fsr_updates_get_remote_branch();
+    } else {
+        $remote = fsr_updates_get_remote_version();
+    }
     if (!$remote) {
         return $transient;
     }
