@@ -59,60 +59,39 @@ function fsr_updates_sanitize_settings($input) {
 function fsr_updates_check() {
     $settings = fsr_updates_settings();
     fsr_updates_log('Checking for updates with settings: ' . print_r($settings, true));
-    if ($settings['mode'] === 'branch') {
-        return fsr_updates_check_branch();
-    }
-    return fsr_updates_check_release();
-}
-
-function fsr_updates_check_release() {
-    $settings = fsr_updates_settings();
-    $url = sprintf(
-        'https://api.github.com/repos/%s/releases/latest',
-        $settings['github_repo']
-    );
+    $url = fsr_updates_get_url();
     $response = wp_remote_get($url);
     if (is_wp_error($response)) {
         return false;
     }
-    fsr_updates_log('Release Check Response for ' . $url . 'Response: ' . wp_remote_retrieve_body($response));
+    fsr_updates_log('Release Check Response for ' . $url);
+    fsr_updates_log('Response: ' . wp_remote_retrieve_body($response));
     $data = json_decode(
         wp_remote_retrieve_body($response),
         true
     );
-    if (empty($data['tag_name'])) {
-        return false;
+    if($settings['mode'] === 'release') {
+        if (empty($data['tag_name'])) {
+            fsr_updates_log('No tag_name found in response: ' . print_r($data, true));
+            return false;
+        }
+        fsr_updates_log('Remote Release Version: ' . $data['tag_name']);
+        update_option(
+            'fsr_remote_version',
+            $data['tag_name']
+        );
+    } else {
+        if (empty($data['sha'])) {
+            fsr_updates_log('No sha found in response: ' . print_r($data, true));
+            return false;
+        }
+        fsr_updates_log('Remote Commit SHA: ' . $data['sha']);
+        update_option(
+            'fsr_remote_commit',
+            substr($data['sha'],0,7)
+        );
     }
-    update_option(
-        'fsr_remote_version',
-        $data['tag_name']
-    );
-    return true;
-}
-
-function fsr_updates_check_branch() {
-    $settings = fsr_updates_settings();
-    $url = sprintf(
-        'https://api.github.com/repos/%s/commits/%s',
-        $settings['github_repo'],
-        $settings['branch']
-    );
-    $response = wp_remote_get($url);
-    if (is_wp_error($response)) {
-        return false;
-    }
-    fsr_updates_log('Branch Check Response for ' . $url . ' Response: ' . wp_remote_retrieve_body($response));
-    $data = json_decode(
-        wp_remote_retrieve_body($response),
-        true
-    );
-    if(empty($data['sha'])) {
-        return false;
-    }
-    update_option(
-        'fsr_remote_commit',
-        substr($data['sha'],0,7)
-    );
+    fsr_updates_log('Update check completed successfully.');
     return true;
 }
 
@@ -161,48 +140,51 @@ add_action(
 );
 
 function fsr_updates_check_for_update($transient) {
-    if (
-        empty($transient->checked)
-    ) {
+    if (empty($transient->checked)) {
         return $transient;
     }
     $settings = fsr_updates_settings();
-    if (
-        empty($settings['github_repo'])
-    ) {
+    if (empty($settings['github_repo'])) {
         return $transient;
     }
+    $plugin_file = plugin_basename(FSR_PLUGIN_DIR . 'fsr-etit-custom-plugin.php');
+    fsr_updates_log('Checking for updates for plugin: ' . $plugin_file);
     $remote = fsr_updates_get_remote_version();
+    if ($settings['mode'] === 'branch') {
+        if (!$remote) {
+            return $transient;
+        }
+        $installed_commit = get_option('fsr_installed_commit', '');
+        if ($installed_commit === $remote['remote_id']) {
+            return $transient;
+        }
+        $transient->response[$plugin_file] = (object) [
+            'slug'        => dirname($plugin_file),
+            'plugin'      => $plugin_file,
+            'new_version' => $remote['version'],
+            'package'     => $remote['package'],
+        ];
+        fsr_updates_log('Branch update available: ' . $remote['version']);
+        return $transient;
+    }
+    fsr_updates_log('Remote Release: ' . print_r($remote, true));
+    fsr_updates_log('Local Version: ' . FSR_PLUGIN_VERSION);
+    fsr_updates_log('Version Compare: ' . version_compare($remote['version'], FSR_PLUGIN_VERSION));
     if (!$remote) {
         return $transient;
     }
-    $plugin_file = plugin_basename(
-        FSR_PLUGIN_DIR . 'fsr-etit-custom-plugin.php'
-    );
-    $current_version = FSR_PLUGIN_VERSION;
-    if (
-        version_compare(
-            $remote['version'],
-            $current_version,
-            '>'
-        )
-    ) {
-        $transient->response[$plugin_file] = (object)[
-            'slug' =>
-                dirname($plugin_file),
-            'plugin' =>
-                $plugin_file,
-            'new_version' =>
-                $remote['version'],
-            'package' =>
-                $remote['download'],
-        ];
+    if (version_compare($remote['version'], FSR_PLUGIN_VERSION, '<=')) {
+        return $transient;
     }
-    fsr_updates_log(
-        'FSR Update Check: Current Version: ' .
-        $current_version . ', Remote Version: ' .
-        $remote['version'].', File: '.$plugin_file
-    );
+    $transient->response[$plugin_file] = (object) [
+        'slug'        => dirname($plugin_file),
+        'plugin'      => $plugin_file,
+        'new_version' => $remote['version'],
+        'package'     => $remote['package'],
+    ];
+    fsr_updates_log('Release update available: ' . $remote['version']);
+    fsr_updates_log('Update package: ' . $remote['package']);
+    fsr_updates_log('Update transient: ' . print_r($transient, true));
     return $transient;
 }
 add_filter(
@@ -211,6 +193,65 @@ add_filter(
 );
 
 function fsr_updates_get_remote_version() {
+    $settings = fsr_updates_settings();
+    fsr_updates_log('Getting remote version with settings: ' . print_r($settings, true));
+    if (empty($settings['github_repo'])) {
+        return false;
+    }
+    $url = fsr_updates_get_url();
+    $response = wp_remote_get(
+        $url,
+        [
+            'headers'=>[
+                'Accept'=>'application/vnd.github+json',
+                'User-Agent'=>'FSR-Plugin/' . FSR_PLUGIN_VERSION
+            ],
+            'timeout'=>15
+        ]
+    );
+    if (is_wp_error($response)) {
+        fsr_updates_log('Error fetching remote version: ' . $response->get_error_message());
+        return false;
+    }
+    $data = json_decode(
+        wp_remote_retrieve_body($response),
+        true
+    );
+    fsr_updates_log('Remote version data: ' . print_r($data, true));
+    if ($settings['mode'] === 'branch') {
+        if (empty($data['sha'])) {
+            return false;
+        }
+        return [
+            'version' =>
+                substr($data['sha'], 0, 7),
+            'download' =>
+                sprintf(
+                    'https://github.com/%s/archive/refs/heads/%s.zip',
+                    $settings['github_repo'],
+                    $settings['branch']
+                )
+        ];
+    }
+    elseif ($settings['mode'] === 'release') {
+        if (empty($data['tag_name'])) {
+            return false;
+        }
+        return [
+            'version' =>
+                ltrim(
+                    $data['tag_name'],
+                    'v'
+                ),
+            'download' =>
+                $data['zipball_url']
+        ];
+    }
+    fsr_updates_log('Unknown update mode: ' . $settings['mode']);
+    return false;
+}
+
+function fsr_updates_get_url() {
     $settings = fsr_updates_settings();
     if(
         empty($settings['github_repo'])
@@ -231,57 +272,8 @@ function fsr_updates_get_remote_version() {
             'https://api.github.com/repos/%s/releases/latest',
             $settings['github_repo']
         );
-    }
-    $response = wp_remote_get(
-        $url,
-        [
-            'headers'=>[
-                'Accept'=>'application/vnd.github+json',
-                'User-Agent'=>'FSR-Plugin/' . FSR_PLUGIN_VERSION
-            ],
-            'timeout'=>15
-        ]
-    );
-    if (
-        is_wp_error($response)
-    ) {
-        return false;
-    }
-    $data = json_decode(
-        wp_remote_retrieve_body($response),
-        true
-    );
-    if (
-        empty($data['tag_name'])
-    ) {
-        return false;
-    }
-    if(
-        $settings['mode'] === 'branch'
-    ) {
-        if(
-            empty($data['sha'])
-        ) {
-            return false;
-        }
-        return [
-            'version'  => date('YmdHis', strtotime($data['commit']['committer']['date'])),
-            'download' => sprintf(
-                'https://github.com/%s/archive/refs/heads/%s.zip',
-                $settings['github_repo'],
-                $settings['branch']
-            ),
-        ];
-    }
-    return [
-        'version' =>
-            ltrim(
-                $data['tag_name'],
-                'v'
-            ),
-        'download' =>
-            $data['zipball_url']
-    ];
+    } 
+    return $url;
 }
 
 function fsr_updates_log($message) {
@@ -300,6 +292,7 @@ function fsr_updates_log($message) {
 
     set_transient('fsr_updates_qm_log', $log, 5 * MINUTE_IN_SECONDS);
 }
+
 
 function fsr_updates_flush_log() {
     $log = get_transient('fsr_updates_qm_log');
