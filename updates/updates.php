@@ -150,19 +150,19 @@ function fsr_updates_check_for_update($transient) {
     $plugin_file = plugin_basename(FSR_PLUGIN_DIR . 'fsr-etit-custom-plugin.php');
     fsr_updates_log('Checking for updates for plugin: ' . $plugin_file);
     $remote = fsr_updates_get_remote_version();
+    if (!$remote) {
+        return $transient;
+    }
     if ($settings['mode'] === 'branch') {
-        if (!$remote) {
-            return $transient;
-        }
         $installed_commit = get_option('fsr_installed_commit', '');
-        if ($installed_commit === $remote['remote_id']) {
+        if ($installed_commit === $remote['version']) {
             return $transient;
         }
         $transient->response[$plugin_file] = (object) [
             'slug'        => dirname($plugin_file),
             'plugin'      => $plugin_file,
             'new_version' => $remote['version'],
-            'package'     => $remote['package'],
+            'package'     => $remote['download'],
         ];
         fsr_updates_log('Branch update available: ' . $remote['version']);
         return $transient;
@@ -170,9 +170,6 @@ function fsr_updates_check_for_update($transient) {
     fsr_updates_log('Remote Release: ' . print_r($remote, true));
     fsr_updates_log('Local Version: ' . FSR_PLUGIN_VERSION);
     fsr_updates_log('Version Compare: ' . version_compare($remote['version'], FSR_PLUGIN_VERSION));
-    if (!$remote) {
-        return $transient;
-    }
     if (version_compare($remote['version'], FSR_PLUGIN_VERSION, '<=')) {
         return $transient;
     }
@@ -180,10 +177,10 @@ function fsr_updates_check_for_update($transient) {
         'slug'        => dirname($plugin_file),
         'plugin'      => $plugin_file,
         'new_version' => $remote['version'],
-        'package'     => $remote['package'],
+        'package'     => $remote['download'],
     ];
     fsr_updates_log('Release update available: ' . $remote['version']);
-    fsr_updates_log('Update package: ' . $remote['package']);
+    fsr_updates_log('Update package: ' . $remote['download']);
     fsr_updates_log('Update transient: ' . print_r($transient, true));
     return $transient;
 }
