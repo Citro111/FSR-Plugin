@@ -1,7 +1,7 @@
 <?php
 /*
 Plugin Name: FSR ET/IT Custom WP Plugin
-Pulugin URI: https://github.com/Citro111/FSR-Plugin
+Plugin URI: https://github.com/Citro111/FSR-Plugin
 Description: Modulares Custom-Plugin für den FSR ET/IT (DokuWiki Connector & Team-Mitgliederverwaltung).
 Version: 5.4
 Author: Enric & FSR ET/IT

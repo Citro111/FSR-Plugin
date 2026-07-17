@@ -1,18 +1,7 @@
 <?php
 
-function fsr_updates_register_settings() {
 
-    register_setting(
-        'fsr_updates_settings',
-        'fsr_updates_settings'
-    );
 
-}
-
-add_action(
-    'admin_init',
-    'fsr_updates_register_settings'
-);
 
 function fsr_updates_render_admin_interface() {
     $settings = wp_parse_args(
@@ -31,8 +20,8 @@ function fsr_updates_render_admin_interface() {
         'fsr_remote_commit',
         'Noch nicht geprüft'
     );
-    $local_version = defined('FSR_ETIT_VERSION')
-        ? FSR_ETIT_VERSION
+    $local_version = defined('FSR_PLUGIN_VERSION')
+        ? FSR_PLUGIN_VERSION
         : 'Unbekannt';
     ?>
     <div class="fsr-update-settings">
@@ -43,7 +32,7 @@ function fsr_updates_render_admin_interface() {
         <form method="post" action="options.php">
             <?php
             settings_fields(
-                'fsr_updates_settings'
+                'fsr_update_settings'
             );
             ?>
             <table class="form-table">

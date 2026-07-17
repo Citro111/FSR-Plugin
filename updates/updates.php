@@ -16,7 +16,7 @@ error_log('FSR Updates Datei geladen');
 function fsr_updates_register_settings() {
 
     register_setting(
-        'fsr_update_settings_group',
+        'fsr_update_settings',
         FSR_UPDATE_OPTION_KEY
     );
 
