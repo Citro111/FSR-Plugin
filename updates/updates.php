@@ -10,7 +10,10 @@ do_action('qm/debug', 'FSR Updates loaded');
 function fsr_updates_register_settings() {
     register_setting(
         'fsr_update_settings',
-        FSR_UPDATE_OPTION_KEY
+        FSR_UPDATE_OPTION_KEY,
+        [
+            'sanitize_callback' => 'fsr_updates_sanitize_settings'
+        ]
     );
 }
 add_action(
@@ -29,6 +32,27 @@ function fsr_updates_settings() {
             'check_admin' => true,
         ]
     );
+}
+
+
+function fsr_updates_sanitize_settings($input) {
+    return [
+        'github_repo' => sanitize_text_field(
+            $input['github_repo'] ?? ''
+        ),
+        'branch' => sanitize_text_field(
+            $input['branch'] ?? 'main'
+        ),
+        'mode' => sanitize_text_field(
+            $input['mode'] ?? 'release'
+        ),
+        'auto_update' => !empty(
+            $input['auto_update']
+        ),
+        'check_admin' => !empty(
+            $input['check_admin']
+        ),
+    ];
 }
 
 function fsr_updates_check() {
