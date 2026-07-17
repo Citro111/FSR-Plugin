@@ -31,21 +31,12 @@ require_once FSR_PLUGIN_DIR . 'officehours/office-hours.php';
 // 5. Suchergebnisse erweitern
 require_once FSR_PLUGIN_DIR . 'global/search.php';
 
+// 6. GitHub Updates laden
+require_once FSR_PLUGIN_DIR . 'updates/updates.php';
+
 register_activation_hook(__FILE__, 'fsr_dw_activate');
 
 function fsr_dw_activate() {
-
-    if (!get_page_by_path('wiki')) {
-
-        wp_insert_post([
-            'post_title'   => 'Wiki',
-            'post_name'    => 'wiki',
-            'post_content' => '',
-            'post_status'  => 'publish',
-            'post_type'    => 'page'
-        ]);
-    }
-
     update_option(
         'fsr_dw_flush_rewrite',
         1

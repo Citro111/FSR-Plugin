@@ -10,7 +10,7 @@ define(
 
 
 require_once __DIR__ . '/templates/adminUI.php';
-
+error_log('FSR Updates Datei geladen');
 
 
 function fsr_updates_register_settings() {
