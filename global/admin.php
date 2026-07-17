@@ -18,7 +18,7 @@ function fsr_custom_admin_menu() {
         'DokuWiki Connector',
         'DokuWiki Connector',
         'manage_options',
-        'fsr-etit-settings',
+        'fsr-etit-settings-dokuwiki',
         'fsr_custom_settings_page'
     );
 
@@ -59,7 +59,7 @@ function fsr_custom_settings_page() {
     $page_slug = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : 'fsr-etit-settings';
 
     $page_to_tab = [
-        'fsr-etit-settings' => 'dokuwiki',
+        'fsr-etit-settings-dokuwiki' => 'dokuwiki',
         'fsr-etit-settings-membercards' => 'membercards',
         'fsr-etit-settings-officehours' => 'officehours',
         'fsr-etit-settings-updates' => 'updates'
@@ -102,7 +102,7 @@ function fsr_custom_settings_page() {
             <div style="margin-top: 20px;">
                 <?php fsr_members_render_admin_interface(); ?>
             </div>
-        <?php else : ?>
+        <?php elseif ($active_tab == 'officehours') : ?>
             <form method="post" action="options.php" style="margin-top: 20px;">
                 <?php
                 settings_fields('fsr_office_hours_settings');
@@ -110,6 +110,15 @@ function fsr_custom_settings_page() {
                 submit_button('Office Hours speichern');
                 ?>
             </form>
+        <?php elseif ($active_tab == 'updates') : ?>
+            <div style="margin-top: 20px;">
+                <?php
+                fsr_updates_render_admin_interface();
+                submit_button();
+                ?>
+            </div>
+        <?php else : ?>
+            <p>Ungültiger Tab ausgewählt.</p>
         <?php endif; ?>
     </div>
     <?php
