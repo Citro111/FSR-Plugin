@@ -10,7 +10,10 @@ do_action('qm/debug', 'FSR Updates loaded');
 function fsr_updates_register_settings() {
     register_setting(
         'fsr_update_settings',
-        FSR_UPDATE_OPTION_KEY
+        FSR_UPDATE_OPTION_KEY,
+        [
+            'sanitize_callback' => 'fsr_updates_sanitize_settings'
+        ]
     );
 }
 add_action(
@@ -22,6 +25,8 @@ function fsr_updates_settings() {
     return wp_parse_args(
         get_option(FSR_UPDATE_OPTION_KEY, []),
         [
+            'github_repo' => 'Citro111/FSR-Plugin',
+            'branch' => 'main',
             'mode' => 'release',
             'auto_update' => false,
             'check_admin' => true,
@@ -38,8 +43,10 @@ function fsr_updates_check() {
 }
 
 function fsr_updates_check_release() {
-    $url = 
-    'https://api.github.com/repos/Citro111/FSR-Plugin/releases/latest';
+    $url = sprintf(
+        'https://api.github.com/repos/%s/releases/latest',
+        $settings['github_repo']
+    );
     $response = wp_remote_get($url);
     if (is_wp_error($response)) {
         return false;
@@ -59,8 +66,11 @@ function fsr_updates_check_release() {
 }
 
 function fsr_updates_check_branch() {
-    $url =
-    'https://api.github.com/repos/Citro111/FSR-Plugin/commits/main';
+    $url = sprintf(
+        'https://api.github.com/repos/%s/commits/%s',
+        $settings['github_repo'],
+        $settings['branch']
+    );
     $response = wp_remote_get($url);
     if (is_wp_error($response)) {
         return false;
@@ -97,6 +107,32 @@ add_action(
     'admin_post_fsr_check_update',
     'fsr_updates_manual_check'
 );
+
+function fsr_updates_sanitize_settings($input) {
+
+    return [
+        'github_repo' => sanitize_text_field(
+            $input['github_repo'] ?? ''
+        ),
+
+        'branch' => sanitize_text_field(
+            $input['branch'] ?? 'main'
+        ),
+
+        'mode' => sanitize_text_field(
+            $input['mode'] ?? 'release'
+        ),
+
+        'auto_update' => !empty(
+            $input['auto_update']
+        ),
+
+        'check_admin' => !empty(
+            $input['check_admin']
+        ),
+    ];
+
+}
 
 function fsr_updates_clear_cache() {
     do_action('qm/debug', 'FSR Clear Update Cache');

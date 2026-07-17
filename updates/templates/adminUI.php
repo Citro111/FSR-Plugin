@@ -29,6 +29,44 @@ function fsr_updates_render_admin_interface() {
         <p>
             Hier kannst du steuern, wie das Plugin Updates von GitHub beziehen soll.
         </p>
+        <table class="form-table">
+            <tr>
+                <th scope="row">
+                    GitHub Repository
+                </th>
+                <td>
+                    <input
+                        type="text"
+                        class="regular-text"
+                        name="fsr_update_settings[github_repo]"
+                        value="<?php echo esc_attr(
+                            $settings['github_repo']
+                        ); ?>"
+                    >
+                    <p class="description">
+                        Format: Benutzer/Repository (z.B. Citro111/FSR-Plugin)
+                    </p>
+                </td>
+            </tr>
+            <tr>
+                <th scope="row">
+                    Entwicklungs-Branch
+                </th>
+                <td>
+                    <input
+                        type="text"
+                        class="regular-text"
+                        name="fsr_update_settings[branch]"
+                        value="<?php echo esc_attr(
+                            $settings['branch']
+                        ); ?>"
+                    >
+                    <p class="description">
+                        Wird verwendet, wenn "Entwicklungs-Branch" aktiviert ist.
+                    </p>
+                </td>
+            </tr>
+        </table>
         <form method="post" action="options.php">
             <?php
             settings_fields(
