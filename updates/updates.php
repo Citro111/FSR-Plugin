@@ -140,22 +140,18 @@ function fsr_updates_check_branch() {
 
 
 function fsr_updates_manual_check() {
-
-
+    do_action('fsr_check_update');
+    if (!current_user_can('manage_options')) {
+        wp_die('Keine Berechtigung');
+    }
     check_admin_referer(
         'fsr_check_update'
     );
-
-
     fsr_updates_check();
-
-
     wp_safe_redirect(
         wp_get_referer()
     );
-
     exit;
-
 }
 
 
@@ -167,6 +163,7 @@ add_action(
 
 
 function fsr_updates_clear_cache() {
+    do_action('fsr_clear_update_cache');
 
 
     check_admin_referer(

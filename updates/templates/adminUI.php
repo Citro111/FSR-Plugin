@@ -5,7 +5,7 @@
 
 function fsr_updates_render_admin_interface() {
     $settings = wp_parse_args(
-        get_option('fsr_updates_settings', []),
+        get_option('fsr_update_settings', []),
         [
             'mode' => 'release',
             'auto_update' => false,
@@ -79,6 +79,11 @@ function fsr_updates_render_admin_interface() {
                     <td>
                         <label>
                             <input
+                                type="hidden"
+                                name="fsr_updates_settings[check_admin]"
+                                value="0"
+                            >
+                            <input
                                 type="checkbox"
                                 name="fsr_updates_settings[check_admin]"
                                 value="1"
@@ -91,6 +96,11 @@ function fsr_updates_render_admin_interface() {
                         </label>
                         <br>
                         <label>
+                            <input
+                                type="hidden"
+                                name="fsr_updates_settings[auto_update]"
+                                value="0"
+                            >
                             <input
                                 type="checkbox"
                                 name="fsr_updates_settings[auto_update]"

@@ -114,7 +114,6 @@ function fsr_custom_settings_page() {
             <div style="margin-top: 20px;">
                 <?php
                 fsr_updates_render_admin_interface();
-                submit_button();
                 ?>
             </div>
         <?php else : ?>
