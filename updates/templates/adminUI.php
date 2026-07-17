@@ -44,7 +44,7 @@ function fsr_updates_render_admin_interface() {
                         <label>
                             <input
                                 type="radio"
-                                name="fsr_updates_settings[mode]"
+                                name="fsr_update_settings[mode]"
                                 value="release"
                                 <?php checked(
                                     $settings['mode'],
@@ -57,7 +57,7 @@ function fsr_updates_render_admin_interface() {
                         <label>
                             <input
                                 type="radio"
-                                name="fsr_updates_settings[mode]"
+                                name="fsr_update_settings[mode]"
                                 value="branch"
                                 <?php checked(
                                     $settings['mode'],
@@ -80,12 +80,12 @@ function fsr_updates_render_admin_interface() {
                         <label>
                             <input
                                 type="hidden"
-                                name="fsr_updates_settings[check_admin]"
+                                name="fsr_update_settings[check_admin]"
                                 value="0"
                             >
                             <input
                                 type="checkbox"
-                                name="fsr_updates_settings[check_admin]"
+                                name="fsr_update_settings[check_admin]"
                                 value="1"
                                 <?php checked(
                                     $settings['check_admin'],
@@ -98,12 +98,12 @@ function fsr_updates_render_admin_interface() {
                         <label>
                             <input
                                 type="hidden"
-                                name="fsr_updates_settings[auto_update]"
+                                name="fsr_update_settings[auto_update]"
                                 value="0"
                             >
                             <input
                                 type="checkbox"
-                                name="fsr_updates_settings[auto_update]"
+                                name="fsr_update_settings[auto_update]"
                                 value="1"
                                 <?php checked(
                                     $settings['auto_update'],
