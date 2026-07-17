@@ -3,7 +3,7 @@
 Plugin Name: FSR ET/IT Custom WP Plugin
 Plugin URI: https://github.com/Citro111/FSR-Plugin
 Description: Modulares Custom-Plugin für den FSR ET/IT (DokuWiki Connector & Team-Mitgliederverwaltung).
-Version: 5.4
+Version: 5.5
 Author: Enric & FSR ET/IT
 Author URI: https://fsr-etit.de
 Text Domain: fsretit
@@ -14,7 +14,7 @@ if (!defined('ABSPATH')) exit;
 // Pfad-Konstanten für einfache Einbindung
 define('FSR_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('FSR_PLUGIN_URL', plugin_dir_url(__FILE__));
-define('FSR_PLUGIN_VERSION', '5.5');
+define('FSR_PLUGIN_VERSION', plugin_dir_version(__FILE__));
 
 // 1. Globale Admin-Oberfläche laden
 require_once FSR_PLUGIN_DIR . 'global/admin.php';
