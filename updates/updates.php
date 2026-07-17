@@ -343,3 +343,31 @@ add_action(
     10,
     2
 );
+
+function fsr_updates_fix_source_folder($source, $remote_source, $upgrader) {
+    $settings = fsr_updates_settings();
+    $branch = $settings['branch'];
+    $source_base = basename(untrailingslashit($source));
+    $desired_base = preg_replace(
+        '/-' . preg_quote($branch, '/') . '$/',
+        '',
+        $source_base
+    );
+    if ($desired_base === $source_base) {
+        return $source;
+    }
+    $new_source = trailingslashit(dirname($source)) . $desired_base;
+    if (file_exists($new_source)) {
+        delete_dir($new_source);
+    }
+    if (!rename($source, $new_source)) {
+        return $source;
+    }
+    return $new_source;
+}
+add_filter(
+    'upgrader_source_selection',
+    'fsr_updates_fix_source_folder',
+    10,
+    3
+);
