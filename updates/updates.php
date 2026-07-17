@@ -119,6 +119,7 @@ function fsr_updates_check() {
 
 function fsr_updates_manual_check() {
     fsr_updates_log('FSR Manual Update Check');
+    delete_transient('fsr_remote_update');
     if (!current_user_can('manage_options')) {
         wp_die('Keine Berechtigung');
     }
@@ -142,7 +143,7 @@ function fsr_updates_clear_cache() {
         'fsr_clear_update_cache'
     );
     delete_transient(
-        'fsr_update_checked'
+        'fsr_remote_update'
     );
     delete_option(
         'fsr_remote_version'
@@ -203,6 +204,16 @@ add_filter(
 );
 
 function fsr_updates_get_remote_version() {
+    static $runtime_cache = null;
+    if ($runtime_cache !== null) {
+        return $runtime_cache;
+    }
+
+    $cached = get_transient('fsr_remote_update');
+    if ($cached !== false) {
+        fsr_updates_log('Using cached update check result: ' . print_r($cached, true));
+        return $cached;
+    }
     $settings = fsr_updates_settings();
     fsr_updates_log('Getting remote version with settings: ' . print_r($settings, true));
     if (empty($settings['github_repo'])) {
@@ -245,7 +256,8 @@ function fsr_updates_get_remote_version() {
         if (empty($data['sha'])) {
             return false;
         }
-        return [
+
+        $remote = [
             'version' =>
                 substr($data['sha'], 0, 7),
             'download' =>
@@ -260,7 +272,7 @@ function fsr_updates_get_remote_version() {
         if (empty($data['tag_name'])) {
             return false;
         }
-        return [
+        $remote = [
             'version' =>
                 ltrim(
                     $data['tag_name'],
@@ -271,6 +283,11 @@ function fsr_updates_get_remote_version() {
         ];
     }
     fsr_updates_log('Unknown update mode: ' . $settings['mode']);
+    set_transient(
+        'fsr_remote_update',
+        $remote,
+        6 * HOUR_IN_SECONDS
+    );
     return false;
 }
 
