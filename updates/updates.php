@@ -64,6 +64,7 @@ function fsr_updates_check() {
 }
 
 function fsr_updates_check_release() {
+    $settings = fsr_updates_settings();
     $url = sprintf(
         'https://api.github.com/repos/%s/releases/latest',
         $settings['github_repo']
@@ -72,6 +73,10 @@ function fsr_updates_check_release() {
     if (is_wp_error($response)) {
         return false;
     }
+    do_action(
+        'qm/debug','Release Check Response: ' .
+        wp_remote_retrieve_body($response)
+    );
     $data = json_decode(
         wp_remote_retrieve_body($response),
         true
@@ -87,6 +92,7 @@ function fsr_updates_check_release() {
 }
 
 function fsr_updates_check_branch() {
+    $settings = fsr_updates_settings();
     $url = sprintf(
         'https://api.github.com/repos/%s/commits/%s',
         $settings['github_repo'],
@@ -96,6 +102,10 @@ function fsr_updates_check_branch() {
     if (is_wp_error($response)) {
         return false;
     }
+    do_action(
+        'qm/debug','Branch Check Response: ' .
+        wp_remote_retrieve_body($response)
+    );
     $data = json_decode(
         wp_remote_retrieve_body($response),
         true
@@ -192,6 +202,12 @@ function fsr_updates_check_for_update($transient) {
                 $remote['download'],
         ];
     }
+    do_action(
+        'qm/debug',
+        'FSR Update Check: Current Version: ' .
+        $current_version . ', Remote Version: ' .
+        $remote['version'].', File: '.$plugin_file
+    );
     return $transient;
 }
 add_filter(
