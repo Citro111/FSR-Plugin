@@ -56,67 +56,6 @@ function fsr_updates_sanitize_settings($input) {
     ];
 }
 
-function fsr_updates_check() {
-    $settings = fsr_updates_settings();
-    fsr_updates_log('Checking for updates with settings: ' . print_r($settings, true));
-    $url = fsr_updates_get_url();
-    $response = wp_remote_get(
-        $url,
-        [
-            'headers'=>[
-                'Accept'=>'application/vnd.github+json',
-                'User-Agent'=>'FSR-Plugin/' . FSR_PLUGIN_VERSION
-            ],
-            'timeout'=>15
-        ]
-    );
-    if (is_wp_error($response)) {
-        fsr_updates_log(
-            'GitHub WP Error: ' . $response->get_error_message()
-        );
-        return false;
-    }
-    $status = wp_remote_retrieve_response_code($response);
-    if ($status !== 200) {
-        fsr_updates_log(
-            'GitHub HTTP Error in update_check: ' . $status
-        );
-        fsr_updates_log(
-            wp_remote_retrieve_body($response)
-        );
-        return false;
-    }
-    fsr_updates_log('Release Check Response for ' . $url);
-    fsr_updates_log('Response: ' . wp_remote_retrieve_body($response));
-    $data = json_decode(
-        wp_remote_retrieve_body($response),
-        true
-    );
-    if($settings['mode'] === 'release') {
-        if (empty($data['tag_name'])) {
-            fsr_updates_log('No tag_name found in response: ' . print_r($data, true));
-            return false;
-        }
-        fsr_updates_log('Remote Release Version: ' . $data['tag_name']);
-        update_option(
-            'fsr_remote_version',
-            $data['tag_name']
-        );
-    } else {
-        if (empty($data['sha'])) {
-            fsr_updates_log('No sha found in response: ' . print_r($data, true));
-            return false;
-        }
-        fsr_updates_log('Remote Commit SHA: ' . $data['sha']);
-        update_option(
-            'fsr_remote_commit',
-            substr($data['sha'],0,7)
-        );
-    }
-    fsr_updates_log('Update check completed successfully.');
-    return true;
-}
-
 function fsr_updates_manual_check() {
     fsr_updates_log('FSR Manual Update Check');
     delete_transient('fsr_remote_update');
@@ -126,7 +65,16 @@ function fsr_updates_manual_check() {
     check_admin_referer(
         'fsr_check_update'
     );
-    fsr_updates_check();
+    fsr_updates_log('Manual update check started');
+    delete_transient('fsr_update_checked');
+    $remote = fsr_updates_get_remote_version();
+    if (!$remote) {
+        fsr_updates_log('Manual update check failed');
+        exit;
+    }
+    fsr_updates_log(
+        'Manual update check successful: ' . print_r($remote, true)
+    );
     wp_safe_redirect(
         wp_get_referer()
     );
@@ -208,10 +156,10 @@ function fsr_updates_get_remote_version() {
     if ($runtime_cache !== null) {
         return $runtime_cache;
     }
-
     $cached = get_transient('fsr_remote_update');
     if ($cached !== false) {
         fsr_updates_log('Using cached update check result: ' . print_r($cached, true));
+        $runtime_cache = $cached;
         return $cached;
     }
     $settings = fsr_updates_settings();
@@ -282,13 +230,14 @@ function fsr_updates_get_remote_version() {
                 $data['zipball_url']
         ];
     }
-    fsr_updates_log('Unknown update mode: ' . $settings['mode']);
+    fsr_updates_log('Remote version determined: ' . print_r($remote, true));
     set_transient(
         'fsr_remote_update',
         $remote,
         6 * HOUR_IN_SECONDS
     );
-    return false;
+    $runtime_cache = $remote;
+    return $remote;
 }
 
 function fsr_updates_get_url() {
