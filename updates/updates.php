@@ -58,6 +58,7 @@ function fsr_updates_sanitize_settings($input) {
 
 function fsr_updates_check() {
     $settings = fsr_updates_settings();
+    fsr_updates_log('Checking for updates with settings: ' . print_r($settings, true));
     if ($settings['mode'] === 'branch') {
         return fsr_updates_check_branch();
     }
@@ -74,7 +75,7 @@ function fsr_updates_check_release() {
     if (is_wp_error($response)) {
         return false;
     }
-    fsr_updates_log('Release Check Response: ' . wp_remote_retrieve_body($response));
+    fsr_updates_log('Release Check Response for ' . $url . 'Response: ' . wp_remote_retrieve_body($response));
     $data = json_decode(
         wp_remote_retrieve_body($response),
         true
@@ -100,7 +101,7 @@ function fsr_updates_check_branch() {
     if (is_wp_error($response)) {
         return false;
     }
-    fsr_updates_log('Branch Check Response: ' . wp_remote_retrieve_body($response));
+    fsr_updates_log('Branch Check Response for ' . $url . ' Response: ' . wp_remote_retrieve_body($response));
     $data = json_decode(
         wp_remote_retrieve_body($response),
         true
