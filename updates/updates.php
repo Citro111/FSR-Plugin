@@ -163,6 +163,7 @@ function fsr_updates_get_remote_version() {
         return $cached;
     }
     $settings = fsr_updates_settings();
+    fsr_updates_log('No cached results');
     fsr_updates_log('Getting remote version with settings: ' . print_r($settings, true));
     if (empty($settings['github_repo'])) {
         return false;
@@ -198,16 +199,15 @@ function fsr_updates_get_remote_version() {
         wp_remote_retrieve_body($response),
         true
     );
-    fsr_updates_log('Remote version data: ' . print_r($data, true));
     fsr_updates_log('Remote version data type: ' . gettype($data));
     if ($settings['mode'] === 'branch') {
-        if (empty($data['sha'])) {
+        if (empty($data['commit']['sha'])) {
             return false;
         }
 
         $remote = [
             'version' =>
-                substr($data['sha'], 0, 7),
+                substr($data['commit']['sha'], 0, 7),
             'download' =>
                 sprintf(
                     'https://github.com/%s/archive/refs/heads/%s.zip',
@@ -236,8 +236,7 @@ function fsr_updates_get_remote_version() {
         $remote,
         6 * HOUR_IN_SECONDS
     );
-    $runtime_cache = $remote;
-    return $remote;
+    return $runtime_cache = $remote;
 }
 
 function fsr_updates_get_url() {
