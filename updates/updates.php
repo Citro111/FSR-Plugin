@@ -353,6 +353,9 @@ function fsr_updates_fix_source_folder($source, $remote_source, $upgrader) {
         '',
         $source_base
     );
+    fsr_updates_log(
+        'Fixing source folder: source_base=' . $source_base . ', desired_base=' . $desired_base
+    );
     if ($desired_base === $source_base) {
         return $source;
     }
