@@ -120,7 +120,7 @@ function fsr_updates_manual_install() {
         );
     }
     update_option(
-        'fsr_installed_version',
+        'fsr_installed_commit',
         $remote['version']
     );
     delete_site_transient(
@@ -196,7 +196,7 @@ function fsr_updates_check_for_update($transient) {
 );
         return $transient;
     }
-    $plugin_file = plugin_basename(FSR_PLUGIN_DIR . FSR_PLUGIN_FILE);
+    $plugin_file = plugin_basename(FSR_PLUGIN_FILE);
     fsr_updates_log('Active plugins: ' . print_r(get_option('active_plugins'), true));
     fsr_updates_log('checking updates. Backtrace: ' . wp_debug_backtrace_summary());
     $remote = fsr_updates_get_remote_version();
@@ -210,7 +210,7 @@ function fsr_updates_check_for_update($transient) {
     return $transient;
     }
     if ($settings['mode'] === 'branch') {
-        $installed = get_option('fsr_installed_version', FSR_PLUGIN_VERSION);
+        $installed = get_option('fsr_installed_commit', FSR_PLUGIN_VERSION);
         if (version_compare(
             $remote['version'],
             $installed,
@@ -306,23 +306,18 @@ function fsr_updates_get_remote_version() {
         ) {
             return false;
         }
-        $commit_time = strtotime(
-            $data['commit']['commit']['committer']['date']
-        );
-        $commit_version = date(
-            'Ymd.His',
-            $commit_time
-        );
         $remote = [
             'version' =>
-                FSR_PLUGIN_VERSION . '.' . $commit_version,
+                FSR_PLUGIN_VERSION,
 
             'download' =>
                 sprintf(
                     'https://github.com/%s/archive/refs/heads/%s.zip',
                     $settings['github_repo'],
                     $settings['branch']
-                )
+                ),
+            'commit_message' =>
+                $data['commit']['commit']['message'],
         ];
     }
     elseif ($settings['mode'] === 'release') {
@@ -336,7 +331,9 @@ function fsr_updates_get_remote_version() {
                     'v'
                 ),
             'download' =>
-                $data['zipball_url']
+                $data['zipball_url'],
+            'commit_message' =>
+                'NEW REALEASE: ' . $data['name'] . ' - ' . $data['body'],
         ];  
     }
     fsr_updates_log('Remote version determined: ' . print_r($remote, true));
@@ -446,7 +443,7 @@ function fsr_updates_after_update($upgrader, $hook_extra) {
     }
 
     update_option(
-        'fsr_installed_version',
+        'fsr_installed_commit',
         $remote['version']
     );
     update_option(
