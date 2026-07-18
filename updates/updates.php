@@ -126,6 +126,16 @@ function fsr_updates_manual_install() {
         'Before upgrade active plugins: ' .
         print_r(get_option('active_plugins'), true)
     );
+    $was_active = is_plugin_active($plugin_file);
+
+    update_option(
+        'fsr_update_was_active',
+        $was_active
+    );
+    update_option(
+        'fsr_update_running',
+        true
+    );
     $result = $upgrader->upgrade(
         $plugin_file
     );
@@ -137,6 +147,20 @@ function fsr_updates_manual_install() {
             $result->get_error_message()
         );
     }
+    if (
+        get_option('fsr_update_was_active')
+    ) {
+        activate_plugin(
+            $plugin_file
+        );
+    }
+
+    delete_option(
+        'fsr_update_was_active'
+    );
+    delete_option(
+        'fsr_update_running'
+    );
     update_option(
         'fsr_installed_commit',
         $remote['commit_sha']
@@ -197,6 +221,17 @@ add_action(
 );
 
 function fsr_updates_check_for_update($transient) {
+    if (
+        defined('WP_INSTALLING')
+        && WP_INSTALLING
+    ) {
+        return $transient;
+    }
+    if (
+        get_option('fsr_update_running')
+    ) {
+        return $transient;
+    }
     if (empty($transient->checked)) {
         fsr_updates_log(
             print_r(
