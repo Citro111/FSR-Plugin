@@ -6,17 +6,21 @@ function fsr_updates_render_admin_interface() {
             'github_repo' => '',
             'branch' => 'main',
             'mode' => 'release',
-            'auto_update' => false,
+            'fast_update' => false,
             'check_admin' => true,
         ]
     );
     $remote_version = get_option(
         'fsr_remote_version',
-        'Noch nicht geprüft'
+        'Nicht geprüft'
     );
     $remote_commit_message = get_option(
         'fsr_remote_commit_message',
-        'Noch nicht geprüft'
+        'Nicht geprüft'
+    );
+    $remote_checked = get_option(
+        'fsr_remote_checked',
+        'Nicht geprüft'
     );
     $local_version = defined('FSR_PLUGIN_VERSION')
         ? FSR_PLUGIN_VERSION
@@ -119,15 +123,15 @@ function fsr_updates_render_admin_interface() {
                         <label>
                             <input
                                 type="hidden"
-                                name="fsr_update_settings[check_admin]"
+                                name="fsr_update_settings[check_update_admin]"
                                 value="0"
                             >
                             <input
                                 type="checkbox"
-                                name="fsr_update_settings[check_admin]"
+                                name="fsr_update_settings[check_update_admin]"
                                 value="1"
                                 <?php checked(
-                                    $settings['check_admin'],
+                                    $settings['check_update_admin'],
                                     true
                                 ); ?>
                             >
@@ -137,19 +141,19 @@ function fsr_updates_render_admin_interface() {
                         <label>
                             <input
                                 type="hidden"
-                                name="fsr_update_settings[auto_update]"
+                                name="fsr_update_settings[fast_update]"
                                 value="0"
                             >
                             <input
                                 type="checkbox"
-                                name="fsr_update_settings[auto_update]"
+                                name="fsr_update_settings[fast_update]"
                                 value="1"
                                 <?php checked(
-                                    $settings['auto_update'],
+                                    $settings['fast_update'],
                                     true
                                 ); ?>
                             >
-                            Updates automatisch installieren
+                            Neusten Updates schnell installieren
                         </label>
                     </td>
                 </tr>
@@ -188,6 +192,14 @@ function fsr_updates_render_admin_interface() {
                     <?php echo esc_html($remote_commit_message); ?>
                 </td>
             </tr>
+            <tr>
+                <td>
+                    Zu letzt geprüft
+                </td>
+                <td>
+                    <?php echo esc_html($remote_checked); ?>
+                </td>
+            </tr>
             </tbody>
         </table>
         <br>
@@ -197,42 +209,36 @@ function fsr_updates_render_admin_interface() {
               ); ?>">
             <input type="hidden"
                    name="action"
-                   value="fsr_check_update">
-            <?php
-            wp_nonce_field(
-                'fsr_check_update'
-            );
-            ?>
-            <?php
-            submit_button(
-                'Jetzt nach Updates suchen',
-                'primary',
-                'submit',
-                false
-            );
-            ?>
-        </form>
-        <form method="post"
-              action="<?php echo esc_url(
-                  admin_url('admin-post.php')
-              ); ?>"
-              style="margin-top:10px;">
+                   value="fsr_manual_install">
+                <?php
+                wp_nonce_field(
+                    'fsr_manual_install'
+                );
+                ?>
+                <?php
+                submit_button(
+                    'Nach Updates suchen & installieren',
+                    'primary',
+                    'submit',
+                    false
+                );
+                ?>
             <input type="hidden"
                    name="action"
                    value="fsr_clear_update_cache">
-            <?php
-            wp_nonce_field(
-                'fsr_clear_update_cache'
-            );
-            ?>
-            <?php
-            submit_button(
-                'Update Cache löschen',
-                'secondary',
-                'submit',
-                false
-            );
-            ?>
+                <?php
+                wp_nonce_field(
+                    'fsr_clear_update_cache'
+                );
+                ?>
+                <?php
+                submit_button(
+                    'Update Cache löschen',
+                    'secondary',
+                    'submit',
+                    false
+                );
+                ?>
         </form>
     </div>
     <?php

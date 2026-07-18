@@ -28,8 +28,8 @@ function fsr_updates_settings() {
             'github_repo' => 'Citro111/FSR-Plugin',
             'branch' => 'main',
             'mode' => 'release',
-            'auto_update' => false,
-            'check_admin' => true,
+            'fast_update' => false,
+            'check_update_admin' => true,
         ]
     );
 }
@@ -47,37 +47,67 @@ function fsr_updates_sanitize_settings($input) {
         'mode' => sanitize_text_field(
             $input['mode'] ?? 'release'
         ),
-        'auto_update' => !empty(
-            $input['auto_update']
+        'fast_update' => !empty(
+            $input['fast_update']
         ),
-        'check_admin' => !empty(
-            $input['check_admin']
+        'check_update_admin' => !empty(
+            $input['check_update_admin']
         ),
     ];
 }
-function fsr_updates_manual_check() {
-    if (!current_user_can('manage_options')) {
+
+
+function fsr_updates_manual_install() {
+    if (!current_user_can('update_plugins')) {
         wp_die('Keine Berechtigung');
     }
     check_admin_referer(
-        'fsr_check_update'
+        'fsr_manual_install'
     );
-    delete_transient('fsr_remote_update');
+    delete_transient(
+        'fsr_cached_update'
+    );
+    $remote = fsr_updates_get_remote_version();
+    if (!$remote) {
+        wp_die(
+            'Keine Remote-Version gefunden'
+        );
+    }
+    fsr_updates_log(
+        'Manual install requested: ' . $remote['version']
+    );
+    require_once ABSPATH . 'wp-admin/includes/file.php';
+    require_once ABSPATH . 'wp-admin/includes/misc.php';
+    require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+    $upgrader = new Plugin_Upgrader(
+        new Automatic_Upgrader_Skin()
+    );
+    $result = $upgrader->install(
+        $remote['download']
+    );
+    if (is_wp_error($result)) {
+        fsr_updates_log(
+            'Install failed: ' . $result->get_error_message()
+        );
+        wp_die(
+            $result->get_error_message()
+        );
+    }
     delete_site_transient(
         'update_plugins'
-    );
-    fsr_updates_log(
-        'Manual update check triggered'
     );
     wp_safe_redirect(
         wp_get_referer()
     );
+    update_option(
+        'fsr_installed_version',
+        $remote['version']
+    );
     exit;
 }
-
 add_action(
-    'admin_post_fsr_check_update',
-    'fsr_updates_manual_check'
+    'admin_post_fsr_manual_install',
+    'fsr_updates_manual_install'
 );
 
 function fsr_updates_clear_cache() {
@@ -86,20 +116,19 @@ function fsr_updates_clear_cache() {
         'fsr_clear_update_cache'
     );
     delete_transient(
-        'fsr_remote_update'
+        'fsr_cached_update'
     );
     delete_option(
         'fsr_remote_version'
     );
     delete_option(
-        'fsr_remote_commit'
+        'fsr_remote_commit_message'
     );
     wp_safe_redirect(
         wp_get_referer()
     );
     exit;
 }
-
 add_action(
     'admin_post_fsr_clear_update_cache',
     'fsr_updates_clear_cache'
@@ -110,7 +139,7 @@ function fsr_updates_check_for_update($transient) {
         return $transient;
     }
     $settings = fsr_updates_settings();
-    if (empty($settings['github_repo'])) {
+    if (empty($settings['github_repo'])||empty($settings['branch'])||!$settings['check_update_admin']) {
         return $transient;
     }
     $plugin_file = plugin_basename(FSR_PLUGIN_DIR . 'fsr-etit-custom-plugin.php');
@@ -151,7 +180,7 @@ function fsr_updates_get_remote_version() {
     if ($runtime_cache !== null) {
         return $runtime_cache;
     }
-    $cached = get_transient('fsr_remote_update');
+    $cached = get_transient('fsr_cached_update');
     if ($cached !== false) {
         fsr_updates_log('Using cached update check result: ' . print_r($cached, true));
         $runtime_cache = $cached;
@@ -197,7 +226,11 @@ function fsr_updates_get_remote_version() {
     fsr_updates_log('Remote get data: ' . print_r($data, true));
     update_option(
         'fsr_remote_commit_message',
-        $data['commit']['commit']['message'] ?? 'Noch nicht geprüft'
+        $data['commit']['commit']['message']
+    );
+    update_option(
+        'fsr_remote_checked',
+        current_time('mysql')
     );
     if ($settings['mode'] === 'branch') {
         if (
@@ -236,13 +269,19 @@ function fsr_updates_get_remote_version() {
                 ),
             'download' =>
                 $data['zipball_url']
-        ];
+        ];  
     }
     fsr_updates_log('Remote version determined: ' . print_r($remote, true));
+    $cache_time = 60 * MINUTE_IN_SECONDS;
+
+    if ($settings['fast_update']) {
+        $cache_time = 5;
+    }
+    fsr_updates_log('Caching remote version for ' . $cache_time . ' seconds');      
     set_transient(
-        'fsr_remote_update',
+        'fsr_cached_update',
         $remote,
-        6 * HOUR_IN_SECONDS
+        $cache_time
     );
     return $runtime_cache = $remote;
 }
