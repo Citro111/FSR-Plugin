@@ -69,7 +69,7 @@ function fsr_updates_manual_install() {
     );
     $remote = fsr_updates_get_remote_version();
     if (!$remote) {
-        fsr_print_log('Manual install failed: Keine Remote-Version gefunden');
+        fsr_updates_print_log('Manual install failed: Keine Remote-Version gefunden');
     }
     fsr_updates_log(
         'Manual install requested: ' . $remote['version']
@@ -111,7 +111,7 @@ function fsr_updates_manual_install() {
         )
     );
     if (is_wp_error($result)) {
-        fsr_print_log(
+        fsr_updates_print_logt_log(
             'Install failed: ' . $result->get_error_message()
         );
         wp_die(
@@ -121,7 +121,7 @@ function fsr_updates_manual_install() {
     wp_safe_redirect(
         wp_get_referer()
     );
-    fsr_print_log('Manual install completed: ' . $remote['version']);
+    fsr_updates_print_log('Manual install completed: ' . $remote['version']);
     update_option(
         'fsr_installed_version',
         $remote['version']
