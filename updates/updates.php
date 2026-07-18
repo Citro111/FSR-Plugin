@@ -351,7 +351,7 @@ function fsr_updates_get_url() {
 function fsr_updates_print_log($message) {
     fsr_updates_log($message);
     set_transient(
-        'fsr_public_log',
+        'fsr_updates_public_log',
         $message,
         5 * MINUTE_IN_SECONDS
     );

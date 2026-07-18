@@ -244,13 +244,13 @@ function fsr_updates_render_admin_interface() {
             <h2>Update Log</h2>
             <div class="fsr-update-log">
                 <?php
-                $log = get_transient('fsr_public_log');
+                $log = get_transient('fsr_updates_public_log');
                 if ($log) {
                     echo '<pre>' . esc_html($log) . '</pre>';
                 } else {
                     echo '';
                 }
-                delete_transient('fsr_public_log');
+                delete_transient('fsr_updates_public_log');
                 ?>
             </div>
         </br>
