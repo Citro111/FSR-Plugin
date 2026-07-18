@@ -65,75 +65,72 @@ function fsr_updates_manual_install() {
         'fsr_manual_install'
     );
     delete_transient(
-        'fsr_updates_cached_update'
+        'fsr_cached_update'
     );
     $remote = fsr_updates_get_remote_version();
     if (!$remote) {
         fsr_updates_print_log('Manual install failed: Keine Remote-Version gefunden');
     }
-    fsr_updates_log(
-        'Manual install requested: ' . $remote['version']
-    );
     require_once ABSPATH . 'wp-admin/includes/file.php';
     require_once ABSPATH . 'wp-admin/includes/misc.php';
     require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
     $upgrader = new Plugin_Upgrader(
         new Automatic_Upgrader_Skin()
     );
-    fsr_updates_log(
-        'Upgrader Info:'
+    $plugin_file = plugin_basename(
+        FSR_PLUGIN_FILE
     );
-    fsr_updates_log(
-        print_r(
-            $upgrader->skin->plugin_info,
-            true
-        )
+    $update_plugins = get_site_transient(
+        'update_plugins'
     );
-    fsr_updates_log(
-        'Upgrader Result:'
+    if (!is_object($update_plugins)) {
+        $update_plugins = new stdClass();
+    }
+    if (!isset($update_plugins->response)) {
+        $update_plugins->response = [];
+    }
+    $update_plugins->response[$plugin_file] = (object)[
+        'slug' => dirname($plugin_file),
+        'plugin' => $plugin_file,
+        'new_version' => $remote['version'],
+        'package' => $remote['download'],
+    ];
+    fsr_updates_print_log(
+        'Starting upgrade: ' . $plugin_file
     );
-    fsr_updates_log(
-        print_r(
-            $upgrader->result,
-            true
-        )
+    set_site_transient(
+        'update_plugins',
+        (object)[
+            'response'=>[
+                $plugin_file => (object)[
+                    'package'=>$remote['download']
+                ]
+            ]
+        ]
     );
-    $result = $upgrader->install(
-        $remote['download']
-    );
-    fsr_updates_log(
-        'Upgrader Result After Install:'
-    );
-    fsr_updates_log(
-        print_r(
-            $result,
-            true
-        )
+    $result = $upgrader->upgrade(
+        $plugin_file
     );
     if (is_wp_error($result)) {
-        fsr_updates_print_logt_log(
-            'Install failed: ' . $result->get_error_message()
+        fsr_updates_print_log(
+            'Upgrade failed: ' . $result->get_error_message()
         );
         wp_die(
             $result->get_error_message()
         );
     }
-    wp_safe_redirect(
-        wp_get_referer()
-    );
-    fsr_updates_print_log('Manual install completed: ' . $remote['version']);
     update_option(
         'fsr_installed_version',
         $remote['version']
     );
-    update_option(
-        'fsr_remote_version',
-        $remote['version']
+    delete_site_transient(
+        'update_plugins'
     );
-
-    update_option(
-        'fsr_remote_checked',
-        current_time('mysql')
+    fsr_updates_print_log(
+        'Upgrade successful: ' . $remote['version']
+    );
+    wp_safe_redirect(
+        wp_get_referer()
     );
     exit;
 }
@@ -432,7 +429,7 @@ function fsr_updates_after_update($upgrader, $hook_extra) {
         return;
     }
 
-    if ($hook_extra['plugin'] !== plugin_basename(__FILE__)) {
+    if ($hook_extra['plugin'] !== plugin_basename(FSR_PLUGIN_FILE)) {
         return;
     }
 
