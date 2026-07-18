@@ -224,7 +224,6 @@ function fsr_updates_get_remote_version() {
     }
     $settings = fsr_updates_settings();
     fsr_updates_log('No cached results');
-    fsr_updates_log('Getting remote version with settings: ' . print_r($settings, true));
     if (empty($settings['github_repo'])) {
         return false;
     }
@@ -259,7 +258,6 @@ function fsr_updates_get_remote_version() {
         wp_remote_retrieve_body($response),
         true
     );
-    fsr_updates_log('Remote get data: ' . print_r($data, true));
     update_option(
         'fsr_remote_commit_message',
         $data['commit']['commit']['message']
@@ -348,6 +346,7 @@ function fsr_updates_get_url() {
 }
 
 function fsr_updates_print_log($message) {
+    fsr_updates_log($message);
     set_transient(
         'fsr_public_log',
         $message,
