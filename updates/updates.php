@@ -70,7 +70,7 @@ function fsr_updates_manual_install() {
     $remote = fsr_updates_get_remote_version();
     if (!$remote) {
         fsr_updates_print_log('Manual install failed: Keine Remote-Version gefunden');
-        wp_die('Keine Remote-Version gefunden');
+        return;
     }
     require_once ABSPATH . 'wp-admin/includes/file.php';
     require_once ABSPATH . 'wp-admin/includes/misc.php';
@@ -126,12 +126,12 @@ function fsr_updates_manual_install() {
         'Before upgrade active plugins: ' .
         print_r(get_option('active_plugins'), true)
     );
-    $was_active = is_plugin_active($plugin_file);
+    /*$was_active = is_plugin_active($plugin_file);
 
     update_option(
         'fsr_update_was_active',
         $was_active
-    );
+    );*/
     update_option(
         'fsr_update_running',
         true
@@ -143,11 +143,8 @@ function fsr_updates_manual_install() {
         fsr_updates_print_log(
             'Upgrade failed: ' . $result->get_error_message()
         );
-        wp_die(
-            $result->get_error_message()
-        );
     }
-    if (
+    /*if (
         get_option('fsr_update_was_active')
     ) {
         activate_plugin(
@@ -157,7 +154,7 @@ function fsr_updates_manual_install() {
 
     delete_option(
         'fsr_update_was_active'
-    );
+    );*/
     delete_option(
         'fsr_update_running'
     );
@@ -187,16 +184,6 @@ function fsr_updates_clear_cache() {
     if (!current_user_can('update_plugins')) {
         wp_die('Keine Berechtigung');
     }
-    /*
-    global $wpdb;
-    $wpdb->query(
-        "
-        DELETE FROM {$wpdb->options}
-        WHERE option_name LIKE '_transient_fsr_%'
-        OR option_name LIKE 'fsr_updates_%'
-        "
-    );
-    */
     fsr_updates_log('FSR Clear Update Cache');
     check_admin_referer(
         'fsr_clear_update_cache'
@@ -266,33 +253,39 @@ function fsr_updates_check_for_update($transient) {
     }
     if ($settings['mode'] === 'branch') {
         $installed_commit = get_option(
-        'fsr_installed_commit',
-        ''
-    );
-
-    if (
-        !empty($installed_commit)
-        &&
-        $installed_commit === $remote['commit_sha']
-    ) {
-        fsr_updates_log(
-            'Commit bereits installiert: ' . $installed_commit
+            'fsr_installed_commit',
+            ''
         );
-        return $transient;
-    }
+
+        if (
+            !empty($installed_commit)
+            &&
+            $installed_commit === $remote['commit_sha']
+        ) {
+            fsr_updates_log(
+                'Commit bereits installiert: ' . $installed_commit
+            );
+            return $transient;
+        }
+        $transient->response[$plugin_file] = (object) [
+            'slug'        => dirname($plugin_file),
+            'plugin'      => $plugin_file,
+            'new_version' => $remote['commit_sha'],
+            'package'     => $remote['download'],
+        ];
     }
     elseif ($settings['mode'] === 'release') {
         if (version_compare($remote['version'], FSR_PLUGIN_VERSION, '<=')) {
             fsr_updates_log('Installed release is up to date: ' . FSR_PLUGIN_VERSION);
             return $transient;
         }
+        $transient->response[$plugin_file] = (object) [
+            'slug'        => dirname($plugin_file),
+            'plugin'      => $plugin_file,
+            'new_version' => $remote['version'],
+            'package'     => $remote['download'],
+        ];
     }
-    $transient->response[$plugin_file] = (object) [
-        'slug'        => dirname($plugin_file),
-        'plugin'      => $plugin_file,
-        'new_version' => $remote['commit_sha'],
-        'package'     => $remote['download'],
-    ];
     fsr_updates_log(
         print_r(
             $transient->response,
@@ -340,6 +333,15 @@ function fsr_updates_get_remote_version() {
         return false;
     }
     $status = wp_remote_retrieve_response_code($response);
+    if (
+        $settings['mode'] === 'release'
+        && $status === 404
+    ) {
+        fsr_updates_log(
+            'Noch keine GitHub Releases vorhanden.'
+        );
+        return false;
+    }
     if ($status !== 200) {
         fsr_updates_log(
             'GitHub HTTP Error in remote_get_version: ' . $status
@@ -347,7 +349,12 @@ function fsr_updates_get_remote_version() {
         fsr_updates_log(
             wp_remote_retrieve_body($response)
         );
-        return false;
+        set_transient(
+            'fsr_updates_cached_update',
+            false,
+            5 * MINUTE_IN_SECONDS
+        );
+        return $runtime_cache = false;
     }
     $data = json_decode(
         wp_remote_retrieve_body($response),
@@ -580,22 +587,8 @@ function fsr_updates_fix_source_folder($source, $remote_source, $upgrader) {
         delete_dir($new_source);
     }
     wp_mkdir_p($new_source);
-    foreach (glob($source . '/*') as $file) {
-        rename(
-            $file,
-            $new_source . '/' . basename($file)
-        );
-    }
-    rmdir($source);
-    fsr_updates_log('Fixed source folder: ' . $new_source);
-    fsr_updates_log('Contents of new source folder:');
-    foreach (glob($new_source . '/*') as $file) {
-        fsr_updates_log(' - ' . basename($file));
-    }
-    fsr_updates_log('Contents of destination folder:');
-    foreach (glob(dirname($source) . '/*') as $file) {
-        fsr_updates_log(' - ' . basename($file));
-    }
+    move_dir($new_source, $source);
+    fsr_updates_log('Moved new source folder to destination: ' . $source);
     return $new_source;
 }
 add_filter(
@@ -636,4 +629,30 @@ add_filter(
     'fsr_updates_plugin_information',
     10,
     3
+);
+
+add_action(
+    'activated_plugin',
+    function($plugin){
+
+        fsr_updates_log(
+            "ACTIVATED: ".$plugin
+        );
+
+    },
+    10,
+    1
+);
+
+add_action(
+    'deactivated_plugin',
+    function($plugin){
+
+        fsr_updates_log(
+            "DEACTIVATED: ".$plugin
+        );
+
+    },
+    10,
+    1
 );
