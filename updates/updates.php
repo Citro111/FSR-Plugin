@@ -195,7 +195,7 @@ function fsr_updates_get_remote_version() {
         true
     );
     fsr_updates_log('Remote get data: ' . print_r($data, true));
-    set_option(
+    update_option(
         'fsr_remote_commit_message',
         $data['commit']['commit']['message'] ?? 'Noch nicht geprüft'
     );
