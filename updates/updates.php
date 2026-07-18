@@ -6,7 +6,6 @@ define(
 );
 
 require_once __DIR__ . '/templates/adminUI.php';
-fsr_updates_log('FSR Updates Loaded');
 function fsr_updates_register_settings() {
     register_setting(
         'fsr_update_settings',
@@ -65,13 +64,11 @@ function fsr_updates_manual_install() {
         'fsr_manual_install'
     );
     delete_transient(
-        'fsr_cached_update'
+        'fsr_updates_cached_update'
     );
     $remote = fsr_updates_get_remote_version();
     if (!$remote) {
-        wp_die(
-            'Keine Remote-Version gefunden'
-        );
+        fsr_print_log('Manual install failed: Keine Remote-Version gefunden');
     }
     fsr_updates_log(
         'Manual install requested: ' . $remote['version']
@@ -82,11 +79,38 @@ function fsr_updates_manual_install() {
     $upgrader = new Plugin_Upgrader(
         new Automatic_Upgrader_Skin()
     );
+    fsr_updates_log(
+        'Upgrader Info:'
+    );
+    fsr_updates_log(
+        print_r(
+            $upgrader->skin->plugin_info,
+            true
+        )
+    );
+    fsr_updates_log(
+        'Upgrader Result:'
+    );
+    fsr_updates_log(
+        print_r(
+            $upgrader->result,
+            true
+        )
+    );
     $result = $upgrader->install(
         $remote['download']
     );
+    fsr_updates_log(
+        'Upgrader Result After Install:'
+    );
+    fsr_updates_log(
+        print_r(
+            $result,
+            true
+        )
+    );
     if (is_wp_error($result)) {
-        fsr_updates_log(
+        fsr_print_log(
             'Install failed: ' . $result->get_error_message()
         );
         wp_die(
@@ -99,6 +123,7 @@ function fsr_updates_manual_install() {
     wp_safe_redirect(
         wp_get_referer()
     );
+    fsr_print_log('Manual install completed: ' . $remote['version']);
     update_option(
         'fsr_installed_version',
         $remote['version']
@@ -111,12 +136,23 @@ add_action(
 );
 
 function fsr_updates_clear_cache() {
+    if (!current_user_can('update_plugins')) {
+        wp_die('Keine Berechtigung');
+    }
+    global $wpdb;
+    $wpdb->query(
+        "
+        DELETE FROM {$wpdb->options}
+        WHERE option_name LIKE '_transient_fsr_%'
+        OR option_name LIKE 'fsr_updates_%'
+        "
+    );
     fsr_updates_log('FSR Clear Update Cache');
     check_admin_referer(
         'fsr_clear_update_cache'
     );
     delete_transient(
-        'fsr_cached_update'
+        'fsr_updates_cached_update'
     );
     delete_option(
         'fsr_remote_version'
@@ -142,7 +178,7 @@ function fsr_updates_check_for_update($transient) {
     if (empty($settings['github_repo'])||empty($settings['branch'])||!$settings['check_update_admin']) {
         return $transient;
     }
-    $plugin_file = plugin_basename(FSR_PLUGIN_DIR . 'fsr-etit-custom-plugin.php');
+    $plugin_file = plugin_basename(FSR_PLUGIN_DIR . FSR_PLUGIN_FILE);
     fsr_updates_log('Active plugins: ' . print_r(get_option('active_plugins'), true));
     fsr_updates_log('checking updates. Backtrace: ' . wp_debug_backtrace_summary());
     $remote = fsr_updates_get_remote_version();
@@ -180,7 +216,7 @@ function fsr_updates_get_remote_version() {
     if ($runtime_cache !== null) {
         return $runtime_cache;
     }
-    $cached = get_transient('fsr_cached_update');
+    $cached = get_transient('fsr_updates_cached_update');
     if ($cached !== false) {
         fsr_updates_log('Using cached update check result: ' . print_r($cached, true));
         $runtime_cache = $cached;
@@ -279,7 +315,7 @@ function fsr_updates_get_remote_version() {
     }
     fsr_updates_log('Caching remote version for ' . $cache_time . ' seconds');      
     set_transient(
-        'fsr_cached_update',
+        'fsr_updates_cached_update',
         $remote,
         $cache_time
     );
@@ -309,6 +345,14 @@ function fsr_updates_get_url() {
         );
     } 
     return $url;
+}
+
+function fsr_updates_print_log($message) {
+    set_transient(
+        'fsr_public_log',
+        $message,
+        5 * MINUTE_IN_SECONDS
+    );
 }
 
 function fsr_updates_log($message) {
@@ -379,7 +423,6 @@ function fsr_updates_after_update($upgrader, $hook_extra) {
         'Installed version updated: ' . $remote['version']
     );
 }
-
 add_action(
     'upgrader_process_complete',
     'fsr_updates_after_update',
@@ -388,32 +431,81 @@ add_action(
 );
 
 function fsr_updates_fix_source_folder($source, $remote_source, $upgrader) {
-    $settings = fsr_updates_settings();
-    $branch = $settings['branch'];
-    $source_base = basename(untrailingslashit($source));
-    $desired_base = preg_replace(
-        '/-' . preg_quote($branch, '/') . '$/',
-        '',
-        $source_base
-    );
+    fsr_updates_log('SOURCE');
+    fsr_updates_log($source);
+
+    fsr_updates_log('REMOTE');
+    fsr_updates_log($remote_source);
+
+    fsr_updates_log('DESTINATION');
+
     fsr_updates_log(
-        'Fixing source folder: source_base=' . $source_base . ', desired_base=' . $desired_base
+        $upgrader->result
     );
-    if ($desired_base === $source_base) {
+    $plugin_slug = dirname(plugin_basename(FSR_PLUGIN_FILE));
+    $source_base = basename(untrailingslashit($source));
+    if ($source_base === $plugin_slug) {
         return $source;
     }
-    $new_source = trailingslashit(dirname($source)) . $desired_base;
+    $new_source = trailingslashit(dirname($source)) . $plugin_slug;
     if (file_exists($new_source)) {
         delete_dir($new_source);
     }
-    if (!rename($source, $new_source)) {
-        return $source;
+    wp_mkdir_p($new_source);
+    foreach (glob($source . '/*') as $file) {
+        rename(
+            $file,
+            $new_source . '/' . basename($file)
+        );
+    }
+    rmdir($source);
+    fsr_updates_log('Fixed source folder: ' . $new_source);
+    fsr_updates_log('Contents of new source folder:');
+    foreach (glob($new_source . '/*') as $file) {
+        fsr_updates_log(' - ' . basename($file));
+    }
+    fsr_updates_log('Contents of destination folder:');
+    foreach (glob(dirname($source) . '/*') as $file) {
+        fsr_updates_log(' - ' . basename($file));
     }
     return $new_source;
 }
 add_filter(
     'upgrader_source_selection',
     'fsr_updates_fix_source_folder',
+    10,
+    3
+);
+
+function fsr_updates_plugin_information($res, $action, $args) {
+    if ($action !== 'plugin_information') {
+        return $res;
+    }
+    if ($args->slug !== plugin_basename(FSR_PLUGIN_FILE)) {
+        return $res;
+    }
+    $remote = fsr_updates_get_remote_version();
+    if (!$remote) {
+        return $res;
+    }
+    $res = new stdClass();
+    $res->name = 'FSR ET/IT Custom Plugin';
+    $res->slug = plugin_basename(FSR_PLUGIN_FILE);
+    $res->version = $remote['version'];
+    $res->author = $remote['author'];
+    $res->homepage = 'https://fsr-etit.de';
+    $res->requires = '6.0';
+    $res->tested = '6.4';
+    $res->download_link = $remote['download'];
+    $res->sections = [
+        'description' => 'Custom Plugin für die FSR ET/IT Website. Enthält DokuWiki-Integration, Mitgliedskarten, Office Hours und Update-Mechanismen.',
+        'changelog' => $remote['commit_message'] ?? 'Keine Informationen verfügbar.',
+    ];
+    return $res;
+}
+add_filter(
+    'plugins_api',
+    'fsr_updates_plugin_information',
     10,
     3
 );
