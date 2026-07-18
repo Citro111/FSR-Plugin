@@ -65,11 +65,12 @@ function fsr_updates_manual_install() {
         'fsr_manual_install'
     );
     delete_transient(
-        'fsr_cached_update'
+        'fsr_updates_cached_update'
     );
     $remote = fsr_updates_get_remote_version();
     if (!$remote) {
         fsr_updates_print_log('Manual install failed: Keine Remote-Version gefunden');
+        wp_die('Keine Remote-Version gefunden');
     }
     require_once ABSPATH . 'wp-admin/includes/file.php';
     require_once ABSPATH . 'wp-admin/includes/misc.php';
@@ -98,15 +99,28 @@ function fsr_updates_manual_install() {
     fsr_updates_print_log(
         'Starting upgrade: ' . $plugin_file
     );
+
+    $update = new stdClass();
+    $update->slug = dirname($plugin_file);
+    $update->plugin = $plugin_file;
+    $update->new_version = $remote['version'];
+    $update->package = $remote['download'];
+
+    $transient = get_site_transient('update_plugins');
+
+    if (!is_object($transient)) {
+        $transient = new stdClass();
+    }
+
+    if (!isset($transient->response)) {
+        $transient->response = [];
+    }
+
+    $transient->response[$plugin_file] = $update;
+
     set_site_transient(
         'update_plugins',
-        (object)[
-            'response'=>[
-                $plugin_file => (object)[
-                    'package'=>$remote['download']
-                ]
-            ]
-        ]
+        $transient
     );
     $result = $upgrader->upgrade(
         $plugin_file
@@ -121,13 +135,13 @@ function fsr_updates_manual_install() {
     }
     update_option(
         'fsr_installed_commit',
-        $remote['version']
+        $remote['commit_sha']
     );
-    delete_site_transient(
-        'update_plugins'
-    );
+    delete_site_transient('update_plugins');
+    wp_clean_plugins_cache();
+    wp_update_plugins();
     fsr_updates_print_log(
-        'Upgrade successful: ' . $remote['version']
+        'Upgrade successful: ' . $remote['commit_sha']
     );
     wp_safe_redirect(
         wp_get_referer()
@@ -179,21 +193,21 @@ add_action(
 function fsr_updates_check_for_update($transient) {
     if (empty($transient->checked)) {
         fsr_updates_log(
-    print_r(
-        $transient->response,
-        true
-    )
-);
+            print_r(
+                $transient->response,
+                true
+            )
+        );
         return $transient;
     }
     $settings = fsr_updates_settings();
     if (empty($settings['github_repo'])||empty($settings['branch'])||!$settings['check_update_admin']) {
         fsr_updates_log(
-    print_r(
-        $transient->response,
-        true
-    )
-);
+            print_r(
+                $transient->response,
+                true
+            )
+        );
         return $transient;
     }
     $plugin_file = plugin_basename(FSR_PLUGIN_FILE);
@@ -202,23 +216,29 @@ function fsr_updates_check_for_update($transient) {
     $remote = fsr_updates_get_remote_version();
     if (!$remote) {
         fsr_updates_log(
-    print_r(
-        $transient->response,
-        true
-    )
-);
+            print_r(
+                $transient->response,
+                true
+            )
+        );
     return $transient;
     }
     if ($settings['mode'] === 'branch') {
-        $installed = get_option('fsr_installed_commit', FSR_PLUGIN_VERSION);
-        if (version_compare(
-            $remote['version'],
-            $installed,
-            '<='
-            )
-        ) {
-            return $transient;
-        }
+        $installed_commit = get_option(
+        'fsr_installed_commit',
+        ''
+    );
+
+    if (
+        !empty($installed_commit)
+        &&
+        $installed_commit === $remote['commit_sha']
+    ) {
+        fsr_updates_log(
+            'Commit bereits installiert: ' . $installed_commit
+        );
+        return $transient;
+    }
     }
     elseif ($settings['mode'] === 'release') {
         if (version_compare($remote['version'], FSR_PLUGIN_VERSION, '<=')) {
@@ -229,15 +249,15 @@ function fsr_updates_check_for_update($transient) {
     $transient->response[$plugin_file] = (object) [
         'slug'        => dirname($plugin_file),
         'plugin'      => $plugin_file,
-        'new_version' => $remote['version'],
+        'new_version' => $remote['commit_sha'],
         'package'     => $remote['download'],
     ];
     fsr_updates_log(
-    print_r(
-        $transient->response,
-        true
-    )
-);
+        print_r(
+            $transient->response,
+            true
+        )
+    );
     return $transient;
 }
 add_filter(
@@ -293,10 +313,6 @@ function fsr_updates_get_remote_version() {
         true
     );
     update_option(
-        'fsr_remote_commit_message',
-        $data['commit']['commit']['message']
-    );
-    update_option(
         'fsr_remote_checked',
         current_time('mysql')
     );
@@ -318,7 +334,13 @@ function fsr_updates_get_remote_version() {
                 ),
             'commit_message' =>
                 $data['commit']['commit']['message'],
+            'commit_sha' =>
+                $data['commit']['sha']
         ];
+        update_option(
+            'fsr_remote_commit_message',
+            $data['commit']['commit']['message']
+        );
     }
     elseif ($settings['mode'] === 'release') {
         if (empty($data['tag_name'])) {
@@ -333,8 +355,14 @@ function fsr_updates_get_remote_version() {
             'download' =>
                 $data['zipball_url'],
             'commit_message' =>
-                'NEW REALEASE: ' . $data['name'] . ' - ' . $data['body'],
+                'NEW REALEASE: ' . $data['name'] . ' - ' . $data['body']
+            'commit_sha' =>
+                $data['target_commitish'] ?? $data['id'] ?? '',
         ];  
+        update_option(
+            'fsr_remote_commit_message',
+            'NEW REALEASE: ' . $data['name'] . ' - ' . $data['body']
+        );
     }
     fsr_updates_log('Remote version determined: ' . print_r($remote, true));
     $cache_time = 60 * MINUTE_IN_SECONDS;
@@ -444,7 +472,7 @@ function fsr_updates_after_update($upgrader, $hook_extra) {
 
     update_option(
         'fsr_installed_commit',
-        $remote['version']
+        $remote['commit_sha']
     );
     update_option(
         'fsr_remote_version',
@@ -458,6 +486,13 @@ function fsr_updates_after_update($upgrader, $hook_extra) {
 
     fsr_updates_log(
         'Installed version updated: ' . $remote['version']
+    );
+    fsr_updates_log(
+        'Active plugins after update: ' .
+        print_r(
+            get_option('active_plugins'),
+            true
+        )
     );
 }
 add_action(
