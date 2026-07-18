@@ -146,6 +146,9 @@ function fsr_updates_manual_install() {
     fsr_updates_print_log(
         'Upgrade successful: ' . $remote['commit_sha']
     );
+    activate_plugin(
+        $plugin_file
+    );
     wp_safe_redirect(
         wp_get_referer()
     );
@@ -581,12 +584,12 @@ function fsr_updates_plugin_information($res, $action, $args) {
     $res = new stdClass();
     $res->name = 'FSR ET/IT Custom Plugin';
     $res->slug = plugin_basename(FSR_PLUGIN_FILE);
-    $res->version = $remote['version'];
-    $res->author = $remote['author'];
+    $res->version = $remote['version'] ?? '0.0.0';
+    $res->author = $remote['author'] ?? 'Enric & FSR ET/IT';
     $res->homepage = 'https://fsr-etit.de';
     $res->requires = '6.0';
     $res->tested = '6.4';
-    $res->download_link = $remote['download'];
+    $res->download_link = $remote['download'] ?? '-';
     $res->sections = [
         'description' => 'Custom Plugin für die FSR ET/IT Website. Enthält DokuWiki-Integration, Mitgliedskarten, Office Hours und Update-Mechanismen.',
         'changelog' => $remote['commit_message'] ?? 'Keine Informationen verfügbar.',
