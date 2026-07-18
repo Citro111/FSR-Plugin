@@ -118,9 +118,6 @@ function fsr_updates_manual_install() {
             $result->get_error_message()
         );
     }
-    delete_site_transient(
-        'update_plugins'
-    );
     wp_safe_redirect(
         wp_get_referer()
     );
@@ -128,6 +125,15 @@ function fsr_updates_manual_install() {
     update_option(
         'fsr_installed_version',
         $remote['version']
+    );
+    update_option(
+        'fsr_remote_version',
+        $remote['version']
+    );
+
+    update_option(
+        'fsr_remote_checked',
+        current_time('mysql')
     );
     exit;
 }
@@ -175,10 +181,22 @@ add_action(
 
 function fsr_updates_check_for_update($transient) {
     if (empty($transient->checked)) {
+        fsr_updates_log(
+    print_r(
+        $transient->response,
+        true
+    )
+);
         return $transient;
     }
     $settings = fsr_updates_settings();
     if (empty($settings['github_repo'])||empty($settings['branch'])||!$settings['check_update_admin']) {
+        fsr_updates_log(
+    print_r(
+        $transient->response,
+        true
+    )
+);
         return $transient;
     }
     $plugin_file = plugin_basename(FSR_PLUGIN_DIR . FSR_PLUGIN_FILE);
@@ -186,12 +204,22 @@ function fsr_updates_check_for_update($transient) {
     fsr_updates_log('checking updates. Backtrace: ' . wp_debug_backtrace_summary());
     $remote = fsr_updates_get_remote_version();
     if (!$remote) {
-        return $transient;
+        fsr_updates_log(
+    print_r(
+        $transient->response,
+        true
+    )
+);
+    return $transient;
     }
     if ($settings['mode'] === 'branch') {
-        $installed_version = get_option('fsr_installed_version', '');
-        if ($installed_version === $remote['version']) {
-            fsr_updates_log('Installed version matches remote version: ' . $remote['version']);
+        $installed = get_option('fsr_installed_version', FSR_PLUGIN_VERSION);
+        if (version_compare(
+            $remote['version'],
+            $installed,
+            '<='
+            )
+        ) {
             return $transient;
         }
     }
@@ -207,6 +235,12 @@ function fsr_updates_check_for_update($transient) {
         'new_version' => $remote['version'],
         'package'     => $remote['download'],
     ];
+    fsr_updates_log(
+    print_r(
+        $transient->response,
+        true
+    )
+);
     return $transient;
 }
 add_filter(
@@ -391,16 +425,14 @@ function fsr_updates_flush_log() {
 add_action('admin_init', 'fsr_updates_flush_log');
 
 function fsr_updates_after_update($upgrader, $hook_extra) {
+    fsr_updates_log('Update process completed');
+    fsr_updates_log(print_r($hook_extra, true));
 
-    if (
-        empty($hook_extra['plugin'])
-    ) {
+    if (empty($hook_extra['plugin'])) {
         return;
     }
 
-    if (
-        $hook_extra['plugin'] !== plugin_basename(__FILE__)
-    ) {
+    if ($hook_extra['plugin'] !== plugin_basename(__FILE__)) {
         return;
     }
 
@@ -420,6 +452,15 @@ function fsr_updates_after_update($upgrader, $hook_extra) {
         'fsr_installed_version',
         $remote['version']
     );
+    update_option(
+        'fsr_remote_version',
+        $remote['version']
+    );
+
+    update_option(
+        'fsr_remote_checked',
+        current_time('mysql')
+    );
 
     fsr_updates_log(
         'Installed version updated: ' . $remote['version']
@@ -428,6 +469,21 @@ function fsr_updates_after_update($upgrader, $hook_extra) {
 add_action(
     'upgrader_process_complete',
     'fsr_updates_after_update',
+    10,
+    2
+);
+
+add_filter(
+    'upgrader_pre_install',
+    function($response, $hook_extra){
+
+        fsr_updates_log('PRE INSTALL');
+
+        fsr_updates_log(print_r($hook_extra,true));
+
+        return $response;
+
+    },
     10,
     2
 );

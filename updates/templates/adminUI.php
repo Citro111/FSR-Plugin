@@ -135,7 +135,7 @@ function fsr_updates_render_admin_interface() {
                                     true
                                 ); ?>
                             >
-                            Bei Admin-Aufrufen automatisch prüfen
+                            Bei Admin-Aufrufen automatisch aktuallisieren
                         </label>
                         <br>
                         <label>
@@ -194,7 +194,7 @@ function fsr_updates_render_admin_interface() {
             </tr>
             <tr>
                 <td>
-                    Zu letzt geprüft
+                    Zu letzt gecheckt
                 </td>
                 <td>
                     <?php echo esc_html($remote_checked); ?>
@@ -223,6 +223,11 @@ function fsr_updates_render_admin_interface() {
                     false
                 );
                 ?>
+        </form>
+        <form method="post"
+              action="<?php echo esc_url(
+                  admin_url('admin-post.php')
+              ); ?>">
             <input type="hidden"
                    name="action"
                    value="fsr_clear_update_cache">
