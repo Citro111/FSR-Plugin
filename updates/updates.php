@@ -126,12 +126,12 @@ function fsr_updates_manual_install() {
         'Before upgrade active plugins: ' .
         print_r(get_option('active_plugins'), true)
     );
-    /*$was_active = is_plugin_active($plugin_file);
+    $was_active = is_plugin_active($plugin_file);
 
     update_option(
         'fsr_update_was_active',
         $was_active
-    );*/
+    );
     update_option(
         'fsr_update_running',
         true
@@ -144,7 +144,7 @@ function fsr_updates_manual_install() {
             'Upgrade failed: ' . $result->get_error_message()
         );
     }
-    /*if (
+    if (
         get_option('fsr_update_was_active')
     ) {
         activate_plugin(
@@ -154,7 +154,7 @@ function fsr_updates_manual_install() {
 
     delete_option(
         'fsr_update_was_active'
-    );*/
+    );
     delete_option(
         'fsr_update_running'
     );
@@ -173,7 +173,7 @@ function fsr_updates_manual_install() {
     wp_safe_redirect(
         wp_get_referer()
     );
-    exit;
+    return fsr_updates_log('Update erfolgreich installiert');
 }
 add_action(
     'admin_post_fsr_manual_install',
@@ -200,7 +200,7 @@ function fsr_updates_clear_cache() {
     wp_safe_redirect(
         wp_get_referer()
     );
-    exit;
+    return fsr_updates_log('Update Cache gelöscht');
 }
 add_action(
     'admin_post_fsr_clear_update_cache',
