@@ -355,7 +355,7 @@ function fsr_updates_get_remote_version() {
             'download' =>
                 $data['zipball_url'],
             'commit_message' =>
-                'NEW REALEASE: ' . $data['name'] . ' - ' . $data['body']
+                'NEW REALEASE: ' . $data['name'] . ' - ' . $data['body'],
             'commit_sha' =>
                 $data['target_commitish'] ?? $data['id'] ?? '',
         ];  
