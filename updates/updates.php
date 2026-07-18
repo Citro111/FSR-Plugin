@@ -57,6 +57,7 @@ function fsr_updates_sanitize_settings($input) {
 
 
 function fsr_updates_manual_install() {
+    fsr_updates_log('Manual install initiated');
     if (!current_user_can('update_plugins')) {
         wp_die('Keine Berechtigung');
     }
@@ -139,6 +140,7 @@ function fsr_updates_clear_cache() {
     if (!current_user_can('update_plugins')) {
         wp_die('Keine Berechtigung');
     }
+    /*
     global $wpdb;
     $wpdb->query(
         "
@@ -147,6 +149,7 @@ function fsr_updates_clear_cache() {
         OR option_name LIKE 'fsr_updates_%'
         "
     );
+    */
     fsr_updates_log('FSR Clear Update Cache');
     check_admin_referer(
         'fsr_clear_update_cache'
