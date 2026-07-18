@@ -122,6 +122,10 @@ function fsr_updates_manual_install() {
         'update_plugins',
         $transient
     );
+    fsr_updates_log(
+        'Before upgrade active plugins: ' .
+        print_r(get_option('active_plugins'), true)
+    );
     $result = $upgrader->upgrade(
         $plugin_file
     );
@@ -137,7 +141,6 @@ function fsr_updates_manual_install() {
         'fsr_installed_commit',
         $remote['commit_sha']
     );
-    delete_site_transient('update_plugins');
     wp_clean_plugins_cache();
     wp_update_plugins();
     fsr_updates_print_log(
@@ -201,7 +204,7 @@ function fsr_updates_check_for_update($transient) {
         return $transient;
     }
     $settings = fsr_updates_settings();
-    if (empty($settings['github_repo'])||empty($settings['branch'])||!$settings['check_update_admin']) {
+    if (empty($settings['github_repo'])||empty($settings['branch'])) {
         fsr_updates_log(
             print_r(
                 $transient->response,
