@@ -120,15 +120,15 @@ function fsr_updates_check_for_update($transient) {
     }
     $plugin_file = plugin_basename(FSR_PLUGIN_DIR . 'fsr-etit-custom-plugin.php');
     fsr_updates_log('Active plugins: ' . print_r(get_option('active_plugins'), true));
-    fsr_updates_log('Checking for updates for plugin: ' . $plugin_file);
+    fsr_updates_log('checking updates. Backtrace: ' . wp_debug_backtrace_summary());
     $remote = fsr_updates_get_remote_version();
     if (!$remote) {
         return $transient;
     }
     if ($settings['mode'] === 'branch') {
-        $installed_commit = get_option('fsr_installed_commit', '');
-        if ($installed_commit === $remote['version']) {
-            fsr_updates_log('Installed commit matches remote version: ' . $remote['version']);
+        $installed_version = get_option('fsr_installed_version', '');
+        if ($installed_version === $remote['version']) {
+            fsr_updates_log('Installed version matches remote version: ' . $remote['version']);
             return $transient;
         }
     }
@@ -201,13 +201,23 @@ function fsr_updates_get_remote_version() {
     );
     fsr_updates_log('Remote version data type: ' . gettype($data));
     if ($settings['mode'] === 'branch') {
-        if (empty($data['commit']['sha'])) {
+        if (
+            empty($data['commit']['commit']['committer']['date'])
+        ) {
             return false;
         }
+        $commit_time = strtotime(
+            $data['commit']['commit']['committer']['date']
+        );
 
+        $commit_version = date(
+            'Ymd.His',
+            $commit_time
+        );
         $remote = [
             'version' =>
-                substr($data['commit']['sha'], 0, 7),
+                FSR_PLUGIN_VERSION . '.' . $commit_version,
+
             'download' =>
                 sprintf(
                     'https://github.com/%s/archive/refs/heads/%s.zip',
@@ -313,27 +323,23 @@ function fsr_updates_after_update($upgrader, $hook_extra) {
 
     $settings = fsr_updates_settings();
 
-    if (
-        $settings['mode'] !== 'branch'
-    ) {
+    if ($settings['mode'] !== 'branch') {
         return;
     }
 
     $remote = fsr_updates_get_remote_version();
 
-    if (
-        !$remote
-    ) {
+    if (!$remote) {
         return;
     }
 
     update_option(
-        'fsr_installed_commit',
+        'fsr_installed_version',
         $remote['version']
     );
 
     fsr_updates_log(
-        'Installed commit updated: ' . $remote['version']
+        'Installed version updated: ' . $remote['version']
     );
 }
 
