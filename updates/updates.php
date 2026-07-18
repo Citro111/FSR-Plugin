@@ -55,31 +55,26 @@ function fsr_updates_sanitize_settings($input) {
         ),
     ];
 }
-
 function fsr_updates_manual_check() {
-    fsr_updates_log('FSR Manual Update Check');
-    delete_transient('fsr_remote_update');
     if (!current_user_can('manage_options')) {
         wp_die('Keine Berechtigung');
     }
     check_admin_referer(
         'fsr_check_update'
     );
-    fsr_updates_log('Manual update check started');
-    delete_transient('fsr_update_checked');
-    $remote = fsr_updates_get_remote_version();
-    if (!$remote) {
-        fsr_updates_log('Manual update check failed');
-        exit;
-    }
+    delete_transient('fsr_remote_update');
+    delete_site_transient(
+        'update_plugins'
+    );
     fsr_updates_log(
-        'Manual update check successful: ' . print_r($remote, true)
+        'Manual update check triggered'
     );
     wp_safe_redirect(
         wp_get_referer()
     );
     exit;
 }
+
 add_action(
     'admin_post_fsr_check_update',
     'fsr_updates_manual_check'
@@ -199,7 +194,11 @@ function fsr_updates_get_remote_version() {
         wp_remote_retrieve_body($response),
         true
     );
-    fsr_updates_log('Remote version data type: ' . gettype($data));
+    fsr_updates_log('Remote get data: ' . print_r($data, true));
+    set_option(
+        'fsr_remote_commit_message',
+        $data['commit']['commit']['message'] ?? 'Noch nicht geprüft'
+    );
     if ($settings['mode'] === 'branch') {
         if (
             empty($data['commit']['commit']['committer']['date'])
@@ -209,7 +208,6 @@ function fsr_updates_get_remote_version() {
         $commit_time = strtotime(
             $data['commit']['commit']['committer']['date']
         );
-
         $commit_version = date(
             'Ymd.His',
             $commit_time

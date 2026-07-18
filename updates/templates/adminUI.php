@@ -1,8 +1,4 @@
 <?php
-
-
-
-
 function fsr_updates_render_admin_interface() {
     $settings = wp_parse_args(
         get_option('fsr_update_settings', []),
@@ -18,8 +14,8 @@ function fsr_updates_render_admin_interface() {
         'fsr_remote_version',
         'Noch nicht geprüft'
     );
-    $remote_commit = get_option(
-        'fsr_remote_commit',
+    $remote_commit_message = get_option(
+        'fsr_remote_commit_message',
         'Noch nicht geprüft'
     );
     $local_version = defined('FSR_PLUGIN_VERSION')
@@ -186,10 +182,10 @@ function fsr_updates_render_admin_interface() {
             </tr>
             <tr>
                 <td>
-                    GitHub Commit
+                    GitHub Commit Message
                 </td>
                 <td>
-                    <?php echo esc_html($remote_commit); ?>
+                    <?php echo esc_html($remote_commit_message); ?>
                 </td>
             </tr>
             </tbody>
