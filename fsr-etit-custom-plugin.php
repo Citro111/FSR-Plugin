@@ -7,6 +7,7 @@ Version: 5.7
 Author: Enric & FSR ET/IT
 Author URI: https://fsr-etit.de
 Text Domain: fsretit
+Update URI: https://github.com/Citro111/FSR-Plugin
 */
 
 if (!defined('ABSPATH')) exit;

@@ -124,10 +124,17 @@ function fsr_updates_manual_install() {
     $result = $upgrader->upgrade(
         $plugin_file
     );
-    fsr_updates_log('UPGRADE RETURN');
-    fsr_updates_log(print_r($result, true));
-    fsr_updates_log('PLUGIN EXISTS');
     fsr_updates_log(
+        'Package URL: ' . $update->package
+    );
+    fsr_updates_log(
+        'Current commit: ' . get_option('fsr_installed_commit')
+    );
+    fsr_updates_log(
+        'Remote commit: ' . $remote['commit_sha']
+    );
+    fsr_updates_log('UPGRADE RETURN' . print_r($result, true));
+    fsr_updates_log('PLUGIN EXISTS' .
         file_exists(WP_PLUGIN_DIR . '/' . $plugin_file)
             ? 'YES'
             : 'NO'
@@ -207,7 +214,7 @@ function fsr_updates_check_for_update($transient) {
         return $transient;
     }
     if (empty($transient->checked)) {
-        fsr_updates_log(
+        fsr_updates_log('No plugins checked yet. Returning transient without checking for updates.' . 
             print_r(
                 $transient->response ?? [],
                 true
@@ -217,7 +224,7 @@ function fsr_updates_check_for_update($transient) {
     }
     $settings = fsr_updates_settings();
     if (empty($settings['github_repo'])||empty($settings['branch'])) {
-        fsr_updates_log(
+        fsr_updates_log('GitHub Repository oder Branch nicht konfiguriert. Keine Update-Prüfung durchgeführt.' .
             print_r(
                 $transient->response,
                 true
@@ -231,7 +238,7 @@ function fsr_updates_check_for_update($transient) {
     $remote = fsr_updates_get_remote_version();
     if (!$remote) {
         fsr_updates_log(
-            print_r(
+            'Fehler beim Abrufen der Remote-Version.' . print_r(
                 $transient->response,
                 true
             )
@@ -261,25 +268,21 @@ function fsr_updates_check_for_update($transient) {
             return $transient;
         }
     }
+    fsr_updates_log(
+        'Adding update for: '.$plugin_file
+    );
     $transient->response[$plugin_file] = (object)[
-        'id'          => 'github://' . $settings['github_repo'],
-        'slug'        => dirname($plugin_file),
-        'plugin'      => $plugin_file,
-        'new_version' => $remote['version'],
-        'package'     => $remote['download'],
-        'url'         => 'https://github.com/' . $settings['github_repo'],
+        'id'           => 'github://' . $settings['github_repo'],
+        'slug'         => dirname($plugin_file),
+        'plugin'       => $plugin_file,
+        'new_version'  => $remote['version'],
+        'url'          => 'https://github.com/' . $settings['github_repo'],
+        'package'      => $remote['download'],
+        'tested'       => '6.8',
+        'requires_php' => '8.0',
     ];
-    fsr_updates_log(
-        print_r(
-            $transient->response,
-            true
-        )
-    );
     fsr_updates_log('PLUGIN FILE: ' . $plugin_file);
-
-    fsr_updates_log(
-        print_r($transient->response, true)
-    );
+    fsr_updates_log('Update available for ' . $plugin_file . ': ' . print_r($transient->response, true));
     return $transient;
 }
 add_filter(
@@ -335,6 +338,7 @@ function fsr_updates_get_remote_version() {
             'GitHub HTTP Error in remote_get_version: ' . $status
         );
         fsr_updates_log(
+            'Response Body: ' .
             wp_remote_retrieve_body($response)
         );
         set_transient(
@@ -475,8 +479,7 @@ function fsr_updates_flush_log() {
 add_action('admin_init', 'fsr_updates_flush_log');
 
 function fsr_updates_after_update($upgrader, $hook_extra) {
-    fsr_updates_log('Update process completed');
-    fsr_updates_log(print_r($hook_extra, true));
+    fsr_updates_log('Update process completed' . print_r($hook_extra, true));
 
     if (empty($hook_extra['plugin'])) {
         return;
@@ -531,12 +534,9 @@ add_action(
 );
 
 function fsr_updates_fix_source_folder($source, $remote_source, $upgrader) {
-    fsr_updates_log('SOURCE');
-    fsr_updates_log($source);
-    fsr_updates_log('REMOTE');
-    fsr_updates_log($remote_source);
-    fsr_updates_log('DESTINATION');
-    fsr_updates_log($upgrader->result);
+    fsr_updates_log('SOURCE' . $source);
+    fsr_updates_log('REMOTE' . $remote_source);
+    fsr_updates_log('DESTINATION' . $upgrader->result);
     global $wp_filesystem;
     $plugin_slug = dirname(plugin_basename(FSR_PLUGIN_FILE));
     $source_base = basename(untrailingslashit($source));
@@ -547,7 +547,13 @@ function fsr_updates_fix_source_folder($source, $remote_source, $upgrader) {
     if (file_exists($new_source)) {
         delete_dir($new_source);
     }
-    move_dir($source, $new_source);
+    $result = move_dir($source, $new_source);
+    if (!$result) {
+        return new WP_Error(
+            'fsr_move_failed',
+            'Could not rename plugin folder'
+        );
+    }
     fsr_updates_log('Moved new source folder to destination: ' . $source);
     return $new_source;
 }
@@ -559,6 +565,14 @@ add_filter(
 );
 
 function fsr_updates_plugin_information($res, $action, $args) {
+    fsr_updates_log(
+        'plugins_api called: ' . $action
+    );
+
+    fsr_updates_log(
+        'Arguments: ' .
+        print_r($args, true)
+    );
     if ($action !== 'plugin_information') {
         return $res;
     }
@@ -596,11 +610,9 @@ add_filter(
 add_action(
     'activated_plugin',
     function($plugin){
-
         fsr_updates_log(
             "ACTIVATED: ".$plugin
         );
-
     },
     10,
     1
@@ -609,11 +621,9 @@ add_action(
 add_action(
     'deactivated_plugin',
     function($plugin){
-
         fsr_updates_log(
             "DEACTIVATED: ".$plugin
         );
-
     },
     10,
     1
@@ -621,6 +631,6 @@ add_action(
 
 add_action('admin_init', function () {
     $updates = get_site_transient('update_plugins');
-    fsr_updates_log(print_r($updates, true));
+    fsr_updates_log('Plugin Updates: ' . print_r($updates, true));
 
 });
