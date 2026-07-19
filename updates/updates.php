@@ -460,7 +460,7 @@ function fsr_updates_log($message) {
     $log[] = '[' . current_time('mysql') . '] ' . $message;
     error_log('FSR UPDATES LOG: ' . $message);
 
-    set_transient('fsr_updates_qm_log', $log, 5 * MINUTE_IN_SECONDS);
+    set_transient('fsr_updates_qm_log', $log, 1 * MINUTE_IN_SECONDS);
 }
 
 
@@ -470,8 +470,6 @@ function fsr_updates_flush_log() {
     if (empty($log) || !is_array($log)) {
         return;
     }
-
-    //delete_transient('fsr_updates_qm_log');
 
     foreach ($log as $line) {
         do_action('qm/debug', $line);
