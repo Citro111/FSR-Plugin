@@ -69,8 +69,17 @@ function fsr_updates_manual_install() {
     );
     $remote = fsr_updates_get_remote_version();
     if (!$remote) {
-        fsr_updates_print_log('Manual install failed: Keine Remote-Version gefunden');
+        fsr_updates_log('Manual install failed: Keine Remote-Version gefunden');
         return;
+    }
+    if (get_option('fsr_installed_commit') === $remote['commit_sha']) {
+        fsr_updates_log(
+            'Manual update skipped. Already latest commit.'
+        );
+        wp_safe_redirect(
+            wp_get_referer()
+        );
+        exit;
     }
     require_once ABSPATH . 'wp-admin/includes/file.php';
     require_once ABSPATH . 'wp-admin/includes/misc.php';
@@ -81,22 +90,7 @@ function fsr_updates_manual_install() {
     $plugin_file = plugin_basename(
         FSR_PLUGIN_FILE
     );
-    $update_plugins = get_site_transient(
-        'update_plugins'
-    );
-    if (!is_object($update_plugins)) {
-        $update_plugins = new stdClass();
-    }
-    if (!isset($update_plugins->response)) {
-        $update_plugins->response = [];
-    }
-    $update_plugins->response[$plugin_file] = (object)[
-        'slug' => dirname($plugin_file),
-        'plugin' => $plugin_file,
-        'new_version' => $remote['version'],
-        'package' => $remote['download'],
-    ];
-    fsr_updates_print_log(
+    fsr_updates_log(
         'Starting upgrade: ' . $plugin_file
     );
 
@@ -111,13 +105,10 @@ function fsr_updates_manual_install() {
     if (!is_object($transient)) {
         $transient = new stdClass();
     }
-
     if (!isset($transient->response)) {
         $transient->response = [];
     }
-
     $transient->response[$plugin_file] = $update;
-
     set_site_transient(
         'update_plugins',
         $transient
@@ -133,23 +124,20 @@ function fsr_updates_manual_install() {
     $result = $upgrader->upgrade(
         $plugin_file
     );
-    error_log('UPGRADE RETURN');
-    error_log(print_r($result, true));
-    error_log('PLUGIN EXISTS');
-    error_log(
+    fsr_updates_log('UPGRADE RETURN');
+    fsr_updates_log(print_r($result, true));
+    fsr_updates_log('PLUGIN EXISTS');
+    fsr_updates_log(
         file_exists(WP_PLUGIN_DIR . '/' . $plugin_file)
             ? 'YES'
             : 'NO'
     );
     if (is_wp_error($result)) {
-        fsr_updates_print_log(
+        fsr_updates_log(
             'Upgrade failed: ' . $result->get_error_message()
         );
         return;
     }
-    activate_plugin(
-        $plugin_file
-    );
     delete_option(
         'fsr_update_running'
     );
@@ -157,9 +145,7 @@ function fsr_updates_manual_install() {
         'fsr_installed_commit',
         $remote['commit_sha']
     );
-    wp_clean_plugins_cache();
-    wp_update_plugins();
-    fsr_updates_print_log(
+    fsr_updates_log(
         'Upgrade successful: ' . $remote['commit_sha']
     );
     wp_safe_redirect(
@@ -268,30 +254,31 @@ function fsr_updates_check_for_update($transient) {
             );
             return $transient;
         }
-        $transient->response[$plugin_file] = (object) [
-            'slug'        => dirname($plugin_file),
-            'plugin'      => $plugin_file,
-            'new_version' => $remote['commit_sha'],
-            'package'     => $remote['download'],
-        ];
     }
     elseif ($settings['mode'] === 'release') {
         if (version_compare($remote['version'], FSR_PLUGIN_VERSION, '<=')) {
             fsr_updates_log('Installed release is up to date: ' . FSR_PLUGIN_VERSION);
             return $transient;
         }
-        $transient->response[$plugin_file] = (object) [
-            'slug'        => dirname($plugin_file),
-            'plugin'      => $plugin_file,
-            'new_version' => $remote['version'],
-            'package'     => $remote['download'],
-        ];
     }
+    $transient->response[$plugin_file] = (object)[
+        'id'          => 'github://' . $settings['github_repo'],
+        'slug'        => dirname($plugin_file),
+        'plugin'      => $plugin_file,
+        'new_version' => $remote['version'],
+        'package'     => $remote['download'],
+        'url'         => 'https://github.com/' . $settings['github_repo'],
+    ];
     fsr_updates_log(
         print_r(
             $transient->response,
             true
         )
+    );
+    fsr_updates_log('PLUGIN FILE: ' . $plugin_file);
+
+    fsr_updates_log(
+        print_r($transient->response, true)
     );
     return $transient;
 }
@@ -453,15 +440,6 @@ function fsr_updates_get_url() {
     return $url;
 }
 
-function fsr_updates_print_log($message) {
-    fsr_updates_log($message);
-    set_transient(
-        'fsr_updates_public_log',
-        $message,
-        5 * MINUTE_IN_SECONDS
-    );
-}
-
 function fsr_updates_log($message) {
     $log = get_transient('fsr_updates_qm_log');
     if (!is_array($log)) {
@@ -544,25 +522,10 @@ function fsr_updates_after_update($upgrader, $hook_extra) {
             true
         )
     );
-}/*
+}
 add_action(
     'upgrader_process_complete',
     'fsr_updates_after_update',
-    10,
-    2
-);*/
-
-add_filter(
-    'upgrader_pre_install',
-    function($response, $hook_extra){
-
-        fsr_updates_log('PRE INSTALL');
-
-        fsr_updates_log(print_r($hook_extra,true));
-
-        return $response;
-
-    },
     10,
     2
 );
@@ -628,6 +591,8 @@ add_filter(
     3
 );
 
+
+// Debugging hooks for plugin Logging
 add_action(
     'activated_plugin',
     function($plugin){
@@ -654,33 +619,8 @@ add_action(
     1
 );
 
-add_filter('upgrader_source_selection', function($source, $remote_source, $upgrader) {
-    error_log("SOURCE: $source");
-    error_log("REMOTE: $remote_source");
-    return $source;
-}, 1, 3);
+add_action('admin_init', function () {
+    $updates = get_site_transient('update_plugins');
+    fsr_updates_log(print_r($updates, true));
 
-add_filter('upgrader_install_package_result', function($result) {
-    error_log(print_r($result, true));
-    return $result;
 });
-
-add_action('upgrader_process_complete', function($upgrader, $extra) {
-    error_log(print_r($extra, true));
-    error_log('PLUGIN BASENAME: ' . plugin_basename(FSR_PLUGIN_FILE));
-
-    error_log(
-        'IS ACTIVE: ' .
-        (is_plugin_active(plugin_basename(FSR_PLUGIN_FILE)) ? 'YES' : 'NO')
-    );
-
-    error_log(
-        'FILE EXISTS: ' .
-        (file_exists(FSR_PLUGIN_FILE) ? 'YES' : 'NO')
-    );
-
-    error_log(
-        'ACTIVE PLUGINS: ' .
-        print_r(get_option('active_plugins'), true)
-    );
-}, 999, 2);
