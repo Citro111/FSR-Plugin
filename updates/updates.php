@@ -139,15 +139,15 @@ function fsr_updates_manual_install() {
             ? 'YES'
             : 'NO'
     );
+    delete_option(
+        'fsr_update_running'
+    );
     if (is_wp_error($result)) {
         fsr_updates_log(
             'Upgrade failed: ' . $result->get_error_message()
         );
         return;
     }
-    delete_option(
-        'fsr_update_running'
-    );
     update_option(
         'fsr_installed_commit',
         $remote['commit_sha']
@@ -491,42 +491,19 @@ function fsr_updates_after_update($upgrader, $hook_extra) {
     ) {
         return;
     }
-
-    if ($hook_extra['plugin'] !== plugin_basename(FSR_PLUGIN_FILE)) {
-        return;
-    }
-
     $settings = fsr_updates_settings();
-
     if ($settings['mode'] !== 'branch') {
         return;
     }
-
     $remote = fsr_updates_get_remote_version();
-
     if (!$remote) {
         return;
     }
-
-    update_option(
-        'fsr_installed_commit',
-        $remote['commit_sha']
-    );
-    update_option(
-        'fsr_remote_version',
-        $remote['version']
-    );
-
-    update_option(
-        'fsr_remote_checked',
-        current_time('mysql')
-    );
-
-    fsr_updates_log(
-        'Installed version updated: ' . $remote['version']
-    );
-    fsr_updates_log(
-        'Active plugins after update: ' .
+    update_option('fsr_installed_commit', $remote['commit_sha']);
+    update_option('fsr_remote_version', $remote['version']);
+    update_option('fsr_remote_checked', current_time('mysql'));
+    fsr_updates_log('Installed version updated: ' . $remote['version']);
+    fsr_updates_log('Active plugins after update: ' .
         print_r(
             get_option('active_plugins'),
             true
@@ -541,54 +518,20 @@ add_action(
 );
 
 function fsr_updates_fix_source_folder($source, $remote_source, $upgrader) {
-
-    $plugin_slug = dirname(plugin_basename(FSR_PLUGIN_FILE));
-
     $source = trailingslashit($source);
-
-    $source_base = basename(untrailingslashit($source));
-
-    fsr_updates_log('SOURCE BASE: '.$source_base);
-    fsr_updates_log('PLUGIN SLUG: '.$plugin_slug);
-
-    if ($source_base === $plugin_slug) {
-        fsr_updates_log('Folder already correct');
+    $plugin_file = basename(FSR_PLUGIN_FILE);
+    fsr_updates_log('SOURCE: ' . $source);
+    if (file_exists($source . $plugin_file)) {
+        fsr_updates_log('Source already contains plugin file');
         return $source;
     }
-
-    $new_source = trailingslashit(dirname($source)) . $plugin_slug;
-
-    fsr_updates_log('RENAMING TO: '.$new_source);
-
-    if (file_exists($new_source)) {
-        fsr_updates_log('Removing existing target');
-        global $wp_filesystem;
-
-        WP_Filesystem();
-
-        $wp_filesystem->delete(
-            $new_source,
-            true
-        );
+    foreach (glob($source . '*', GLOB_ONLYDIR) as $dir) {
+        if (file_exists(trailingslashit($dir) . $plugin_file)) {
+            fsr_updates_log('Using nested plugin dir: ' . $dir);
+            return trailingslashit($dir);
+        }
     }
-
-    $result = rename(
-        untrailingslashit($source),
-        untrailingslashit($new_source)
-    );
-
-    fsr_updates_log(
-        'Rename result: '.($result ? 'SUCCESS' : 'FAILED')
-    );
-
-    if (!$result) {
-        return new WP_Error(
-            'fsr_folder_move_failed',
-            'Could not rename plugin folder'
-        );
-    }
-
-    return trailingslashit($new_source);
+    return $source;
 }
 add_filter(
     'upgrader_source_selection',
@@ -664,6 +607,5 @@ add_action(
 
 add_action('admin_init', function () {
     $updates = get_site_transient('update_plugins');
-    fsr_updates_log('Plugin Updates: ' . print_r($updates, true));
 
 });
