@@ -470,7 +470,7 @@ function fsr_updates_flush_log() {
         return;
     }
 
-    delete_transient('fsr_updates_qm_log');
+    //delete_transient('fsr_updates_qm_log');
 
     foreach ($log as $line) {
         do_action('qm/debug', $line);
@@ -555,9 +555,7 @@ function fsr_updates_fix_source_folder($source, $remote_source, $upgrader) {
     fsr_updates_log('REMOTE');
     fsr_updates_log($remote_source);
     fsr_updates_log('DESTINATION');
-    fsr_updates_log(
-        $upgrader->result
-    );
+    fsr_updates_log($upgrader->result);
     global $wp_filesystem;
     $plugin_slug = dirname(plugin_basename(FSR_PLUGIN_FILE));
     $source_base = basename(untrailingslashit($source));
@@ -637,3 +635,18 @@ add_action(
     10,
     1
 );
+
+add_filter('upgrader_source_selection', function($source, $remote_source, $upgrader) {
+    error_log("SOURCE: $source");
+    error_log("REMOTE: $remote_source");
+    return $source;
+}, 1, 3);
+
+add_filter('upgrader_install_package_result', function($result) {
+    error_log(print_r($result, true));
+    return $result;
+});
+
+add_action('upgrader_process_complete', function($upgrader, $extra) {
+    error_log(print_r($extra, true));
+}, 999, 2);
