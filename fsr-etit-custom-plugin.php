@@ -6,7 +6,7 @@ Description: Custom Plugin für die FSR ET/IT Website. Enthält DokuWiki-Integra
 Version: 5.7
 Author: Enric & FSR ET/IT
 Author URI: https://fsr-etit.de
-Text Domain: fsretit
+Text Domain: fsr-etit-settings
 Update URI: https://github.com/Citro111/FSR-Plugin
 */
 

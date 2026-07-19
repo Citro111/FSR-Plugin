@@ -6,8 +6,7 @@ function fsr_updates_render_admin_interface() {
             'github_repo' => '',
             'branch' => 'main',
             'mode' => 'release',
-            'fast_update' => false,
-            'check_admin' => true,
+            'logging' => true,
         ]
     );
     $remote_version = get_option(
@@ -117,43 +116,25 @@ function fsr_updates_render_admin_interface() {
                 </tr>
                 <tr>
                     <th scope="row">
-                        Automatisierung
+                        Development Mode
                     </th>
                     <td>
                         <label>
                             <input
                                 type="hidden"
-                                name="fsr_update_settings[check_update_admin]"
+                                name="fsr_update_settings[logging]"
                                 value="0"
                             >
                             <input
                                 type="checkbox"
-                                name="fsr_update_settings[check_update_admin]"
+                                name="fsr_update_settings[logging]"
                                 value="1"
                                 <?php checked(
-                                    $settings['check_update_admin'],
+                                    $settings['logging'],
                                     true
                                 ); ?>
                             >
-                            Bei Admin-Aufrufen automatisch aktuallisieren
-                        </label>
-                        <br>
-                        <label>
-                            <input
-                                type="hidden"
-                                name="fsr_update_settings[fast_update]"
-                                value="0"
-                            >
-                            <input
-                                type="checkbox"
-                                name="fsr_update_settings[fast_update]"
-                                value="1"
-                                <?php checked(
-                                    $settings['fast_update'],
-                                    true
-                                ); ?>
-                            >
-                            Neusten Updates schnell installieren
+                            Logging
                         </label>
                     </td>
                 </tr>

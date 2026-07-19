@@ -15,6 +15,15 @@ function fsr_custom_admin_menu() {
 
     add_submenu_page(
         'fsr-etit-settings',
+        'Updates',
+        'Updates',
+        'manage_options',
+        'fsr-etit-settings',
+        'fsr_custom_settings_page'
+    );
+
+    add_submenu_page(
+        'fsr-etit-settings',
         'DokuWiki Connector',
         'DokuWiki Connector',
         'manage_options',
@@ -37,15 +46,6 @@ function fsr_custom_admin_menu() {
         'Office Hours',
         'manage_options',
         'fsr-etit-settings-officehours',
-        'fsr_custom_settings_page'
-    );
-
-    add_submenu_page(
-        'fsr-etit-settings',
-        'Updates',
-        'Updates',
-        'manage_options',
-        'fsr-etit-settings-updates',
         'fsr_custom_settings_page'
     );
 }
@@ -132,5 +132,17 @@ add_filter('plugin_action_links_' . plugin_basename(__FILE__), function ($links)
 
     array_unshift($links, $settings_link);
 
+    return $links;
+});
+
+add_filter('plugin_action_links_' . plugin_basename(FSR_PLUGIN_FILE), function ($links) {
+    $settings_link = sprintf(
+        '<a href="%s">Settings</a>',
+        admin_url('admin.php?page=fsr-etit-settings')
+    );
+    array_unshift(
+        $links,
+        $settings_link
+    );
     return $links;
 });

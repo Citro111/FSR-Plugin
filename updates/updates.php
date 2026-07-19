@@ -4,8 +4,6 @@ define(
     'FSR_UPDATE_OPTION_KEY',
     'fsr_update_settings'
 );
-
-require_once __DIR__ . '/templates/adminUI.php';
 function fsr_updates_register_settings() {
     register_setting(
         'fsr_update_settings',
@@ -21,18 +19,21 @@ add_action(
 );
 
 function fsr_updates_settings() {
-    return wp_parse_args(
+    static $settings = null;
+    if ($settings !== null) {
+        return $settings;
+    }
+    $settings = wp_parse_args(
         get_option(FSR_UPDATE_OPTION_KEY, []),
         [
             'github_repo' => 'Citro111/FSR-Plugin',
             'branch' => 'main',
             'mode' => 'release',
-            'fast_update' => false,
-            'check_update_admin' => true,
+            'logging' => true,
         ]
     );
+    return $settings;
 }
-
 
 function fsr_updates_sanitize_settings($input) {
     fsr_updates_log('Sanitize Input: ' . print_r($input, true));
@@ -46,11 +47,8 @@ function fsr_updates_sanitize_settings($input) {
         'mode' => sanitize_text_field(
             $input['mode'] ?? 'release'
         ),
-        'fast_update' => !empty(
-            $input['fast_update']
-        ),
-        'check_update_admin' => !empty(
-            $input['check_update_admin']
+        'logging' => !empty(
+            $input['logging']
         ),
     ];
 }
@@ -112,10 +110,6 @@ function fsr_updates_manual_install() {
     set_site_transient(
         'update_plugins',
         $transient
-    );
-    fsr_updates_log(
-        'Before upgrade active plugins: ' .
-        print_r(get_option('active_plugins'), true)
     );
     update_option(
         'fsr_update_running',
@@ -236,7 +230,6 @@ function fsr_updates_check_for_update($transient) {
         return $transient;
     }
     $plugin_file = plugin_basename(FSR_PLUGIN_FILE);
-    fsr_updates_log('Active plugins: ' . print_r(get_option('active_plugins'), true));
     fsr_updates_log('checking updates. Backtrace: ' . wp_debug_backtrace_summary());
     $remote = fsr_updates_get_remote_version();
     if (!$remote) {
@@ -408,11 +401,7 @@ function fsr_updates_get_remote_version() {
         );
     }
     fsr_updates_log('Remote version determined: ' . print_r($remote, true));
-    $cache_time = 60 * MINUTE_IN_SECONDS;
-
-    if ($settings['fast_update']) {
-        $cache_time = 5;
-    }
+    $cache_time = 10;
     fsr_updates_log('Caching remote version for ' . $cache_time . ' seconds');      
     set_transient(
         'fsr_updates_cached_update',
@@ -448,6 +437,9 @@ function fsr_updates_get_url() {
 }
 
 function fsr_updates_log($message) {
+    if (!fsr_updates_settings()['logging']) {
+        return;
+    }
     $log = get_transient('fsr_updates_qm_log');
     if (!is_array($log)) {
         $log = [];
@@ -608,7 +600,8 @@ add_action(
     1
 );
 
-add_action('admin_init', function () {
-    $updates = get_site_transient('update_plugins');
+add_action('admin_menu', function(){
+
+    require_once __DIR__ . '/templates/adminUI.php';
 
 });
