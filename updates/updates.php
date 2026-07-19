@@ -76,7 +76,7 @@ function fsr_updates_manual_install() {
     require_once ABSPATH . 'wp-admin/includes/misc.php';
     require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
     $upgrader = new Plugin_Upgrader(
-        new Plugin_Upgrader_Skin()
+        new WP_Ajax_Upgrader_Skin()
     );
     $plugin_file = plugin_basename(
         FSR_PLUGIN_FILE
@@ -475,7 +475,7 @@ function fsr_updates_log($message) {
     }
 
     $log[] = '[' . current_time('mysql') . '] ' . $message;
-    error_log('FSR Updates Log: [' . current_time('mysql') . '] \n' . $message.'\n');
+    error_log('FSR UPDATES LOG: ' . $message);
 
     set_transient('fsr_updates_qm_log', $log, 5 * MINUTE_IN_SECONDS);
 }
