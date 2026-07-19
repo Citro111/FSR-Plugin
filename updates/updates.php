@@ -225,7 +225,7 @@ function fsr_updates_check_for_update($transient) {
             print_r(
                 $transient->response ?? [],
                 true
-            );
+            )
         );
         return $transient;
     }
