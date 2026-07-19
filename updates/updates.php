@@ -139,6 +139,9 @@ function fsr_updates_manual_install() {
             ? 'YES'
             : 'NO'
     );
+    activate_plugin(
+        $plugin_file
+    );
     delete_option(
         'fsr_update_running'
     );
