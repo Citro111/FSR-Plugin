@@ -133,6 +133,14 @@ function fsr_updates_manual_install() {
     $result = $upgrader->upgrade(
         $plugin_file
     );
+    error_log('UPGRADE RETURN');
+    error_log(print_r($result, true));
+    error_log('PLUGIN EXISTS');
+    error_log(
+        file_exists(WP_PLUGIN_DIR . '/' . $plugin_file)
+            ? 'YES'
+            : 'NO'
+    );
     if (is_wp_error($result)) {
         fsr_updates_print_log(
             'Upgrade failed: ' . $result->get_error_message()
@@ -192,6 +200,15 @@ add_action(
 );
 
 function fsr_updates_check_for_update($transient) {
+    if (!is_object($transient)) {
+        $transient = new stdClass();
+    }
+    if (!isset($transient->response)) {
+        $transient->response = [];
+    }
+    if (!isset($transient->checked)) {
+        $transient->checked = [];
+    }
     if (
         defined('WP_INSTALLING')
         && WP_INSTALLING
@@ -206,9 +223,9 @@ function fsr_updates_check_for_update($transient) {
     if (empty($transient->checked)) {
         fsr_updates_log(
             print_r(
-                $transient->response,
+                $transient->response ?? [],
                 true
-            )
+            );
         );
         return $transient;
     }
@@ -458,6 +475,7 @@ function fsr_updates_log($message) {
     }
 
     $log[] = '[' . current_time('mysql') . '] ' . $message;
+    error_log('FSR Updates Log: [' . current_time('mysql') . '] \n' . $message.'\n');
 
     set_transient('fsr_updates_qm_log', $log, 5 * MINUTE_IN_SECONDS);
 }
@@ -526,13 +544,13 @@ function fsr_updates_after_update($upgrader, $hook_extra) {
             true
         )
     );
-}
+}/*
 add_action(
     'upgrader_process_complete',
     'fsr_updates_after_update',
     10,
     2
-);
+);*/
 
 add_filter(
     'upgrader_pre_install',
@@ -649,4 +667,20 @@ add_filter('upgrader_install_package_result', function($result) {
 
 add_action('upgrader_process_complete', function($upgrader, $extra) {
     error_log(print_r($extra, true));
+    error_log('PLUGIN BASENAME: ' . plugin_basename(FSR_PLUGIN_FILE));
+
+    error_log(
+        'IS ACTIVE: ' .
+        (is_plugin_active(plugin_basename(FSR_PLUGIN_FILE)) ? 'YES' : 'NO')
+    );
+
+    error_log(
+        'FILE EXISTS: ' .
+        (file_exists(FSR_PLUGIN_FILE) ? 'YES' : 'NO')
+    );
+
+    error_log(
+        'ACTIVE PLUGINS: ' .
+        print_r(get_option('active_plugins'), true)
+    );
 }, 999, 2);
