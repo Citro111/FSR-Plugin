@@ -57,7 +57,8 @@ function fsr_updates_sanitize_settings($input) {
 function fsr_updates_manual_install() {
     fsr_updates_log('Manual install initiated');
     if (!current_user_can('update_plugins')) {
-        return fsr_updates_log('Keine Berechtigung zum manuellen Installieren von Updates');
+        fsr_updates_log('Keine Berechtigung zum manuellen Installieren von Updates');
+        fsr_redirect_to_update_page();
     }
     check_admin_referer(
         'fsr_manual_install'
@@ -67,7 +68,8 @@ function fsr_updates_manual_install() {
     );
     $remote = fsr_updates_get_remote_version();
     if (!$remote) {
-        fsr_updates_log('Manual install failed: Keine Remote-Version gefunden');
+        fsr_updates_log('Manual install failed1: Keine Remote-Version gefunden');
+        fsr_redirect_to_update_page();
         return;
     }
     if (get_option('fsr_installed_commit') === $remote['commit_sha']) {
@@ -160,7 +162,8 @@ add_action(
 
 function fsr_updates_clear_cache() {
     if (!current_user_can('update_plugins')) {
-        return fsr_updates_log('Keine Berechtigung zum Löschen des Update-Caches');
+        fsr_updates_log('Keine Berechtigung zum manuellen Installieren von Updates');
+        fsr_redirect_to_update_page();
     }
     fsr_updates_log('FSR Clear Update Cache');
     check_admin_referer(
@@ -227,13 +230,9 @@ function fsr_updates_check_for_update($transient) {
     fsr_updates_log('checking updates. Backtrace: ' . wp_debug_backtrace_summary());
     $remote = fsr_updates_get_remote_version();
     if (!$remote) {
-        fsr_updates_log(
-            'Fehler beim Abrufen der Remote-Version.' . print_r(
-                $transient->response,
-                true
-            )
-        );
-    return $transient;
+        fsr_updates_log('Manual install failed2: Keine Remote-Version gefunden');
+        fsr_redirect_to_update_page();
+        return $transient;
     }
     if ($settings['mode'] === 'branch') {
         $installed_commit = get_option(
@@ -431,24 +430,16 @@ function fsr_updates_get_url() {
 }
 
 function fsr_redirect_to_update_page() {
-    if (
-        !is_admin()
-        ||
-        !current_user_can('update_plugins')
-    ) {
+
+    if (!current_user_can('update_plugins')) {
         return;
     }
-    $screen = get_current_screen();
-    if (
-        $screen
-        &&
-        $screen->id === 'plugins'
-    ) {
-        wp_safe_redirect(
-            admin_url('admin.php?page=fsr-etit-settings-updates')
-        );
-        exit;
-    }
+
+    wp_safe_redirect(
+        admin_url('admin.php?page=fsr-etit-settings-updates')
+    );
+
+    exit;
 }
 
 function fsr_updates_log($message) {
@@ -507,6 +498,8 @@ function fsr_updates_after_update($upgrader, $hook_extra) {
     }
     $remote = fsr_updates_get_remote_version();
     if (!$remote) {
+        fsr_updates_log('Manual install failed3: Keine Remote-Version gefunden');
+        fsr_redirect_to_update_page();
         return;
     }
     update_option('fsr_installed_commit', $remote['commit_sha']);
@@ -566,6 +559,8 @@ function fsr_updates_plugin_information($res, $action, $args) {
     }
     $remote = fsr_updates_get_remote_version();
     if (!$remote) {
+        fsr_updates_log('Manual install failed4: Keine Remote-Version gefunden');
+        fsr_redirect_to_update_page();
         return $res;
     }
     $res = new stdClass();
