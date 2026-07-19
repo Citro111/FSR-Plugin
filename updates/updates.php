@@ -74,9 +74,7 @@ function fsr_updates_manual_install() {
         fsr_updates_log(
             'Manual update skipped. Already latest commit.'
         );
-        wp_safe_redirect(
-            wp_get_referer()
-        );
+        fsr_redirect_to_update_page();
         exit;
     }
     require_once ABSPATH . 'wp-admin/includes/file.php';
@@ -152,9 +150,7 @@ function fsr_updates_manual_install() {
     fsr_updates_log(
         'Upgrade successful: ' . $remote['commit_sha']
     );
-    wp_safe_redirect(
-        wp_get_referer()
-    );
+    fsr_redirect_to_update_page();
     return fsr_updates_log('Update erfolgreich installiert');
 }
 add_action(
@@ -179,9 +175,7 @@ function fsr_updates_clear_cache() {
     delete_option(
         'fsr_remote_commit_message'
     );
-    wp_safe_redirect(
-        wp_get_referer()
-    );
+    fsr_redirect_to_update_page();
     return fsr_updates_log('Update Cache gelöscht');
 }
 add_action(
@@ -436,6 +430,27 @@ function fsr_updates_get_url() {
     return $url;
 }
 
+function fsr_redirect_to_update_page() {
+    if (
+        !is_admin()
+        ||
+        !current_user_can('update_plugins')
+    ) {
+        return;
+    }
+    $screen = get_current_screen();
+    if (
+        $screen
+        &&
+        $screen->id === 'plugins'
+    ) {
+        wp_safe_redirect(
+            admin_url('admin.php?page=fsr-etit-settings-updates')
+        );
+        exit;
+    }
+}
+
 function fsr_updates_log($message) {
     if (!fsr_updates_settings()['logging']) {
         return;
@@ -539,7 +554,6 @@ function fsr_updates_plugin_information($res, $action, $args) {
     fsr_updates_log(
         'plugins_api called: ' . $action
     );
-
     fsr_updates_log(
         'Arguments: ' .
         print_r($args, true)

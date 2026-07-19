@@ -3,7 +3,7 @@
 Plugin Name: FSR ET/IT Custom WP Plugin
 Plugin URI: https://github.com/Citro111/FSR-Plugin
 Description: Custom Plugin für die FSR ET/IT Website. Enthält DokuWiki-Integration, Mitgliedskarten, Office Hours und Update-Mechanismen.
-Version: 5.7
+Version: 2.1.2
 Author: Enric & FSR ET/IT
 Author URI: https://fsr-etit.de
 Text Domain: fsr-etit-settings
