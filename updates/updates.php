@@ -480,8 +480,15 @@ add_action('admin_init', 'fsr_updates_flush_log');
 
 function fsr_updates_after_update($upgrader, $hook_extra) {
     fsr_updates_log('Update process completed' . print_r($hook_extra, true));
-
-    if (empty($hook_extra['plugin'])) {
+    if (
+        empty($hook_extra['plugins'])
+        ||
+        !in_array(
+            plugin_basename(FSR_PLUGIN_FILE),
+            $hook_extra['plugins'],
+            true
+        )
+    ) {
         return;
     }
 
@@ -534,28 +541,54 @@ add_action(
 );
 
 function fsr_updates_fix_source_folder($source, $remote_source, $upgrader) {
-    fsr_updates_log('SOURCE' . $source);
-    fsr_updates_log('REMOTE' . $remote_source);
-    fsr_updates_log('DESTINATION' . $upgrader->result);
-    global $wp_filesystem;
+
     $plugin_slug = dirname(plugin_basename(FSR_PLUGIN_FILE));
+
+    $source = trailingslashit($source);
+
     $source_base = basename(untrailingslashit($source));
+
+    fsr_updates_log('SOURCE BASE: '.$source_base);
+    fsr_updates_log('PLUGIN SLUG: '.$plugin_slug);
+
     if ($source_base === $plugin_slug) {
+        fsr_updates_log('Folder already correct');
         return $source;
     }
+
     $new_source = trailingslashit(dirname($source)) . $plugin_slug;
+
+    fsr_updates_log('RENAMING TO: '.$new_source);
+
     if (file_exists($new_source)) {
-        delete_dir($new_source);
+        fsr_updates_log('Removing existing target');
+        global $wp_filesystem;
+
+        WP_Filesystem();
+
+        $wp_filesystem->delete(
+            $new_source,
+            true
+        );
     }
-    $result = move_dir($source, $new_source);
+
+    $result = rename(
+        untrailingslashit($source),
+        untrailingslashit($new_source)
+    );
+
+    fsr_updates_log(
+        'Rename result: '.($result ? 'SUCCESS' : 'FAILED')
+    );
+
     if (!$result) {
         return new WP_Error(
-            'fsr_move_failed',
+            'fsr_folder_move_failed',
             'Could not rename plugin folder'
         );
     }
-    fsr_updates_log('Moved new source folder to destination: ' . $source);
-    return $new_source;
+
+    return trailingslashit($new_source);
 }
 add_filter(
     'upgrader_source_selection',
