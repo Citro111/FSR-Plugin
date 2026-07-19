@@ -436,7 +436,7 @@ function fsr_redirect_to_update_page() {
     }
 
     wp_safe_redirect(
-        admin_url('admin.php?page=fsr-etit-settings-updates')
+        admin_url('admin.php?page=fsr-etit-settings')
     );
 
     exit;
