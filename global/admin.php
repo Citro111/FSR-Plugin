@@ -59,10 +59,10 @@ function fsr_custom_settings_page() {
     $page_slug = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : 'fsr-etit-settings';
 
     $page_to_tab = [
+        'fsr-etit-settings' => 'updates',
         'fsr-etit-settings-dokuwiki' => 'dokuwiki',
         'fsr-etit-settings-membercards' => 'membercards',
-        'fsr-etit-settings-officehours' => 'officehours',
-        'fsr-etit-settings-updates' => 'updates'
+        'fsr-etit-settings-officehours' => 'officehours'
     ];
 
     // Rueckwaertskompatibel: alte Links mit ?tab=... weiterhin unterstuetzen.
@@ -73,21 +73,21 @@ function fsr_custom_settings_page() {
     }
 
     $tab_links = [
+        'updates' => admin_url('admin.php?page=fsr-etit-settings'),
         'dokuwiki' => admin_url('admin.php?page=fsr-etit-settings-dokuwiki'),
         'membercards' => admin_url('admin.php?page=fsr-etit-settings-membercards'),
         'officehours' => admin_url('admin.php?page=fsr-etit-settings-officehours'),
-        'updates' => admin_url('admin.php?page=fsr-etit-settings-updates')
     ];
 
     ?>
     <div class="wrap">
-        <h1>FSR ET/IT Custom Plugin Konfiguration</h1>
+        <h1>Configuration</h1>
 
         <h2 class="nav-tab-wrapper">
+            <a href="<?php echo esc_url($tab_links['updates']); ?>" class="nav-tab <?php echo $active_tab == 'updates' ? 'nav-tab-active' : ''; ?>">Updates</a>
             <a href="<?php echo esc_url($tab_links['dokuwiki']); ?>" class="nav-tab <?php echo $active_tab == 'dokuwiki' ? 'nav-tab-active' : ''; ?>">DokuWiki Connector</a>
             <a href="<?php echo esc_url($tab_links['membercards']); ?>" class="nav-tab <?php echo $active_tab == 'membercards' ? 'nav-tab-active' : ''; ?>">Mitgliedskarten</a>
             <a href="<?php echo esc_url($tab_links['officehours']); ?>" class="nav-tab <?php echo $active_tab == 'officehours' ? 'nav-tab-active' : ''; ?>">Office Hours</a>
-            <a href="<?php echo esc_url($tab_links['updates']); ?>" class="nav-tab <?php echo $active_tab == 'updates' ? 'nav-tab-active' : ''; ?>">Updates</a>
         </h2>
 
         <?php if ($active_tab == 'dokuwiki') : ?>
@@ -122,18 +122,6 @@ function fsr_custom_settings_page() {
     </div>
     <?php
 }
-
-add_filter('plugin_action_links_' . plugin_basename(__FILE__), function ($links) {
-
-    $settings_link = sprintf(
-        '<a href="%s">Einstellungen</a>',
-        admin_url('admin.php?page=fsr-etit-settings')
-    );
-
-    array_unshift($links, $settings_link);
-
-    return $links;
-});
 
 add_filter('plugin_action_links_' . plugin_basename(FSR_PLUGIN_FILE), function ($links) {
     $settings_link = sprintf(
