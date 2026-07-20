@@ -1,14 +1,5 @@
 <?php
 
-function fsr_office_hours_register_settings() {
-    register_setting(
-        'fsr_office_hours_settings',
-        'fsr_office_hours_settings',
-        'fsr_sanitize_office_hours_settings'
-    );
-}
-
-
 function fsr_office_hours_render_admin_interface() {
     $settings = fsr_office_hours_get_settings();
     $members_raw = fsr_get_members_data('all')['members'];
