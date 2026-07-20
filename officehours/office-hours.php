@@ -137,10 +137,7 @@ function fsr_office_hours_get_all_members(): array {
 }
 
 function fsr_office_hours_is_allowed_member(array $member): bool {
-    $role = strtolower((string) ($member['role'] ?? ''));
-
-    return !empty($member['office_hours_allowed'])
-        || in_array($role, ['gewählt', 'gewaehlt', 'helfer', 'helper'], true);
+    return $member['team'] == FSR_TEAM1 || $member['team'] == FSR_TEAM2;
 }
 
 function fsr_office_hours_get_allowed_members(): array {

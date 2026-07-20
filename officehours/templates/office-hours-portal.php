@@ -285,16 +285,6 @@ function fsr_office_hours_portal_shortcode($atts): string {
                 </div>
             <?php endif; ?>
         </div>
-
-        <div>
-            <h3>Hinweise</h3>
-            <div style="padding:12px;border:1px solid #ddd;background:#fff;">
-                <p><strong>Mitglied per URL vorwählen:</strong></p>
-                <code><?php echo esc_html(home_url('/?member=123')); ?></code>
-                <p style="margin-top:12px;">Die ausgewählte Person kann oben neue Sprechstunden anlegen, bestehenden Regeln beitreten und unten kommende Termine absagen oder wieder zusagen.</p>
-                <p>Wenn alle Teilnehmenden eines Termins abgesagt haben, erscheint der Termin in der Anzeige als leer bzw. fällt praktisch aus.</p>
-            </div>
-        </div>
     </div>
 
     <script>
