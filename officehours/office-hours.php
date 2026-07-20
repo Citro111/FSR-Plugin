@@ -55,6 +55,7 @@ function fsr_office_hours_normalize_member_ids($incoming_ids): array {
 }
 
 function fsr_office_hours_sanitize_rule($rule, int $index = 0): array {
+    
     $rule = is_array($rule) ? $rule : [];
 
     $id = sanitize_key((string) ($rule['id'] ?? ''));
@@ -81,7 +82,18 @@ function fsr_office_hours_sanitize_rule($rule, int $index = 0): array {
         'member_ids' => fsr_office_hours_normalize_member_ids($rule['member_ids'] ?? []),
         'created_at' => sanitize_text_field((string) ($rule['created_at'] ?? current_time('mysql'))),
         'notes' => sanitize_text_field((string) ($rule['notes'] ?? '')),
+        'start_date' => fsr_office_hours_sanitize_date($rule['start_date'] ?? current_time('Y-m-d')),
     ];
+}
+
+function fsr_office_hours_sanitize_date($date): string {
+    $date = sanitize_text_field((string) $date);
+
+    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+        return $date;
+    }
+
+    return current_time('Y-m-d');
 }
 
 function fsr_sanitize_office_hours_settings($input): array {
@@ -342,12 +354,23 @@ function fsr_office_hours_collect_occurrences(
         */
         $weekday = (int) $rule['weekday'];
         $interval = max(1, (int) $rule['week_interval']);
-        $cursor = $today_ts;
+        $start_ts = strtotime($rule['start_date'] ?? $today);
+        if (!$start_ts) {
+            $start_ts = $today_ts;
+        }
+        $cursor = max($start_ts, $today_ts);
         for ($i = 0; $i < 16; $i++) {
             $currentWeekday = (int) date('N', $cursor);
             $delta = ($weekday - $currentWeekday + 7) % 7;
             $candidate_ts = strtotime("+{$delta} days", $cursor);
             $date = date('Y-m-d', $candidate_ts);
+            $weeks_since_start = floor(
+                ($candidate_ts - $start_ts) / WEEK_IN_SECONDS
+            );
+            if ($weeks_since_start % $interval !== 0) {
+                $cursor = strtotime("+1 day", $cursor);
+                continue;
+            }
             if ($date >= $today) {
                 if (
                     !$hide_fully_cancelled ||
@@ -477,6 +500,9 @@ function fsr_office_hours_handle_portal_actions(): array {
         $start_time = fsr_office_hours_sanitize_time($_POST['start_time'] ?? '10:00', '10:00');
         $end_time = fsr_office_hours_sanitize_time($_POST['end_time'] ?? '12:00', '12:00');
         $notes = sanitize_text_field($_POST['notes'] ?? '');
+        $start_date = fsr_office_hours_sanitize_date(
+            $_POST['start_date'] ?? current_time('Y-m-d')
+        );
 
         $additional_member_ids = fsr_office_hours_normalize_member_ids($_POST['member_ids'] ?? []);
         $all_member_ids = array_values(array_unique(array_merge([$member_id], $additional_member_ids)));
@@ -495,6 +521,7 @@ function fsr_office_hours_handle_portal_actions(): array {
             'member_ids' => $all_member_ids,
             'created_at' => current_time('mysql'),
             'notes' => $notes,
+            'start_date' => $start_date,
         ];
 
         $settings = fsr_office_hours_get_settings();

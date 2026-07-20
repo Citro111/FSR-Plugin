@@ -141,6 +141,10 @@ function fsr_office_hours_shortcode($atts) {
                 echo '<p><strong>Raum:</strong> ' . esc_html($item['location']) . '</p>';
             }
 
+            if (!empty($item['notes'])) {
+                echo '<p><strong>Notiz:</strong> ' . esc_html($item['notes']) . '</p>';
+            }
+
             echo '</div>';
             echo '</details>';
         }
