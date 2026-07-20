@@ -291,8 +291,7 @@ function fsr_office_hours_member_is_cancelled(array $cancellations, string $rule
 function fsr_office_hours_collect_occurrences(
     array $rules,
     int $limit = 12,
-    bool $hide_fully_cancelled = true
-): array {
+    bool $hide_fully_cancelled = true): array {
     $settings = fsr_office_hours_get_settings();
     $cancellations = $settings['cancellations'] ?? [];
     $today = current_time('Y-m-d');
@@ -342,6 +341,7 @@ function fsr_office_hours_collect_occurrences(
                     'start_time' => $rule['start_time'],
                     'end_time'   => $rule['end_time'],
                     'location'   => $rule['location'],
+                    'notes'      => $rule['notes'],
                     'member_ids' => $rule['member_ids'],
                 ];
             }
@@ -387,6 +387,7 @@ function fsr_office_hours_collect_occurrences(
                         'start_time' => $rule['start_time'],
                         'end_time'   => $rule['end_time'],
                         'location'   => $rule['location'],
+                        'notes'      => $rule['notes'],
                         'member_ids' => $rule['member_ids'],
                     ];
                 }
@@ -532,6 +533,87 @@ function fsr_office_hours_handle_portal_actions(): array {
         return [true, 'Neue Sprechstunde gespeichert.'];
     }
 
+    if (isset($_POST['fsr_oh_delete_rule_submit'])) {
+        if (!wp_verify_nonce($_POST['_fsr_oh_delete_nonce'] ?? '', 'fsr_oh_delete_rule_submit')) {
+            return [false, 'Ungültige Anfrage.'];
+        }
+
+        $rule_id = sanitize_key($_POST['rule_id'] ?? '');
+        $member_id = absint($_POST['member'] ?? 0);
+
+        if ($rule_id === '') {
+            return [false, 'Ungültige Regel-ID.'];
+        }
+
+        $settings = fsr_office_hours_get_settings();
+        $rules = is_array($settings['rules'] ?? null) ? $settings['rules'] : [];
+
+        foreach ($rules as $key => $rule) {
+
+            if (($rule['id'] ?? '') !== $rule_id) {
+                continue;
+            }
+
+            if (!in_array($member_id, fsr_office_hours_get_rule_members($rule), true)) {
+                return [false, 'Keine Berechtigung diese Sprechstunde zu löschen.'];
+            }
+
+            unset($rules[$key]);
+        }
+
+        $settings['rules'] = array_values($rules);
+
+        update_option('fsr_office_hours_settings', $settings);
+
+        return [true, 'Sprechstunde gelöscht.'];
+    }
+
+    if (isset($_POST['fsr_oh_edit_rule_submit'])) {
+        if (!wp_verify_nonce($_POST['_fsr_oh_edit_nonce'] ?? '', 'fsr_oh_edit_rule_submit')) {
+            return [false, 'Ungültige Anfrage.'];
+        }
+        $member_id = absint($_POST['member'] ?? 0);
+        $rule_id = sanitize_key($_POST['rule_id'] ?? '');
+        if ($rule_id === '') {
+            return [false, 'Ungültige Regel-ID.'];
+        }
+        $settings = fsr_office_hours_get_settings();
+        $rules = is_array($settings['rules'] ?? null) ? $settings['rules'] : [];
+        $found = false;
+        foreach ($rules as &$rule) {
+            if (($rule['id'] ?? '') === $rule_id) {
+                if (!in_array($member_id, fsr_office_hours_get_rule_members($rule), true)) {
+                    return [false, 'Keine Berechtigung diese Sprechstunde zu bearbeiten.'];
+                }
+
+                $found = true;
+                $rule = array_merge($rule, [
+                    'title' => sanitize_text_field($_POST['title'] ?? $rule['title']),
+                    'location' => sanitize_text_field($_POST['location'] ?? $rule['location']),
+                    'type' => sanitize_key($_POST['type'] ?? $rule['type']),
+                    'recurrence' => sanitize_key($_POST['recurrence'] ?? $rule['recurrence']),
+                    'weekday' => max(1, min(7, absint($_POST['weekday'] ?? $rule['weekday']))),
+                    'nth_week' => max(1, min(4, absint($_POST['nth_week'] ?? $rule['nth_week']))),
+                    'week_interval' => max(1, min(8, absint($_POST['week_interval'] ?? $rule['week_interval']))),
+                    'start_time' => fsr_office_hours_sanitize_time($_POST['start_time'] ?? $rule['start_time'], '10:00'),
+                    'end_time' => fsr_office_hours_sanitize_time($_POST['end_time'] ?? $rule['end_time'], '12:00'),
+                    'notes' => sanitize_text_field($_POST['notes'] ?? $rule['notes']),
+                    'start_date' => fsr_office_hours_sanitize_date($_POST['start_date'] ?? $rule['start_date']),
+                ]);
+                break;
+            }
+        }
+        unset($rule);
+
+        if (!$found) {
+            return [false, 'Regel nicht gefunden.'];
+        }
+
+        $settings['rules'] = array_values($rules);
+        update_option('fsr_office_hours_settings', $settings);
+
+        return [true, 'Sprechstunde aktualisiert.'];
+    }
     return [$ok, $message];
 }
 

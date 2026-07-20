@@ -208,9 +208,8 @@ function fsr_office_hours_portal_shortcode($atts): string {
                             <button type="submit" class="button button-primary">
                                 Änderungen speichern
                             </button>
-                            <button type="button"
-                                    class="button"
-                                    onclick="this.closest('details').removeAttribute('open');">
+                            <button type="reset"
+                                    class="button">
                                 Verwerfen
                             </button>
                         </form>
