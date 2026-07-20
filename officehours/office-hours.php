@@ -280,78 +280,108 @@ function fsr_office_hours_member_is_cancelled(array $cancellations, string $rule
     return false;
 }
 
-function fsr_office_hours_collect_occurrences(array $rules, int $limit = 20, bool $only_future = true): array {
-    $rules = is_array($rules) ? $rules : [];
-    $results = [];
+function fsr_office_hours_collect_occurrences(
+    array $rules,
+    int $limit = 12,
+    bool $hide_fully_cancelled = true
+): array {
+    $settings = fsr_office_hours_get_settings();
+    $cancellations = $settings['cancellations'] ?? [];
     $today = current_time('Y-m-d');
-    $until = strtotime('+18 months', strtotime($today));
-
+    $today_ts = strtotime($today);
+    $bucket = [];
     foreach ($rules as $rule) {
         if (!is_array($rule)) {
             continue;
         }
-
         $rule = fsr_office_hours_sanitize_rule($rule);
         if (empty($rule['member_ids'])) {
             continue;
         }
-
-        $base_ts = strtotime($today . ' 00:00:00');
-        $generated = 0;
-        $cursor = $base_ts;
-
-        while ($cursor <= $until && $generated < ($limit * 3)) {
-            $date = wp_date('Y-m-d', $cursor);
-            $weekday = (int) wp_date('N', $cursor);
-
-            $matches = false;
-
-            if ($rule['recurrence'] === 'weekly') {
-                $week_interval = max(1, (int) $rule['week_interval']);
-                $start_week = (int) wp_date('W', strtotime($today));
-                $current_week = (int) wp_date('W', $cursor);
-                $week_diff = $current_week - $start_week;
-
-                $matches = $weekday === (int) $rule['weekday'] && $week_diff >= 0 && (($week_diff % $week_interval) === 0);
-            } else {
-                $nth_week = (int) $rule['nth_week'];
-                $month_start = strtotime(wp_date('Y-m-01', $cursor));
-                $nth_date = strtotime('+' . ($nth_week - 1) . ' weeks', strtotime('+' . (int) $rule['weekday'] . ' days', $month_start));
-                $matches = $date === wp_date('Y-m-d', $nth_date);
-            }
-
-            if ($matches) {
-                if ($only_future && $date < $today) {
-                    $cursor = strtotime('+1 day', $cursor);
-                    $generated++;
+        /*
+        |--------------------------------------------------------------------------
+        | Monatliche Regeln
+        |--------------------------------------------------------------------------
+        */
+        if ($rule['recurrence'] === 'monthly_nth') {
+            for ($offset = 0; $offset < 12; $offset++) {
+                $month_ts = strtotime("first day of +{$offset} month", $today_ts);
+                $year  = (int) date('Y', $month_ts);
+                $month = (int) date('n', $month_ts);
+                $date = fsr_office_hours_nth_weekday_date(
+                    $year,
+                    $month,
+                    (int) $rule['weekday'],
+                    (int) $rule['nth_week']
+                );
+                if (!$date || $date < $today) {
                     continue;
                 }
-
-                $results[] = [
-                    'rule_id' => $rule['id'],
-                    'title' => $rule['title'],
-                    'date' => $date,
+                if (
+                    $hide_fully_cancelled &&
+                    fsr_office_hours_occurrence_is_cancelled(
+                        $rule,
+                        $date,
+                        $cancellations
+                    )
+                ) {
+                    continue;
+                }
+                $bucket[$rule['id'] . '_' . $date] = [
+                    'rule_id'    => $rule['id'],
+                    'title'      => $rule['title'],
+                    'date'       => $date,
                     'start_time' => $rule['start_time'],
-                    'end_time' => $rule['end_time'],
-                    'location' => $rule['location'],
+                    'end_time'   => $rule['end_time'],
+                    'location'   => $rule['location'],
                     'member_ids' => $rule['member_ids'],
                 ];
-
-                if (count($results) >= $limit) {
-                    break 2;
+            }
+            continue;
+        }
+        /*
+        |--------------------------------------------------------------------------
+        | Wöchentliche Regeln
+        |--------------------------------------------------------------------------
+        */
+        $weekday = (int) $rule['weekday'];
+        $interval = max(1, (int) $rule['week_interval']);
+        $cursor = $today_ts;
+        for ($i = 0; $i < 16; $i++) {
+            $currentWeekday = (int) date('N', $cursor);
+            $delta = ($weekday - $currentWeekday + 7) % 7;
+            $candidate_ts = strtotime("+{$delta} days", $cursor);
+            $date = date('Y-m-d', $candidate_ts);
+            if ($date >= $today) {
+                if (
+                    !$hide_fully_cancelled ||
+                    !fsr_office_hours_occurrence_is_cancelled(
+                        $rule,
+                        $date,
+                        $cancellations
+                    )
+                ) {
+                    $bucket[$rule['id'] . '_' . $date] = [
+                        'rule_id'    => $rule['id'],
+                        'title'      => $rule['title'],
+                        'date'       => $date,
+                        'start_time' => $rule['start_time'],
+                        'end_time'   => $rule['end_time'],
+                        'location'   => $rule['location'],
+                        'member_ids' => $rule['member_ids'],
+                    ];
                 }
             }
-
-            $cursor = strtotime('+1 day', $cursor);
-            $generated++;
+            $cursor = strtotime("+{$interval} week", $candidate_ts);
         }
     }
-
-    usort($results, static function ($a, $b) {
-        return strcmp($a['date'] . ' ' . $a['start_time'], $b['date'] . ' ' . $b['start_time']);
+    usort($bucket, static function ($a, $b) {
+        return strcmp(
+            $a['date'] . ' ' . $a['start_time'],
+            $b['date'] . ' ' . $b['start_time']
+        );
     });
-
-    return array_slice($results, 0, $limit);
+    return array_slice(array_values($bucket), 0, max(1, $limit));
 }
 
 function fsr_office_hours_handle_portal_actions(): array {
