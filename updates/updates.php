@@ -277,12 +277,11 @@ function fsr_updates_github_request($settings) {
 }
 
 function fsr_updates_build_update($remote){
-    $plugin = fsr_updates_plugin_data();
     $settings = fsr_updates_settings();
     return (object)[
         'id'=>'github://' . $settings['github_repo'],
-        'slug'=>$plugin['slug'],
-        'plugin'=>$plugin['file'],
+        'slug'=>dirname(plugin_basename(FSR_PLUGIN_FILE)),
+        'plugin'=>plugin_basename(FSR_PLUGIN_FILE),
         'new_version'=>$remote['version'],
         'url'=>'https://github.com/' . $settings['github_repo'],
         'package'=>$remote['download'],
