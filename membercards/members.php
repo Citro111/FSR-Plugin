@@ -59,13 +59,13 @@ function fsr_member_default_record() {
         'semester_anzahl' => '',
         'is_ehemalige' => 0,
         'abgang_jahr' => '',
-        'team' => 'gewaehlte',
+        'team' => FSR_TEAM1,
     ];
 }
 
 function fsr_member_normalize_team($team) {
     $team = sanitize_key((string) $team);
-    return in_array($team, ['gewaehlte', 'helfer', 'ehemalige'], true) ? $team : 'gewaehlte';
+    return in_array($team, [FSR_TEAM1, FSR_TEAM2, FSR_TEAM3], true) ? $team : FSR_TEAM1;
 }
 
 function fsr_member_clean_text($value) {
@@ -355,7 +355,7 @@ function fsr_parse_member_import_payload($raw_payload) {
             'semester_anzahl' => $row['semester_anzahl'] ?? $row['semester'] ?? '',
             'is_ehemalige' => $row['is_ehemalige'] ?? $row['ehemalige'] ?? 0,
             'abgang_jahr' => $row['abgang_jahr'] ?? $row['abgang'] ?? $row['departure_year'] ?? '',
-            'team' => $row['team'] ?? $row['team_id'] ?? 'gewaehlte',
+            'team' => $row['team'] ?? $row['team_id'] ?? FSR_TEAM1,
         ];
     }
 
@@ -508,7 +508,7 @@ function fsr_members_render_admin_interface() {
 function fsr_members_shortcode_renderer($atts) {
     $a = shortcode_atts(['team' => 'all'], $atts);
     $team = sanitize_key((string) ($a['team'] ?? 'all'));
-    if (!in_array($team, ['all', 'gewaehlte', 'helfer', 'ehemalige'], true)) {
+    if (!in_array($team, ['all', FSR_TEAM1, FSR_TEAM2, FSR_TEAM3], true)) {
         $team = 'all';
     }
 
