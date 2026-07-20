@@ -534,38 +534,42 @@ function fsr_office_hours_handle_portal_actions(): array {
     }
 
     if (isset($_POST['fsr_oh_delete_rule_submit'])) {
+
+        error_log('DELETE HANDLER START');
+
         if (!wp_verify_nonce($_POST['_fsr_oh_delete_nonce'] ?? '', 'fsr_oh_delete_rule_submit')) {
+            error_log('DELETE NONCE FAILED');
             return [false, 'Ungültige Anfrage.'];
         }
 
         $rule_id = sanitize_key($_POST['rule_id'] ?? '');
-        $member_id = absint($_POST['member'] ?? 0);
 
-        if ($rule_id === '') {
-            return [false, 'Ungültige Regel-ID.'];
-        }
+        error_log('DELETE RULE ID: ' . $rule_id);
 
         $settings = fsr_office_hours_get_settings();
+
+        error_log(print_r($settings['rules'], true));
+
         $rules = is_array($settings['rules'] ?? null) ? $settings['rules'] : [];
 
-        foreach ($rules as $key => $rule) {
+        $before = count($rules);
 
-            if (($rule['id'] ?? '') !== $rule_id) {
-                continue;
-            }
+        $rules = array_filter($rules, static function ($rule) use ($rule_id) {
+            return ($rule['id'] ?? '') !== $rule_id;
+        });
 
-            if (!in_array($member_id, fsr_office_hours_get_rule_members($rule), true)) {
-                return [false, 'Keine Berechtigung diese Sprechstunde zu löschen.'];
-            }
+        $after = count($rules);
 
-            unset($rules[$key]);
-        }
+        error_log("DELETE COUNT BEFORE: $before AFTER: $after");
 
         $settings['rules'] = array_values($rules);
 
         update_option('fsr_office_hours_settings', $settings);
 
-        return [true, 'Sprechstunde gelöscht.'];
+        error_log('DELETE SAVED');
+
+        wp_safe_redirect(remove_query_arg('edit_rule'));
+        exit;
     }
 
     if (isset($_POST['fsr_oh_edit_rule_submit'])) {
