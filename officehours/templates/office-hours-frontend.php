@@ -153,22 +153,6 @@ function fsr_office_hours_shortcode($atts) {
     return ob_get_clean();
 }
 
-function fsr_office_hours_member_is_cancelled($cancellations, $rule_id, $date, $member_id) {
-
-    foreach ($cancellations as $c) {
-
-        if (
-            ($c['rule_id'] ?? '') === $rule_id &&
-            ($c['occurrence_date'] ?? '') === $date &&
-            absint($c['member_id']) === absint($member_id)
-        ) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 function fsr_office_hours_occurrence_is_cancelled($rule, $date, $cancellations) {
 
     foreach ($rule['member_ids'] as $member_id) {
