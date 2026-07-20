@@ -407,7 +407,7 @@ function fsr_office_hours_collect_occurrences(
 function fsr_office_hours_handle_portal_actions(): array {
     $message = '';
     $ok = false;
-
+    error_log('OFFICE HOURS: ' . print_r($_POST, true));
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         return [false, ''];
     }

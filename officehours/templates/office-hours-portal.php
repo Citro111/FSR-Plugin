@@ -62,7 +62,8 @@ function fsr_office_hours_portal_shortcode($atts): string {
 
             <?php if ($message !== '') : ?>
                 <div class="notice <?php echo $ok ? 'notice-success' : 'notice-error'; ?>" style="margin-bottom:16px;padding:12px;">
-                    <?php echo esc_html($message); ?>
+                    <?php echo esc_html($message);
+                    ?>
                 </div>
             <?php endif; ?>
             <details style="margin-bottom: 16px; padding: 12px; border: 1px solid #ddd; background: #fff;">
