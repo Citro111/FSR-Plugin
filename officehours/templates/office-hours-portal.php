@@ -7,7 +7,7 @@ function fsr_office_hours_portal_shortcode($atts): string {
 
     $selected_member = fsr_office_hours_get_selected_member();
     $selected_member_id = $selected_member ? (int) ($selected_member['id'] ?? 0) : 0;
-    $selected_member_name = trim((string) ($selected_member['first_name'] ?? '') . ' ' . (string) ($selected_member['last_name'] ?? ''));
+    $selected_member_name = trim((string) ($selected_member['first_name'] ?? ''));
     $selected_member_name = $selected_member_name !== '' ? $selected_member_name : 'Mitglied';
 
     [$ok, $message] = fsr_office_hours_handle_portal_actions();
@@ -53,7 +53,7 @@ function fsr_office_hours_portal_shortcode($atts): string {
 
             <?php if ($selected_member_id > 0) : ?>
                 <div class="notice notice-info" style="margin-bottom:16px;padding:12px;">
-                    <strong><?php echo esc_html($selected_member_name); ?></strong> ist ausgewählt.
+                    <strong>Guten Tag, <?php echo esc_html($selected_member_name); ?></strong>.
                     <?php if (!empty($selected_rules)) : ?>
                         <div style="margin-top:8px;">Eigene Sprechstunden: <?php echo esc_html(count($selected_rules)); ?></div>
                     <?php endif; ?>
