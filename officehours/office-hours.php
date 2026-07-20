@@ -3,9 +3,9 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-require_once FSR_PLUGIN_DIR . 'templates/office-hours-frontend.php';
-require_once FSR_PLUGIN_DIR . 'templates/office-hours-portal.php';
-require_once FSR_PLUGIN_DIR . 'templates/office-hours-adminUI.php';
+require_once __DIR__ . '/templates/office-hours-frontend.php';
+require_once __DIR__ . '/templates/office-hours-portal.php';
+require_once __DIR__ . '/templates/office-hours-adminUI.php';
 
 add_action('admin_init', 'fsr_office_hours_register_settings');
 add_action('admin_enqueue_scripts', function () {
