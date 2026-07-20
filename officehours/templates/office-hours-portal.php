@@ -19,6 +19,8 @@ function fsr_office_hours_portal_shortcode($atts): string {
     $occurrences = fsr_office_hours_collect_occurrences($rules, absint($atts['limit']), true);
 
     $selected_rules = [];
+    $edit_rule_id = sanitize_key($_GET['edit_rule'] ?? '');
+    $edit_rule = null;
     foreach ($rules as $rule) {
         if (!is_array($rule)) {
             continue;
@@ -26,6 +28,9 @@ function fsr_office_hours_portal_shortcode($atts): string {
         $rule = fsr_office_hours_sanitize_rule($rule);
         if ($selected_member_id > 0 && in_array($selected_member_id, $rule['member_ids'], true)) {
             $selected_rules[] = $rule;
+        }
+        if ($edit_rule_id !== '' && ($rule['id'] ?? '') === $edit_rule_id) {
+            $edit_rule = $rule;
         }
     }
 
@@ -60,19 +65,66 @@ function fsr_office_hours_portal_shortcode($atts): string {
                     <?php echo esc_html($message); ?>
                 </div>
             <?php endif; ?>
-
+            <?php if ($edit_rule) : ?>
+            <details open style="margin-bottom:16px;padding:12px;border:1px solid #ddd;background:#fff;">
+                <summary style="cursor:pointer;font-weight:600;">
+                    Sprechstunde bearbeiten
+                </summary>
+                <form method="post" style="margin-top:16px;">
+                    <?php wp_nonce_field(
+                        'fsr_oh_edit_rule_submit',
+                        '_fsr_oh_edit_nonce'
+                    ); ?>
+                    <input type="hidden" name="fsr_oh_edit_rule_submit" value="1">
+                    <input type="hidden" name="member" value="<?php echo esc_attr($selected_member_id); ?>">
+                    <input type="hidden" name="rule_id" value="<?php echo esc_attr($edit_rule['id']); ?>">
+                    <p>
+                        <label><strong>Titel</strong></label><br>
+                        <input type="text"
+                            name="title"
+                            class="regular-text"
+                            value="<?php echo esc_attr($edit_rule['title']); ?>">
+                    </p>
+                    <p>
+                        <label><strong>Ort</strong></label><br>
+                        <input type="text"
+                            name="location"
+                            class="regular-text"
+                            value="<?php echo esc_attr($edit_rule['location']); ?>">
+                    </p>
+                    <p>
+                        <label><strong>Start</strong></label><br>
+                        <input type="time"
+                            name="start_time"
+                            value="<?php echo esc_attr($edit_rule['start_time']); ?>">
+                        bis
+                        <input type="time"
+                            name="end_time"
+                            value="<?php echo esc_attr($edit_rule['end_time']); ?>">
+                    </p>
+                    <p>
+                        <label><strong>Notiz</strong></label><br>
+                        <input type="text"
+                            name="notes"
+                            class="regular-text"
+                            value="<?php echo esc_attr($edit_rule['notes']); ?>">
+                    </p>
+                    <button class="button button-primary">
+                        Änderungen speichern
+                    </button>
+                </form>
+            </details>
+            <?php endif; ?>
             <details open style="margin-bottom: 16px; padding: 12px; border: 1px solid #ddd; background: #fff;">
-                <summary style="cursor:pointer; font-weight:600;">+ Neue Sprechstunde anlegen</summary>
+                <summary style="cursor:pointer; font-weight:600;">Neue Sprechstunde anlegen</summary>
                 <form method="post" style="margin-top:16px;">
                     <?php wp_nonce_field('fsr_oh_create_rule_submit', '_fsr_oh_create_nonce'); ?>
                     <input type="hidden" name="fsr_oh_create_rule_submit" value="1" />
                     <input type="hidden" name="member" value="<?php echo esc_attr($selected_member_id); ?>" />
-
                     <p>
                         <label><strong>Titel</strong></label><br>
                         <input type="text" name="title" class="regular-text" value="Office Hour" required />
                     </p>
-
                     <p>
                         <label><strong>Typ</strong></label><br>
                         <select name="type">
@@ -81,7 +133,6 @@ function fsr_office_hours_portal_shortcode($atts): string {
                             <option value="assembly">Versammlung</option>
                         </select>
                     </p>
-
                     <p>
                         <label><strong>Rhythmus</strong></label><br>
                         <select name="recurrence" class="fsr-oh-recurrence-create">
@@ -89,7 +140,6 @@ function fsr_office_hours_portal_shortcode($atts): string {
                             <option value="monthly_nth">Monatlich (n-ter Wochentag)</option>
                         </select>
                     </p>
-
                     <p class="fsr-oh-create-weekly">
                         <label><strong>Wochentag</strong></label><br>
                         <select name="weekday">
@@ -104,7 +154,6 @@ function fsr_office_hours_portal_shortcode($atts): string {
                         <br><br>
                         Alle <input type="number" name="week_interval" min="1" max="8" value="1" style="width:72px;" /> Wochen
                     </p>
-
                     <p class="fsr-oh-create-monthly" style="display:none;">
                         <label><strong>Monatlich</strong></label><br>
                         <select name="nth_week">
@@ -123,18 +172,15 @@ function fsr_office_hours_portal_shortcode($atts): string {
                             <option value="7">Sonntag</option>
                         </select>
                     </p>
-
                     <p>
                         <label><strong>Zeit</strong></label><br>
                         <input type="time" name="start_time" value="10:00" /> bis
                         <input type="time" name="end_time" value="12:00" />
                     </p>
-
                     <p>
                         <label><strong>Ort</strong></label><br>
                         <input type="text" name="location" class="regular-text" value="FSR Büro" />
                     </p>
-
                     <p>
                         <label><strong>Weitere Teilnehmende</strong></label><br>
                         <select name="member_ids[]" multiple size="6" class="fsr-oh-select2" style="min-width:320px;">
@@ -144,26 +190,22 @@ function fsr_office_hours_portal_shortcode($atts): string {
                             <?php endforeach; ?>
                         </select>
                     </p>
-
                     <p>
                         <label><strong>Notiz</strong></label><br>
                         <input type="text" name="notes" class="regular-text" placeholder="Optional" />
                     </p>
-
                     <p>
                         <button type="submit" class="button button-primary">Speichern</button>
                     </p>
                 </form>
             </details>
-
             <?php if ($selected_member_id > 0) : ?>
                 <details open style="margin-bottom: 16px; padding: 12px; border: 1px solid #ddd; background: #fff;">
-                    <summary style="cursor:pointer; font-weight:600;">+ Einer vorhandenen Sprechstunde beitreten</summary>
+                    <summary style="cursor:pointer; font-weight:600;">Einer vorhandenen Sprechstunde beitreten</summary>
                     <form method="post" style="margin-top:16px;">
                         <?php wp_nonce_field('fsr_oh_join_submit', '_fsr_oh_join_nonce'); ?>
                         <input type="hidden" name="fsr_oh_join_submit" value="1" />
                         <input type="hidden" name="member" value="<?php echo esc_attr($selected_member_id); ?>" />
-
                         <p>
                             <label><strong>Sprechstunde</strong></label><br>
                             <select name="rule_id" class="fsr-oh-select2" style="min-width:320px;" required>
@@ -176,7 +218,6 @@ function fsr_office_hours_portal_shortcode($atts): string {
                                 <?php endforeach; ?>
                             </select>
                         </p>
-
                         <p>
                             <button type="submit" class="button">Teilnehmen</button>
                         </p>
@@ -186,7 +227,7 @@ function fsr_office_hours_portal_shortcode($atts): string {
 
             <h3 style="margin-top:24px;">Meine Sprechstunden</h3>
             <?php if (empty($selected_rules)) : ?>
-                <p>Für das ausgewählte Mitglied sind noch keine Sprechstunden hinterlegt.</p>
+                <p>Du hast noch keine Sprechstunden hinterlegt.</p>
             <?php else : ?>
                 <div style="display:grid;gap:12px;">
                     <?php foreach ($selected_rules as $rule) : ?>
@@ -196,6 +237,26 @@ function fsr_office_hours_portal_shortcode($atts): string {
                             <?php echo esc_html(fsr_office_hours_describe_rule($rule)); ?><br>
                             <span class="description"><?php echo esc_html($rule['location']); ?></span><br>
                             <small><?php echo esc_html(implode(', ', $member_names)); ?></small>
+                            <div style="margin-top:10px;">
+                                <a class="button"
+                                href="<?php echo esc_url(add_query_arg('edit_rule', $rule['id'])); ?>">
+                                    Bearbeiten
+                                </a>
+
+                                <form method="post" style="display:inline;">
+                                    <?php wp_nonce_field('fsr_oh_delete_rule_submit', '_fsr_oh_delete_nonce'); ?>
+
+                                    <input type="hidden" name="fsr_oh_delete_rule_submit" value="1">
+                                    <input type="hidden" name="member" value="<?php echo esc_attr($selected_member_id); ?>">
+                                    <input type="hidden" name="rule_id" value="<?php echo esc_attr($rule['id']); ?>">
+
+                                    <button type="submit"
+                                            class="button"
+                                            onclick="return confirm('Diese Sprechstunde wirklich löschen?');">
+                                        Löschen
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     <?php endforeach; ?>
                 </div>

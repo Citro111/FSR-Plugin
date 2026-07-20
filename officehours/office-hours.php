@@ -80,7 +80,6 @@ function fsr_office_hours_sanitize_rule($rule, int $index = 0): array {
         'location' => sanitize_text_field((string) ($rule['location'] ?? 'FSR Büro')),
         'member_ids' => fsr_office_hours_normalize_member_ids($rule['member_ids'] ?? []),
         'created_at' => sanitize_text_field((string) ($rule['created_at'] ?? current_time('mysql'))),
-        'created_by' => absint($rule['created_by'] ?? 0),
         'notes' => sanitize_text_field((string) ($rule['notes'] ?? '')),
     ];
 }
@@ -495,7 +494,6 @@ function fsr_office_hours_handle_portal_actions(): array {
             'location' => $location !== '' ? $location : 'FSR Büro',
             'member_ids' => $all_member_ids,
             'created_at' => current_time('mysql'),
-            'created_by' => $member_id,
             'notes' => $notes,
         ];
 
