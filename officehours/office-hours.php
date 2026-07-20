@@ -509,7 +509,7 @@ function fsr_office_hours_handle_portal_actions(): array {
         $all_member_ids = array_values(array_unique(array_merge([$member_id], $additional_member_ids)));
 
         $rule = [
-            'id' => 'rule_' . wp_generate_password(8, false, false),
+            'id' => 'rule_' . strtolower(wp_generate_password(8, false, false)),
             'type' => $type !== '' ? $type : 'office_hour',
             'title' => $title !== '' ? $title : 'Office Hour',
             'recurrence' => in_array($recurrence, ['monthly_nth', 'weekly'], true) ? $recurrence : 'weekly',
