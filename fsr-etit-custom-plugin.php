@@ -45,6 +45,9 @@ require_once FSR_PLUGIN_DIR . 'global/search.php';
 // 6. GitHub Updates laden
 require_once FSR_PLUGIN_DIR . 'updates/updates.php';
 
+// 7. Globale Variablen laden
+require_once FSR_PLUGIN_DIR . 'global/Variables.php';
+
 register_activation_hook(__FILE__, 'fsr_dw_activate');
 
 function fsr_dw_activate() {
