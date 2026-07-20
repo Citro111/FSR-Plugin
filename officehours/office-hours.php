@@ -60,7 +60,7 @@ function fsr_office_hours_sanitize_rule($rule, int $index = 0): array {
 
     $id = sanitize_key((string) ($rule['id'] ?? ''));
     if ($id === '') {
-        $id = 'rule_' . ($index + 1) . '_' . wp_generate_password(6, false, false);
+        $id = 'rule_' . ($index + 1) . '_' . strtolower(wp_generate_password(6, false, false));
     }
 
     $recurrence = sanitize_key((string) ($rule['recurrence'] ?? 'monthly_nth'));
