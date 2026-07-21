@@ -23,7 +23,9 @@ function fsr_extend_search_results($posts, $query) {
         fsr_dw_search($search)
     );
     usort($posts, function($a, $b) {
-        return strtotime($b->post_date) <=> strtotime($a->post_date);
+        return strtotime($b->post_date)
+            <=>
+            strtotime($a->post_date);
     });
     return $posts;
 }
