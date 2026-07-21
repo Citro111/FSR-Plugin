@@ -78,8 +78,12 @@ function fsr_office_hours_shortcode($atts) {
         $weekday = (int) date('N', $item['ts']);
         $grouped[$weekday][] = $item;
     }
+    if (!empty($highlighted)) {
+        $grouped[0] = $highlighted;
+    }
     ksort($grouped);
     $weekday_labels = [
+        0 => 'Gefundene Sprechstunde',
         1 => 'Montag',
         2 => 'Dienstag',
         3 => 'Mittwoch',
@@ -116,9 +120,23 @@ function fsr_office_hours_shortcode($atts) {
     echo '<div id="fsr-office-hours" class="fsr-oh-weekplan">';
     foreach ($weekday_labels as $day => $label) {
         if (empty($grouped[$day])) continue;
-        echo '<section class="fsr-oh-day">';
-        echo '<h3>' . esc_html($label) . '</h3>';
-
+        $section_class = 'fsr-oh-day';
+        if ($day === 0) {
+            $section_class .= ' fsr-oh-highlighted-day';
+        }
+        echo '<section class="' . esc_attr($section_class) . '">';
+        echo '<h3>';
+        echo esc_html($label);
+        if ($day === 0 && !empty($grouped[$day][0]['date'])) {
+            echo ' – ';
+            echo esc_html(
+                date_i18n(
+                    'l, d.m.Y',
+                    strtotime($grouped[$day][0]['date'])
+                )
+            );
+        }
+        echo '</h3>';
         usort($grouped[$day], function ($a, $b) {
             return strcmp($a['start_time'], $b['start_time']);
         });
@@ -151,6 +169,9 @@ function fsr_office_hours_shortcode($atts) {
             $first_names = array_map(fn($m) => $m['first_name'], $members);
             $timeLabel = $item['start_time'] . '–' . $item['end_time'];
             $classes = ['fsr-oh-card'];
+            if ($day === 0) {
+                $classes[] = 'is-search-result';
+            }
             if ($is_highlighted_date) {
                 $classes[] = 'is-selected-date';
             }
