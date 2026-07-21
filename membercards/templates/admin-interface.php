@@ -5,7 +5,7 @@ $members = $members ?? [];
 $all_ameter = [];
 foreach ($members as $m) {
     if (!empty($m['amt'])) {
-        $parts = array_map('trim', explode(',', $m['amt']));
+        $parts = array_map('trim', is_array($m['amt']) ? $m['amt'] : explode(',', $m['amt']));
         $all_ameter = array_merge($all_ameter, $parts);
     }
 }
