@@ -92,31 +92,6 @@ function fsr_office_hours_shortcode($atts) {
     ];
 
     ob_start();
-    if (!empty($highlighted)) {
-        echo '<section class="fsr-oh-highlighted">';
-        echo '<h2>Gefundener Termin</h2>';
-        foreach ($highlighted as $item) {
-            echo '<div class="fsr-oh-search-result">';
-            echo '<strong>';
-            echo esc_html(
-                date_i18n('l, d.m.Y', strtotime($item['date']))
-            );
-            echo '</strong>';
-            echo '<br>';
-            echo esc_html(
-                $item['start_time'] .
-                '–' .
-                $item['end_time'] .
-                ' Uhr'
-            );
-            if (!empty($item['location'])) {
-                echo '<br>';
-                echo 'Raum: ' . esc_html($item['location']);
-            }
-            echo '</div>';
-        }
-        echo '</section>';
-    }
     echo '<div id="fsr-office-hours" class="fsr-oh-weekplan">';
     foreach ($weekday_labels as $day => $label) {
         if (empty($grouped[$day])) continue;
