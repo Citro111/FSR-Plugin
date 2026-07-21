@@ -157,4 +157,6 @@ summary.fsr-oh-summary {
 
 .fsr-oh-card.is-selected-date {
     background: #f0f7ff;
+    border: 1px solid #b15222;
+    border-radius: 8px;
 }
