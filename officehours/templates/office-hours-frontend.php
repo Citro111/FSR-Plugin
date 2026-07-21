@@ -42,7 +42,7 @@ function fsr_office_hours_shortcode($atts) {
         true // hide fully cancelled occurrences
     );
     if (empty($occurrences)) {
-        return '<div class="fsr-office-hours-empty">Keine Termine.</div>';
+        return '<div class="fsr-office-hours-empty">Wir haben für diese Woche keine Sprechstunden.</div>';
     }
     $now = current_time('H:i');
     $todayDate = current_time('Y-m-d');
