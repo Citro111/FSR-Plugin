@@ -393,26 +393,28 @@ jQuery(document).ready(function($) {
     }
 
     $('.fsr-team-sortable').sortable({
-        receive: function() {
-            triggerAutoSave();
-        },
-        items: '.fsr-member-row',
+        items: '> .fsr-member-row',
         handle: '.fsr-drag-handle',
-        connectWith: '.fsr-team-sortable',
         placeholder: 'ui-state-highlight',
         forcePlaceholderSize: true,
         update: function() {
             triggerAutoSave();
+        },
+        receive: function() {
+            triggerAutoSave();
         }
     });
 
-    $(document).on('click', '.fsr-row-header, .fsr-toggle-trigger', function(e) {
+    $(document).on('click', '.fsr-toggle-trigger', function(e) {
+        if ($(e.target).closest('input, select, textarea, button, label').length) {
+            return;
+        }
         if ($(e.target).hasClass('fsr-drag-handle')) {
             return;
         }
         const row = $(this).closest('.fsr-member-row');
         const body = row.find('.fsr-row-body');
-        body.stop(true,true).slideToggle(200);
+        body.stop(true, true).slideToggle(200);
         row.toggleClass('is-expanded');
     });
 
