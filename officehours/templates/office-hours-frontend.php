@@ -51,15 +51,24 @@ function fsr_office_hours_shortcode($atts) {
     $today = strtotime(current_time('Y-m-d'));
     $weekEnd = strtotime('+7 days', $today);
     $filtered = [];
+    $highlighted = [];
     foreach ($occurrences as $o) {
         $ts = strtotime($o['date']);
-        if (!$highlight_date && ($ts < $today || $ts > $weekEnd)) {
+        if (
+            $highlight_rule !== '' &&
+            $highlight_date !== '' &&
+            strtolower($o['rule_id']) === strtolower($highlight_rule) &&
+            $o['date'] === $highlight_date
+        ) {
+            $o['ts'] = $ts;
+            $highlighted[] = $o;
+        }
+        if ($ts < $today || $ts > $weekEnd) {
             continue;
         }
-        if ($highlight_date && $o['date'] !== $highlight_date && ($ts < $today || $ts > $weekEnd)) {
+        if ((int) date('N', $ts) > 5) {
             continue;
         }
-        if ((int) date('N', $ts) > 5) continue;
         $o['ts'] = $ts;
         $filtered[] = $o;
     }
@@ -79,9 +88,32 @@ function fsr_office_hours_shortcode($atts) {
     ];
 
     ob_start();
-
+    if (!empty($highlighted)) {
+        echo '<section class="fsr-oh-highlighted">';
+        echo '<h2>Gefundener Termin</h2>';
+        foreach ($highlighted as $item) {
+            echo '<div class="fsr-oh-search-result">';
+            echo '<strong>';
+            echo esc_html(
+                date_i18n('l, d.m.Y', strtotime($item['date']))
+            );
+            echo '</strong>';
+            echo '<br>';
+            echo esc_html(
+                $item['start_time'] .
+                '–' .
+                $item['end_time'] .
+                ' Uhr'
+            );
+            if (!empty($item['location'])) {
+                echo '<br>';
+                echo 'Raum: ' . esc_html($item['location']);
+            }
+            echo '</div>';
+        }
+        echo '</section>';
+    }
     echo '<div id="fsr-office-hours" class="fsr-oh-weekplan">';
-
     foreach ($weekday_labels as $day => $label) {
         if (empty($grouped[$day])) continue;
         echo '<section class="fsr-oh-day">';
@@ -98,13 +130,10 @@ function fsr_office_hours_shortcode($atts) {
                 $item['start_time'] <= $now &&
                 $item['end_time'] >= $now;
             $members = [];
-            $is_highlighted_rule =
-                $highlight_rule !== '' &&
-                strtolower($item['rule_id']) === strtolower($highlight_rule);
-
             $is_highlighted_date =
-                $is_highlighted_rule &&
+                $highlight_rule !== '' &&
                 $highlight_date !== '' &&
+                strtolower($item['rule_id']) === strtolower($highlight_rule) &&
                 $item['date'] === $highlight_date;
 
             foreach ($item['member_ids'] as $id) {
@@ -122,9 +151,6 @@ function fsr_office_hours_shortcode($atts) {
             $first_names = array_map(fn($m) => $m['first_name'], $members);
             $timeLabel = $item['start_time'] . '–' . $item['end_time'];
             $classes = ['fsr-oh-card'];
-            if ($is_highlighted_rule) {
-                $classes[] = 'is-highlighted';
-            }
             if ($is_highlighted_date) {
                 $classes[] = 'is-selected-date';
             }
