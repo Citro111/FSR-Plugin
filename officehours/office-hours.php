@@ -645,29 +645,71 @@ function fsr_office_hours_search(string $search): array {
     $cancellations = is_array($settings['cancellations'] ?? null) ? $settings['cancellations'] : [];
 
     $results = [];
+    $search = trim($search);
+
     foreach ($rules as $rule) {
         if (!is_array($rule)) {
             continue;
         }
+
         $rule = fsr_office_hours_sanitize_rule($rule);
-        if (stripos($rule['title'], $search) !== false || stripos($rule['location'], $search) !== false) {
-            $occurrences = fsr_office_hours_collect_occurrences([$rule], 12, true);
-            foreach ($occurrences as $occurrence) {
-                if (fsr_office_hours_occurrence_is_cancelled($rule, $occurrence['date'], $cancellations)) {
-                    continue;
-                }
-                $results[] = [
-                    'title' => $rule['title'],
-                    'excerpt' => 'Sprechstunde am ' . date_i18n('d.m.Y', strtotime($occurrence['date'])) . ' von ' . $occurrence['start_time'] . ' bis ' . $occurrence['end_time'] . ' Uhr in ' . $occurrence['location'],
-                    'content' => '',
-                    'url' => add_query_arg([
-                        'member' => fsr_office_hours_member_param(),
-                        'edit_rule' => strtolower($rule['id']),
-                    ], get_permalink()),
-                    'date' => strtotime($occurrence['date'] . ' ' . $occurrence['start_time']),
-                    'type' => 'office_hour',
-                ];
+        /*
+         * Alle relevanten Felder durchsuchen,
+         * aber niemals id verwenden.
+         */
+        $searchable = [
+            $rule['title'] ?? '',
+            $rule['type'] ?? '',
+            $rule['location'] ?? '',
+            $rule['notes'] ?? '',
+            $rule['recurrence'] ?? '',
+            $rule['weekday'] ?? '',
+            $rule['nth_week'] ?? '',
+            $rule['week_interval'] ?? '',
+            $rule['start_time'] ?? '',
+            $rule['end_time'] ?? '',
+            $rule['start_date'] ?? '',
+        ];
+
+        // Mitglieder ebenfalls durchsuchen
+        $member_names = fsr_office_hours_get_rule_members($rule);
+        if (!empty($member_names)) {
+            $searchable = array_merge($searchable, $member_names);
+        }
+
+        $search_text = implode(' ', $searchable);
+
+        if ($search !== '' && stripos($search_text, $search) === false) {
+            continue;
+        }
+
+        $occurrences = fsr_office_hours_collect_occurrences([$rule], 12, true);
+
+        foreach ($occurrences as $occurrence) {
+            if (fsr_office_hours_occurrence_is_cancelled($rule, $occurrence['date'], $cancellations)) {
+                continue;
             }
+
+            $results[] = [
+                'title' => $rule['title'],
+                'excerpt' =>
+                    'Sprechstunde am ' .
+                    date_i18n('d.m.Y', strtotime($occurrence['date'])) .
+                    ' von ' .
+                    $occurrence['start_time'] .
+                    ' bis ' .
+                    $occurrence['end_time'] .
+                    ' Uhr in ' .
+                    $occurrence['location'] .
+                    (!empty($rule['notes']) ? ' · ' . $rule['notes'] : ''),
+                'content' => $rule['notes'] ?? '',
+                'url' => add_query_arg([
+                    'member' => fsr_office_hours_member_param(),
+                    'edit_rule' => strtolower($rule['id']),
+                ], get_permalink()),
+                'date' => strtotime($occurrence['date'] . ' ' . $occurrence['start_time']),
+                'type' => 'office_hour',
+            ];
         }
     }
 

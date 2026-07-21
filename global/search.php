@@ -6,6 +6,7 @@ add_filter('the_posts', 'fsr_extend_search_results', 10, 2);
 add_filter('post_class', 'fsr_mark_placeholder_post', 10, 3);
 add_filter('post_type_link', 'fsr_virtual_permalink', 10, 2);
 add_filter('page_link', 'fsr_virtual_permalink', 10, 2);
+add_filter('post_link', 'fsr_virtual_permalink', 10, 2);
 
 function fsr_extend_search_results($posts, $query) {
     if (is_admin() || !$query->is_main_query() || !$query->is_search()) {
@@ -21,6 +22,9 @@ function fsr_extend_search_results($posts, $query) {
         fsr_office_hours_search($search),
         fsr_dw_search($search)
     );
+    usort($posts, function($a, $b) {
+        return strtotime($b->post_date) <=> strtotime($a->post_date);
+    });
     return $posts;
 }
 
@@ -66,6 +70,9 @@ function fsr_create_virtual_search_post(
     $type = post_type_exists($type) ? $type : 'page';
 
     $id = fsr_next_virtual_post_id();
+    if (!isset($GLOBALS['fsr_virtual_posts'])) {
+        $GLOBALS['fsr_virtual_posts'] = [];
+    }
 
     $GLOBALS['fsr_virtual_posts'][$id] = [
         'url'  => $url,
