@@ -57,7 +57,6 @@ function fsr_member_default_record() {
         'amt' => '',
         'erstes_jahr' => '',
         'semester_anzahl' => '',
-        'is_ehemalige' => 0,
         'abgang_jahr' => '',
         'team' => FSR_TEAM1,
     ];
@@ -97,12 +96,11 @@ function fsr_sanitize_member_record($member) {
     $member['amt'] = fsr_member_clean_text($member['amt']);
     $member['erstes_jahr'] = fsr_member_clean_text($member['erstes_jahr']);
     $member['semester_anzahl'] = $member['semester_anzahl'] === '' ? '' : absint($member['semester_anzahl']);
-    $member['is_ehemalige'] = !empty($member['is_ehemalige']) ? 1 : 0;
     $member['abgang_jahr'] = fsr_member_clean_text($member['abgang_jahr']);
     $member['team'] = fsr_member_normalize_team($member['team']);
 
-    if ($legacy_team === 'ehemalige') {
-        $member['is_ehemalige'] = 1;
+    if ($legacy_team === FSR_TEAM3) {
+        $member['team'] = FSR_TEAM3;
     }
 
     return $member;
@@ -175,7 +173,7 @@ function fsr_member_post_to_record($post) {
     $record['is_ehemalige'] = absint(get_post_meta($post->ID, 'is_ehemalige', true));
     $record['team'] = fsr_member_normalize_team(get_post_meta($post->ID, 'team', true));
 
-    if (sanitize_key((string) get_post_meta($post->ID, 'team', true)) === 'ehemalige') {
+    if (sanitize_key((string) get_post_meta($post->ID, 'team', true)) === FSR_TEAM3) {
         $record['is_ehemalige'] = 1;
     }
 

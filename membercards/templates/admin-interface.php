@@ -101,79 +101,70 @@ $all_amt_tags_json = wp_json_encode(array_values($unique_amter));
     </div>
 
     <div id="fsr-sortable-members">
-        <?php foreach ($members as $index => $member) :
-            $team = $member['team'] ?? 'gewaehlte';
-            $is_ehemalige = !empty($member['is_ehemalige']);
-            $team_classes = ['fsr-team-' . $team];
-            if ($is_ehemalige) {
-                $team_classes[] = 'fsr-team-ehemalige';
-            }
-            $full_display_name = trim(($member['first_name'] ?? '') . ' ' . ($member['last_name'] ?? ''));
-            $team_label = $team_labels[$team] ?? ucfirst($team);
-            if ($is_ehemalige && $team !== 'ehemalige') {
-                $team_label .= ' + Ehemalige';
-            }
-        ?>
-            <div class="fsr-member-row <?php echo esc_attr(implode(' ', $team_classes)); ?>" data-member-id="<?php echo esc_attr($member['id'] ?? 0); ?>">
-                <div class="fsr-row-header">
-                    <div class="fsr-toggle-trigger">
-                        <span class="fsr-arrow">▶</span>
-                        <span class="fsr-drag-handle">☰</span>
-                        <span class="member-display-name"><?php echo esc_html($full_display_name ?: 'Unbenannt'); ?></span>
-                        <span class="badge-team-name"><?php echo esc_html($team_label); ?></span>
-                    </div>
-                </div>
-
-                <div class="fsr-row-body" style="display:none;">
-                    <div class="fsr-grid-inputs">
-                        <input type="hidden" class="fsr-member-id" name="fsr_members_settings[members][<?php echo $index; ?>][id]" value="<?php echo esc_attr($member['id'] ?? 0); ?>" />
-                        <label class="col-4">Vorname:<br><input type="text" class="fsr-input-firstname" name="fsr_members_settings[members][<?php echo $index; ?>][first_name]" value="<?php echo esc_attr($member['first_name'] ?? ''); ?>" required /></label>
-                        <label class="col-4">Nachname:<br><input type="text" class="fsr-input-lastname" name="fsr_members_settings[members][<?php echo $index; ?>][last_name]" value="<?php echo esc_attr($member['last_name'] ?? ''); ?>" required /></label>
-                        <label class="col-4">Bild-URL:<br><input type="text" name="fsr_members_settings[members][<?php echo $index; ?>][image]" value="<?php echo esc_attr($member['image'] ?? ''); ?>" placeholder="https://..." /></label>
-
-                        <label class="col-4">Studiengang:<br><input type="text" name="fsr_members_settings[members][<?php echo $index; ?>][studiengang]" value="<?php echo esc_attr($member['studiengang'] ?? ''); ?>" /></label>
-                        <label class="col-2">Abschluss:<br>
-                            <select name="fsr_members_settings[members][<?php echo $index; ?>][abschluss]">
-                                <option value="" <?php selected($member['abschluss'] ?? '', ''); ?>>-</option>
-                                <option value="B.Sc." <?php selected($member['abschluss'] ?? '', 'B.Sc.'); ?>>B.Sc.</option>
-                                <option value="M.Sc." <?php selected($member['abschluss'] ?? '', 'M.Sc.'); ?>>M.Sc.</option>
-                                <option value="Abgeschlossen" <?php selected($member['abschluss'] ?? '', 'Abgeschlossen'); ?>>Abgeschlossen</option>
-                            </select>
-                        </label>
-                        <label class="col-2">Pronomen:<br><input type="text" name="fsr_members_settings[members][<?php echo $index; ?>][pronomen]" value="<?php echo esc_attr($member['pronomen'] ?? ''); ?>" placeholder="er/ihm" /></label>
-                        <label class="col-4">Mail-Präfix:<br><input type="text" class="fsr-input-email" name="fsr_members_settings[members][<?php echo $index; ?>][email_prefix]" value="<?php echo esc_attr($member['email_prefix'] ?? ''); ?>" /></label>
-
-                        <label class="col-4">Ämter (kommagetrennt):<br>
-                            <input type="text" list="fsr-amter-list" class="fsr-input-amt" name="fsr_members_settings[members][<?php echo $index; ?>][amt]" value="<?php echo esc_attr($member['amt'] ?? ''); ?>" />
-                            <div class="fsr-amt-quicktags">
-                                <?php foreach ($unique_amter as $amt_tag) : ?>
-                                    <button type="button" class="button button-small fsr-amt-tag-btn" data-tag="<?php echo esc_attr($amt_tag); ?>"><?php echo esc_html($amt_tag); ?></button>
-                                <?php endforeach; ?>
+    <?php foreach ($team_labels as $team_key => $team_label): ?>
+    <section class="fsr-team-container" data-team="<?php echo esc_attr($team_key); ?>">
+        <h3> <?php echo esc_html($team_label); ?> </h3>
+        <div class="fsr-team-sortable">
+            <?php foreach ($members as $index=>$member): ?>
+                <?php if (($member['team'] ?? '') !== $team_key) continue; ?>
+                    <div class="fsr-member-row <?php echo esc_attr(implode(' ', $team_classes)); ?>" data-member-id="<?php echo esc_attr($member['id'] ?? 0); ?>">
+                        <div class="fsr-row-header">
+                            <div class="fsr-toggle-trigger">
+                                <span class="fsr-arrow">▶</span>
+                                <span class="fsr-drag-handle">☰</span>
+                                <span class="member-display-name"><?php echo esc_html($full_display_name ?: 'Unbenannt'); ?></span>
+                                <span class="badge-team-name"><?php echo esc_html($team_label); ?></span>
                             </div>
-                        </label>
-                        <label class="col-2">Erstes Jahr:<br><input type="text" name="fsr_members_settings[members][<?php echo $index; ?>][erstes_jahr]" value="<?php echo esc_attr($member['erstes_jahr'] ?? ''); ?>" /></label>
-                        <label class="col-2">Semester:<br><input type="number" name="fsr_members_settings[members][<?php echo $index; ?>][semester_anzahl]" value="<?php echo esc_attr($member['semester_anzahl'] ?? ''); ?>" /></label>
-                        <label class="col-4">Team:<br>
-                            <select class="fsr-team-selector" name="fsr_members_settings[members][<?php echo $index; ?>][team]">
-                                <option value="gewaehlte" <?php selected($member['team'] ?? '', 'gewaehlte'); ?>>Gewählte</option>
-                                <option value="helfer" <?php selected($member['team'] ?? '', 'helfer'); ?>>Helfer</option>
-                                <option value="ehemalige" <?php selected($member['team'] ?? '', 'ehemalige'); ?>>Ehemalige</option>
-                            </select>
-                        </label>
-                        <label class="col-2">Ehemalige:<br>
-                            <input type="checkbox" class="fsr-is-ehemalige" name="fsr_members_settings[members][<?php echo $index; ?>][is_ehemalige]" value="1" <?php checked(!empty($member['is_ehemalige'])); ?> />
-                        </label>
-                        <label class="col-2">Abgegangen im Jahr:<br><input type="text" name="fsr_members_settings[members][<?php echo $index; ?>][abgang_jahr]" value="<?php echo esc_attr($member['abgang_jahr'] ?? ''); ?>" placeholder="z. B. 2025" /></label>
-                    </div>
+                        </div>
+                        <div class="fsr-row-body" style="display:none;">
+                            <div class="fsr-grid-inputs">
+                                <input type="hidden" class="fsr-member-id" name="fsr_members_settings[members][<?php echo $index; ?>][id]" value="<?php echo esc_attr($member['id'] ?? 0); ?>" />
+                                <label class="col-4">Vorname:<br><input type="text" class="fsr-input-firstname" name="fsr_members_settings[members][<?php echo $index; ?>][first_name]" value="<?php echo esc_attr($member['first_name'] ?? ''); ?>" required /></label>
+                                <label class="col-4">Nachname:<br><input type="text" class="fsr-input-lastname" name="fsr_members_settings[members][<?php echo $index; ?>][last_name]" value="<?php echo esc_attr($member['last_name'] ?? ''); ?>" required /></label>
+                                <label class="col-4">Bild-URL:<br><input type="text" name="fsr_members_settings[members][<?php echo $index; ?>][image]" value="<?php echo esc_attr($member['image'] ?? ''); ?>" placeholder="https://..." /></label>
 
-                    <div class="fsr-row-footer-actions">
-                        <button type="button" class="button button-link-delete remove-member">Dauerhaft löschen</button>
+                                <label class="col-4">Studiengang:<br><input type="text" name="fsr_members_settings[members][<?php echo $index; ?>][studiengang]" value="<?php echo esc_attr($member['studiengang'] ?? ''); ?>" /></label>
+                                <label class="col-2">Abschluss:<br>
+                                    <select name="fsr_members_settings[members][<?php echo $index; ?>][abschluss]">
+                                        <option value="" <?php selected($member['abschluss'] ?? '', ''); ?>>-</option>
+                                        <option value="B.Sc." <?php selected($member['abschluss'] ?? '', 'B.Sc.'); ?>>B.Sc.</option>
+                                        <option value="M.Sc." <?php selected($member['abschluss'] ?? '', 'M.Sc.'); ?>>M.Sc.</option>
+                                        <option value="Abgeschlossen" <?php selected($member['abschluss'] ?? '', 'Abgeschlossen'); ?>>Abgeschlossen</option>
+                                    </select>
+                                </label>
+                                <label class="col-2">Pronomen:<br><input type="text" name="fsr_members_settings[members][<?php echo $index; ?>][pronomen]" value="<?php echo esc_attr($member['pronomen'] ?? ''); ?>" placeholder="er/ihm" /></label>
+                                <label class="col-4">Mail-Präfix:<br><input type="text" class="fsr-input-email" name="fsr_members_settings[members][<?php echo $index; ?>][email_prefix]" value="<?php echo esc_attr($member['email_prefix'] ?? ''); ?>" /></label>
+
+                                <label class="col-4">Ämter (kommagetrennt):<br>
+                                    <input type="text" list="fsr-amter-list" class="fsr-input-amt" name="fsr_members_settings[members][<?php echo $index; ?>][amt]" value="<?php echo esc_attr($member['amt'] ?? ''); ?>" />
+                                    <div class="fsr-amt-quicktags">
+                                        <?php foreach ($unique_amter as $amt_tag) : ?>
+                                            <button type="button" class="button button-small fsr-amt-tag-btn" data-tag="<?php echo esc_attr($amt_tag); ?>"><?php echo esc_html($amt_tag); ?></button>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </label>
+                                <label class="col-2">Erstes Jahr:<br><input type="text" name="fsr_members_settings[members][<?php echo $index; ?>][erstes_jahr]" value="<?php echo esc_attr($member['erstes_jahr'] ?? ''); ?>" /></label>
+                                <label class="col-2">Semester:<br><input type="number" name="fsr_members_settings[members][<?php echo $index; ?>][semester_anzahl]" value="<?php echo esc_attr($member['semester_anzahl'] ?? ''); ?>" /></label>
+                                <label class="col-4">Team:<br>
+                                    <select class="fsr-team-selector" name="fsr_members_settings[members][<?php echo $index; ?>][team]">
+                                        <option value="gewaehlte" <?php selected($member['team'] ?? '', 'gewaehlte'); ?>>Gewählte</option>
+                                        <option value="helfer" <?php selected($member['team'] ?? '', 'helfer'); ?>>Helfer</option>
+                                        <option value="ehemalige" <?php selected($member['team'] ?? '', 'ehemalige'); ?>>Ehemalige</option>
+                                    </select>
+                                </label>
+                                <label class="col-2">Abgegangen im Jahr:<br><input type="text" name="fsr_members_settings[members][<?php echo $index; ?>][abgang_jahr]" value="<?php echo esc_attr($member['abgang_jahr'] ?? ''); ?>" placeholder="z. B. 2025" /></label>
+                            </div>
+                            <div class="fsr-row-footer-actions">
+                                <button type="button" class="button button-link-delete remove-member">Dauerhaft löschen</button>
+                                <button type="button" class="button duplicate-member"> Kopieren</button>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-        <?php endforeach; ?>
+            <?php endforeach; ?>
+        </div>
+    </section>
+    <?php endforeach; ?>
     </div>
-
     <div class="fsr-import-panel">
         <div class="fsr-import-copy">
             <h4>Bulk Import für das Setup</h4>
@@ -192,7 +183,7 @@ $all_amt_tags_json = wp_json_encode(array_values($unique_amter));
             <button type="button" class="button button-secondary" id="fsr-member-import-btn">Import starten</button>
         </div>
         <div class="fsr-import-hint">
-            JSON-Objekte können die Felder <code>first_name</code>, <code>last_name</code>, <code>image</code>, <code>studiengang</code>, <code>abschluss</code>, <code>pronomen</code>, <code>email_prefix</code>, <code>amt</code>, <code>erstes_jahr</code>, <code>semester_anzahl</code>, <code>team</code>, <code>is_ehemalige</code> und <code>abgang_jahr</code> enthalten.
+            JSON-Objekte können die Felder <code>first_name</code>, <code>last_name</code>, <code>image</code>, <code>studiengang</code>, <code>abschluss</code>, <code>pronomen</code>, <code>email_prefix</code>, <code>amt</code>, <code>erstes_jahr</code>, <code>semester_anzahl</code>, <code>team</code> und <code>abgang_jahr</code> enthalten.
         </div>
         <div class="fsr-known-tags">
             <strong>Aktuelle Ämter-Tags:</strong>
@@ -232,12 +223,9 @@ jQuery(document).ready(function($) {
             .replace(/'/g, '&#039;');
     }
 
-    function teamLabel(value, isEhemalige) {
+    function teamLabel(value) {
         const labels = { gewaehlte: 'Gewählte', helfer: 'Helfer', ehemalige: 'Ehemalige' };
         let label = labels[value] || value.charAt(0).toUpperCase() + value.slice(1);
-        if (isEhemalige && value !== 'ehemalige') {
-            label += ' + Ehemalige';
-        }
         return label;
     }
 
@@ -280,15 +268,10 @@ jQuery(document).ready(function($) {
 
     function applyRowTeamState(row) {
         const val = row.find('.fsr-team-selector').val();
-        const isEhemalige = row.find('.fsr-is-ehemalige').is(':checked');
 
         row.removeClass('fsr-team-gewaehlte fsr-team-helfer fsr-team-ehemalige');
         row.addClass('fsr-team-' + val);
-        if (isEhemalige) {
-            row.addClass('fsr-team-ehemalige');
-        }
-
-        row.find('.badge-team-name').text(teamLabel(val, isEhemalige));
+        row.find('.badge-team-name').text(teamLabel(val));
     }
 
     function filterRows(filter) {
@@ -362,11 +345,11 @@ jQuery(document).ready(function($) {
                             <option value="ehemalige">Ehemalige</option>
                         </select>
                     </label>
-                    <label class="col-2">Ehemalige:<br><input type="checkbox" class="fsr-is-ehemalige" name="fsr_members_settings[members][${index}][is_ehemalige]" value="1" /></label>
                     <label class="col-2">Abgegangen im Jahr:<br><input type="text" name="fsr_members_settings[members][${index}][abgang_jahr]" placeholder="z. B. 2025" /></label>
                 </div>
                 <div class="fsr-row-footer-actions">
                     <button type="button" class="button button-link-delete remove-member">Dauerhaft löschen</button>
+                    <button type="button" class="button duplicate-member"> Kopieren</button>
                 </div>
             </div>
         </div>`;
@@ -397,10 +380,15 @@ jQuery(document).ready(function($) {
         });
     }
 
-    $('#fsr-sortable-members').sortable({
-        handle: '.fsr-row-header', placeholder: 'ui-state-highlight', forcePlaceholderSize: true,
-        start: function(e, ui){ ui.placeholder.css({'height': ui.item.find('.fsr-row-header').outerHeight()}); },
-        update: function() { triggerAutoSave(); }
+    $('.fsr-team-sortable').sortable({
+        connectWith: false,
+        handle: '.fsr-row-header',
+        placeholder: 'ui-state-highlight',
+        forcePlaceholderSize: true,
+
+        update: function() {
+            triggerAutoSave();
+        }
     });
 
     $(document).on('click', '.fsr-toggle-trigger', function() {
@@ -524,6 +512,32 @@ jQuery(document).ready(function($) {
             });
         });
     }
+
+    $(document).on('click','.duplicate-member',function(){
+        const row=$(this).closest('.fsr-member-row');
+        const clone=row.clone();
+        clone.attr('data-member-id','0');
+        clone.find('.fsr-member-id').val('');
+        clone.find('.member-display-name')
+            .text(
+                clone.find('.fsr-input-firstname').val()+' Kopie'
+            );
+        row.after(clone);
+        reindexMemberRows();
+        triggerAutoSave();
+    });
+    
+    function moveRowToTeam(row) {
+        const team = row.find('.fsr-team-selector').val();
+
+        $('.fsr-team-sortable[data-team="'+team+'"]')
+            .append(row);
+    }
+    $(document).on('change','.fsr-team-selector',function(){
+        const row=$(this).closest('.fsr-member-row');
+        moveRowToTeam(row);
+        triggerAutoSave();
+    });
 
     $('#fsr-sortable-members .fsr-member-row').each(function() {
         const row = $(this);
