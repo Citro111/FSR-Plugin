@@ -9,6 +9,7 @@ add_shortcode('fsr_members', 'fsr_members_shortcode_renderer');
 add_action('wp_ajax_fsr_save_member_order', 'fsr_ajax_save_member_order_handler');
 add_action('wp_ajax_fsr_import_members', 'fsr_ajax_import_members_handler');
 add_action('wp_enqueue_scripts', 'fsr_members_frontend_assets');
+add_action('wp_ajax_fsr_save_member_tags', 'fsr_ajax_save_member_tags_handler');
 
 function fsr_members_frontend_assets() {
     wp_enqueue_style(
@@ -166,18 +167,109 @@ function fsr_member_post_to_record($post) {
     $record['abschluss'] = (string) get_post_meta($post->ID, 'abschluss', true);
     $record['pronomen'] = (string) get_post_meta($post->ID, 'pronomen', true);
     $record['email_prefix'] = (string) get_post_meta($post->ID, 'email_prefix', true);
-    $record['amt'] = (string) get_post_meta($post->ID, 'amt', true);
+    $record['amt'] = maybe_unserialize(get_post_meta($post->ID,'amt',true));
     $record['erstes_jahr'] = (string) get_post_meta($post->ID, 'erstes_jahr', true);
     $record['semester_anzahl'] = (string) get_post_meta($post->ID, 'semester_anzahl', true);
     $record['abgang_jahr'] = (string) get_post_meta($post->ID, 'abgang_jahr', true);
     $record['is_ehemalige'] = absint(get_post_meta($post->ID, 'is_ehemalige', true));
     $record['team'] = fsr_member_normalize_team(get_post_meta($post->ID, 'team', true));
+    if(!is_array($record['amt'])){
+        $record['amt']=[];
+    }
 
     if (sanitize_key((string) get_post_meta($post->ID, 'team', true)) === FSR_TEAM3) {
         $record['is_ehemalige'] = 1;
     }
 
     return $record;
+}
+
+function fsr_get_member_tags() {
+
+    $tags = get_option('fsr_member_tags', []);
+
+    if (!is_array($tags)) {
+        return [];
+    }
+
+    usort($tags, function($a,$b){
+        return ($a['sort_order'] ?? 0) <=> ($b['sort_order'] ?? 0);
+    });
+
+    return $tags;
+}
+
+
+function fsr_save_member_tags($tags) {
+    $clean = [];
+    foreach ($tags as $index => $tag) {
+        $id = sanitize_key($tag['id'] ?? '');
+        $label = sanitize_text_field($tag['label'] ?? '');
+        if (!$id || !$label) {
+            continue;
+        }
+        $clean[] = [
+            'id' => $id,
+            'label' => $label,
+            'sort_order' => $index
+        ];
+    }
+    update_option(
+        'fsr_member_tags',
+        $clean
+    );
+    return $clean;
+}
+
+function fsr_ajax_save_member_tags_handler() {
+    check_ajax_referer(
+        'fsr-member-admin-nonce',
+        'nonce'
+    );
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error('Keine Berechtigung');
+    }
+    $tags = $_POST['tags'] ?? [];
+    if (!is_array($tags)) {
+        wp_send_json_error('Ungültige Daten');
+    }
+    $saved = fsr_save_member_tags($tags);
+    wp_send_json_success([
+        'tags'=>$saved
+    ]);
+}
+
+function fsr_migrate_member_tags() {
+    $members = fsr_get_members_posts();
+    $existing = fsr_get_member_tags();
+    $known = [];
+    foreach($existing as $tag){
+        $known[$tag['label']] = $tag['id'];
+    }
+    foreach($members as $member){
+        $parts = array_map(
+            'trim',
+            explode(',', $member['amt'])
+        );
+        foreach($parts as $part){
+            if(!$part){
+                continue;
+            }
+            if(!isset($known[$part])){
+                $id = sanitize_key($part);
+                $known[$part]=$id;
+                $existing[]=[
+                    'id'=>$id,
+                    'label'=>$part,
+                    'sort_order'=>count($existing)
+                ];
+            }
+        }
+    }
+    update_option(
+        'fsr_member_tags',
+        $existing
+    );
 }
 
 function fsr_get_members_data($team = 'all') {
@@ -270,10 +362,9 @@ function fsr_upsert_member_records($members, $delete_missing = true) {
         update_post_meta($saved_id, 'abschluss', $member['abschluss']);
         update_post_meta($saved_id, 'pronomen', $member['pronomen']);
         update_post_meta($saved_id, 'email_prefix', $member['email_prefix']);
-        update_post_meta($saved_id, 'amt', $member['amt']);
+        update_post_meta($saved_id, 'amt', array_values($member['amt']));
         update_post_meta($saved_id, 'erstes_jahr', $member['erstes_jahr']);
         update_post_meta($saved_id, 'semester_anzahl', $member['semester_anzahl']);
-        update_post_meta($saved_id, 'is_ehemalige', $member['is_ehemalige']);
         update_post_meta($saved_id, 'abgang_jahr', $member['abgang_jahr']);
         update_post_meta($saved_id, 'team', $member['team']);
     }
@@ -358,6 +449,21 @@ function fsr_parse_member_import_payload($raw_payload) {
     }
 
     return $members;
+}
+
+function fsr_get_unused_member_tags(){
+    $used=[];
+    foreach(fsr_get_members_posts() as $member){
+        foreach($member['amt'] as $tag){
+            $used[$tag]=true;
+        }
+    }
+    return array_filter(
+        fsr_get_member_tags(),
+        function($tag) use ($used){
+            return empty($used[$tag['id']]);
+        }
+    );
 }
 
 function fsr_maybe_migrate_legacy_members() {

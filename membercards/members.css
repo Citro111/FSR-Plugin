@@ -227,3 +227,37 @@
 .fsr-is-filter-hidden {
     display:none !important;
 }
+
+.fsr-tag-manager {
+    margin-top:25px;
+}
+
+.fsr-tag-row {
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:10px;
+    margin-bottom:8px;
+    background:#fff;
+    border:1px solid #ddd;
+    border-radius:6px;
+}
+
+.fsr-tag-handle {
+    cursor:grab;
+    font-size:18px;
+}
+
+.fsr-tag-label {
+    flex:1;
+}
+
+.fsr-tag-id {
+    color:#777;
+    font-size:12px;
+}
+
+#fsr-tag-status {
+    margin-top:15px;
+    font-weight:600;
+}

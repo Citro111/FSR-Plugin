@@ -80,10 +80,10 @@ foreach ($teams as $team_id => $team_data) {
             <?php if (!empty($m['amt'])): ?>
                 <div class="fsr-amt-tags">
                     <?php 
-                    $tags = explode(',', $m['amt']);
-                    foreach($tags as $tag) {
-                        if(trim($tag) !== '') { 
-                            echo '<span class="fsr-amt-tag">' . esc_html(trim($tag)) . '</span>'; 
+                    $tags = fsr_get_member_tags();
+                    foreach($tags as $tag){
+                        if(in_array($tag['id'],$member['amt'],true)){
+                            echo esc_html($tag['label']);
                         }
                     }
                     ?>

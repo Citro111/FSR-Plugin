@@ -22,7 +22,7 @@ $layout_settings = isset($layout_settings) && is_array($layout_settings) ? $layo
 $desktop_cols = max(1, min(6, absint($layout_settings['desktop_cols'] ?? 4)));
 $tablet_cols = max(1, min($desktop_cols, absint($layout_settings['tablet_cols'] ?? 2)));
 $mobile_cols = max(1, min($tablet_cols, absint($layout_settings['mobile_cols'] ?? 1)));
-
+$member_tags = fsr_get_member_tags();
 $shortcode_usage = isset($shortcode_usage) && is_array($shortcode_usage) ? $shortcode_usage : [];
 $all_amt_tags_json = wp_json_encode(array_values($unique_amter));
 ?>
@@ -209,6 +209,44 @@ $all_amt_tags_json = wp_json_encode(array_values($unique_amter));
             </div>
         </div>
         <div id="fsr-import-status" aria-live="polite"></div>
+    </div>
+    <div class="fsr-settings-card fsr-tag-manager">
+        <h3 class="fsr-card-title">
+            <span class="dashicons dashicons-tag"></span>
+            Ämter verwalten
+        </h3>
+        <p>
+            Diese Reihenfolge wird überall verwendet. Änderungen an Namen werden automatisch bei allen Mitgliedern übernommen.
+        </p>
+        <div id="fsr-tag-sortable">
+            <?php foreach ($member_tags as $tag): ?>
+                <div class="fsr-tag-row"
+                    data-tag-id="<?php echo esc_attr($tag['id']); ?>">
+                    <span class="fsr-tag-handle">☰</span>
+                    <input type="text"
+                        class="fsr-tag-label"
+                        value="<?php echo esc_attr($tag['label']); ?>">
+                    <span class="fsr-tag-id">
+                        <?php echo esc_html($tag['id']); ?>
+                    </span>
+                    <button type="button"
+                            class="button fsr-remove-tag">
+                        Löschen
+                    </button>
+                </div>
+            <?php endforeach; ?>
+        </div>
+        <button type="button"
+                class="button"
+                id="fsr-add-tag">
+            + Amt hinzufügen
+        </button>
+        <button type="button"
+                class="button button-primary"
+                id="fsr-save-tags">
+            Ämter speichern
+        </button>
+        <div id="fsr-tag-status"></div>
     </div>
 </div>
 
@@ -566,6 +604,69 @@ jQuery(document).ready(function($) {
         if (amtInput.length) {
             amtInput.trigger('input');
         }
+    });
+
+    $('#fsr-tag-sortable').sortable({
+        handle: '.fsr-tag-handle',
+        placeholder: 'ui-state-highlight'
+    });
+
+    $('#fsr-add-tag').on('click', function(){
+        const id = 'tag_' + Date.now();
+        $('#fsr-tag-sortable').append(`
+            <div class="fsr-tag-row" data-tag-id="${id}">
+                <span class="fsr-tag-handle">☰</span>
+                <input type="text"
+                    class="fsr-tag-label"
+                    value="Neuer Tag">
+                <span class="fsr-tag-id">${id}</span>
+                <button type="button"
+                        class="button fsr-remove-tag">
+                    Löschen
+                </button>
+            </div>
+        `);
+    });
+    $(document).on('click','.fsr-remove-tag',function(){
+        $(this)
+            .closest('.fsr-tag-row')
+            .remove();
+    });
+    $('#fsr-save-tags').on('click',function(){
+        const tags=[];
+        $('#fsr-tag-sortable .fsr-tag-row').each(function(index){
+            tags.push({
+                id: $(this).data('tag-id'),
+                label:
+                    $(this)
+                    .find('.fsr-tag-label')
+                    .val(),
+                sort_order:index
+            });
+        });
+        $('#fsr-tag-status')
+            .text('Speichert...');
+        $.ajax({
+            url: ajaxurl,
+            type:'POST',
+            data:{
+                action:'fsr_save_member_tags',
+                nonce:nonce,
+                tags:tags
+            },
+            success:function(response){
+                if(response.success){
+                    $('#fsr-tag-status')
+                        .text('✓ Tags gespeichert');
+                    setTimeout(function(){
+                        location.reload();
+                    },800);
+                } else {
+                    $('#fsr-tag-status')
+                        .text('Fehler beim Speichern');
+                }
+            }
+        });
     });
 
     renderDynamicQuickTags($('#fsr-sortable-members'));
