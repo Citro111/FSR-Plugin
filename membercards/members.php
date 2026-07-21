@@ -94,7 +94,7 @@ function fsr_sanitize_member_record($member) {
     $member['abschluss'] = in_array($member['abschluss'], ['B.Sc.', 'M.Sc.','Abgeschlossen'], true) ? $member['abschluss'] : '';
     $member['pronomen'] = fsr_member_clean_text($member['pronomen']);
     $member['email_prefix'] = fsr_member_clean_text($member['email_prefix']);
-    $member['amt'] = fsr_member_clean_text($member['amt']);
+    $member['amt'] = fsr_normalize_member_tags($member['amt']);
     $member['erstes_jahr'] = fsr_member_clean_text($member['erstes_jahr']);
     $member['semester_anzahl'] = $member['semester_anzahl'] === '' ? '' : absint($member['semester_anzahl']);
     $member['abgang_jahr'] = fsr_member_clean_text($member['abgang_jahr']);
@@ -105,6 +105,60 @@ function fsr_sanitize_member_record($member) {
     }
 
     return $member;
+}
+
+function fsr_normalize_member_tags($value) {
+    $tags = fsr_get_member_tags();
+    $lookup = [];
+
+    foreach ($tags as $tag) {
+        $label = strtolower(trim((string) ($tag['label'] ?? '')));
+        $id = sanitize_key((string) ($tag['id'] ?? ''));
+        if ($label !== '' && $id !== '') {
+            $lookup[$label] = $id;
+        }
+    }
+
+    $result = [];
+
+    if (is_array($value)) {
+        foreach ($value as $id) {
+            $id = sanitize_key($id);
+            if ($id !== '') {
+                $result[] = $id;
+            }
+        }
+        return array_values(array_unique($result));
+    }
+
+    $parts = array_filter(array_map('trim', explode(',', (string) $value)));
+
+    foreach ($parts as $part) {
+        $key = strtolower($part);
+
+        if (isset($lookup[$key])) {
+            $result[] = $lookup[$key];
+            continue;
+        }
+
+        $id = sanitize_key($part);
+        if ($id === '') {
+            continue;
+        }
+
+        $tags[] = [
+            'id' => $id,
+            'label' => $part,
+            'sort_order' => count($tags),
+        ];
+
+        $lookup[$key] = $id;
+        $result[] = $id;
+    }
+
+    fsr_save_member_tags($tags);
+
+    return array_values(array_unique($result));
 }
 
 function fsr_sanitize_members_payload($input) {
@@ -242,34 +296,47 @@ function fsr_ajax_save_member_tags_handler() {
 function fsr_migrate_member_tags() {
     $members = fsr_get_members_posts();
     $existing = fsr_get_member_tags();
+
     $known = [];
-    foreach($existing as $tag){
-        $known[$tag['label']] = $tag['id'];
+    foreach ($existing as $tag) {
+        $known[strtolower(trim((string) $tag['label']))] = $tag['id'];
     }
-    foreach($members as $member){
-        $parts = array_map(
-            'trim',
-            explode(',', $member['amt'])
-        );
-        foreach($parts as $part){
-            if(!$part){
+
+    foreach ($members as $member) {
+        $raw_amt = $member['amt'] ?? [];
+        $parts = [];
+
+        if (is_array($raw_amt)) {
+            $parts = $raw_amt;
+        } else {
+            $parts = array_map('trim', explode(',', (string) $raw_amt));
+        }
+
+        foreach ($parts as $part) {
+            $part = trim((string) $part);
+            if ($part === '') {
                 continue;
             }
-            if(!isset($known[$part])){
+
+            $lookup_key = strtolower($part);
+
+            if (!isset($known[$lookup_key])) {
                 $id = sanitize_key($part);
-                $known[$part]=$id;
-                $existing[]=[
-                    'id'=>$id,
-                    'label'=>$part,
-                    'sort_order'=>count($existing)
+                if ($id === '') {
+                    continue;
+                }
+
+                $known[$lookup_key] = $id;
+                $existing[] = [
+                    'id' => $id,
+                    'label' => $part,
+                    'sort_order' => count($existing),
                 ];
             }
         }
     }
-    update_option(
-        'fsr_member_tags',
-        $existing
-    );
+
+    update_option('fsr_member_tags', $existing);
 }
 
 function fsr_get_members_data($team = 'all') {
