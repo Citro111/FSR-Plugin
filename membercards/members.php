@@ -569,58 +569,94 @@ function fsr_get_membercards_layout_settings() {
     return wp_parse_args(is_array($settings) ? $settings : [], fsr_membercards_layout_defaults());
 }
 
-function fsr_membercards_search($search_term) {
+function fsr_office_hours_search(string $search_term): array {
 
     $search_term = trim(wp_strip_all_tags($search_term));
 
     if ($search_term === '') {
-        return '';
+        return [];
     }
 
-    $query = new WP_Query([
-        'post_type'      => 'fsr_member',
-        'post_status'    => 'publish',
-        'posts_per_page' => -1,
-        'orderby'        => 'menu_order',
-        'order'          => 'ASC',
-    ]);
+    $settings = fsr_office_hours_get_settings();
+    $rules = is_array($settings['rules'] ?? null) ? $settings['rules'] : [];
+    $cancellations = is_array($settings['cancellations'] ?? null) ? $settings['cancellations'] : [];
 
-    if (!$query->have_posts()) {
-        return '';
-    }
     $virtual_posts = [];
-    $url_overview = fsr_get_shortcode_usage_overview(['fsr_members']);
 
-    foreach ($query->posts as $post) {
+    foreach ($rules as $rule) {
 
-        $member = fsr_member_post_to_record($post);
+        if (!is_array($rule)) {
+            continue;
+        }
+
+        $rule = fsr_office_hours_sanitize_rule($rule);
 
         $searchable = implode(' ', [
-            $member['first_name'] ?? '',
-            $member['last_name'] ?? '',
-            $member['team'] ?? '',
-            $member['email_prefix'] ?? '',
-            $member['amt'] ?? '',
-            $member['studiengang'] ?? '',
-            $member['abschluss'] ?? '',
+            $rule['title'] ?? '',
+            $rule['type'] ?? '',
+            $rule['location'] ?? '',
+            $rule['notes'] ?? '',
+            $rule['recurrence'] ?? '',
+            $rule['weekday'] ?? '',
+            $rule['nth_week'] ?? '',
+            $rule['week_interval'] ?? '',
+            $rule['start_time'] ?? '',
+            $rule['end_time'] ?? '',
+            $rule['start_date'] ?? '',
+            implode(' ', fsr_office_hours_get_rule_members($rule)),
+            fsr_office_hours_describe_rule($rule),
         ]);
 
         if (stripos($searchable, $search_term) === false) {
             continue;
         }
-        $content = $member['first_name'] . ' ' . $member['last_name'] . ' ' . $member['amt'];
 
-        $virtual_posts[] = fsr_create_virtual_search_post(
-            $title = fsr_member_post_title($member),
-            $excerpt = $content,
-            $content = $content,
-            $url = $url_overview[0]['view_link'] ?? '',
-            $date = '',
-            $type = 'page'
-        );
+        $occurrences = fsr_office_hours_collect_occurrences([$rule], 12, true);
+
+        foreach ($occurrences as $occurrence) {
+
+            if (fsr_office_hours_occurrence_is_cancelled(
+                $rule,
+                $occurrence['date'],
+                $cancellations
+            )) {
+                continue;
+            }
+
+            $timestamp = strtotime(
+                $occurrence['date'] . ' ' . $occurrence['start_time']
+            );
+
+            $content = implode(' ', array_filter([
+                $rule['title'] ?? '',
+                $rule['location'] ?? '',
+                $rule['notes'] ?? '',
+                fsr_office_hours_describe_rule($rule),
+            ]));
+
+            $excerpt =
+                'Sprechstunde am ' .
+                date_i18n('d.m.Y', $timestamp) .
+                ' von ' .
+                $occurrence['start_time'] .
+                ' bis ' .
+                $occurrence['end_time'] .
+                ' Uhr in ' .
+                ($rule['location'] ?? '');
+
+            $virtual_posts[] = fsr_create_virtual_search_post(
+                $title = $rule['title'],
+                $excerpt = $excerpt,
+                $content = $content,
+                $url = add_query_arg([
+                    'member' => fsr_office_hours_member_param(),
+                    'edit_rule' => strtolower($rule['id']),
+                ], get_permalink()),
+                $date = date('Y-m-d H:i:s', $timestamp),
+                $type = 'page'
+            );
+        }
     }
-
-    wp_reset_postdata();
 
     return $virtual_posts;
 }
