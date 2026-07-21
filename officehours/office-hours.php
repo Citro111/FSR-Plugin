@@ -770,3 +770,8 @@ function fsr_office_hours_search(string $search): array {
     }
     return $results;
 }   
+
+function fsr_office_hours_rule_to_text(array $rule): string {
+    $description = fsr_office_hours_describe_rule($rule);
+    return $description . ', ' . $rule['start_time'] . ' - ' . $rule['end_time'] . ' Uhr, Ort: ' . $rule['location'];
+}
