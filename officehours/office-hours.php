@@ -555,7 +555,7 @@ function fsr_office_hours_handle_portal_actions(): array {
         $before = count($rules);
 
         $rules = array_filter($rules, static function ($rule) use ($rule_id) {
-            return ($rule['id'] ?? '') !== $rule_id;
+            return strtolower((string) ($rule['id'] ?? '')) !== strtolower($rule_id);
         });
 
         $after = count($rules);
@@ -585,7 +585,7 @@ function fsr_office_hours_handle_portal_actions(): array {
         $rules = is_array($settings['rules'] ?? null) ? $settings['rules'] : [];
         $found = false;
         foreach ($rules as &$rule) {
-            if (($rule['id'] ?? '') === $rule_id) {
+            if (strtolower((string) ($rule['id'] ?? '')) === strtolower($rule_id)) {
                 if (!in_array($member_id, fsr_office_hours_get_rule_members($rule), true)) {
                     return [false, 'Keine Berechtigung diese Sprechstunde zu bearbeiten.'];
                 }
