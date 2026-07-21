@@ -99,21 +99,32 @@ $all_amt_tags_json = wp_json_encode(array_values($unique_amter));
             <button type="button" class="button" id="fsr-collapse-all">Alle zu</button>
         </div>
     </div>
-
     <div id="fsr-sortable-members">
-    <?php foreach ($team_labels as $team_key => $team_label): ?>
+    <?php foreach ($team_labels as $team_key => $team_title): ?>
     <section class="fsr-team-container" data-team="<?php echo esc_attr($team_key); ?>">
-        <h3> <?php echo esc_html($team_label); ?> </h3>
+        <h3><?php echo esc_html($team_title); ?></h3>
         <div class="fsr-team-sortable">
-            <?php foreach ($members as $index=>$member): ?>
-                <?php if (($member['team'] ?? '') !== $team_key) continue; ?>
+        <?php foreach ($members as $index => $member) :
+            $team = $member['team'] ?? 'gewaehlte';
+            // Nur Mitglieder dieses Teams anzeigen
+            if ($team !== $team_key) {
+                continue;
+            }
+            $team_classes = [
+                'fsr-team-' . $team
+            ];
+            $full_display_name = trim(
+                ($member['first_name'] ?? '') . ' ' . ($member['last_name'] ?? '')
+            );
+            $current_team_label = $team_labels[$team] ?? ucfirst($team);
+        ?>
                     <div class="fsr-member-row <?php echo esc_attr(implode(' ', $team_classes)); ?>" data-member-id="<?php echo esc_attr($member['id'] ?? 0); ?>">
                         <div class="fsr-row-header">
                             <div class="fsr-toggle-trigger">
                                 <span class="fsr-arrow">▶</span>
                                 <span class="fsr-drag-handle">☰</span>
                                 <span class="member-display-name"><?php echo esc_html($full_display_name ?: 'Unbenannt'); ?></span>
-                                <span class="badge-team-name"><?php echo esc_html($team_label); ?></span>
+                                <span class="badge-team-name"><?php echo esc_html($current_team_label); ?></span>
                             </div>
                         </div>
                         <div class="fsr-row-body" style="display:none;">
@@ -381,11 +392,13 @@ jQuery(document).ready(function($) {
     }
 
     $('.fsr-team-sortable').sortable({
+        receive: function() {
+            triggerAutoSave();
+        }
         connectWith: false,
         handle: '.fsr-row-header',
         placeholder: 'ui-state-highlight',
         forcePlaceholderSize: true,
-
         update: function() {
             triggerAutoSave();
         }
@@ -419,12 +432,6 @@ jQuery(document).ready(function($) {
         if($(this).hasClass('fsr-input-firstname') && !mailField.val()) {
             mailField.attr('placeholder', slugify(fname));
         }
-    });
-
-    $(document).on('change', '.fsr-team-selector, .fsr-is-ehemalige', function() {
-        const row = $(this).closest('.fsr-member-row');
-        applyRowTeamState(row);
-        applyCurrentFilter();
     });
 
     $('.fsr-filter-btn').on('click', function() {
@@ -474,7 +481,7 @@ jQuery(document).ready(function($) {
     });
 
     $('#add-member-btn').on('click', function() {
-        const index = $('#fsr-sortable-members').children().length;
+        const index = $('#fsr-sortable-members input[name*="[members]"]').length;
         const row = $(createMemberRow(index));
         $('#fsr-sortable-members').prepend(row);
         renderDynamicQuickTags(row);
