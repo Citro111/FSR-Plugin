@@ -758,11 +758,17 @@ function fsr_office_hours_search(string $search): array {
             $content,
             $content,
             add_query_arg(
+                [
+                    'fsr_oh_rule' => strtolower($rule['id']),
+                    'fsr_oh_date' => $occurrence['date'] ?? '',
+                    'member' => fsr_office_hours_member_param(),
+                ],
                 fsr_get_shortcode_usage_overview(['fsr_office_hours'])[0]['view_link'] ?? home_url()
             ),
             $occurrence['date'] ?? '',
             'page'
         );
+        $url .= '#fsr-office-hours';
     }
     return $results;
 }   

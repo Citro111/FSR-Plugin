@@ -149,3 +149,12 @@
 summary.fsr-oh-summary {
     display: flex;
 }
+
+.fsr-oh-card.is-highlighted {
+    border: 2px solid #2271b1;
+    border-radius: 8px;
+}
+
+.fsr-oh-card.is-selected-date {
+    background: #f0f7ff;
+}

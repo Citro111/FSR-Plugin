@@ -25,6 +25,8 @@ function fsr_office_hours_shortcode($atts) {
     
     $members_raw = fsr_get_members_data('all')['members'];
     $members_map = [];
+    $highlight_rule = sanitize_key($_GET['fsr_oh_rule'] ?? '');
+    $highlight_date = sanitize_text_field($_GET['fsr_oh_date'] ?? '');
     foreach ($members_raw as $m) {
         $members_map[$m['id']] = [
             'id' => $m['id'],
@@ -51,7 +53,12 @@ function fsr_office_hours_shortcode($atts) {
     $filtered = [];
     foreach ($occurrences as $o) {
         $ts = strtotime($o['date']);
-        if ($ts < $today || $ts > $weekEnd) continue;
+        if (!$highlight_date && ($ts < $today || $ts > $weekEnd)) {
+            continue;
+        }
+        if ($highlight_date && $o['date'] !== $highlight_date && ($ts < $today || $ts > $weekEnd)) {
+            continue;
+        }
         if ((int) date('N', $ts) > 5) continue;
         $o['ts'] = $ts;
         $filtered[] = $o;
@@ -73,7 +80,7 @@ function fsr_office_hours_shortcode($atts) {
 
     ob_start();
 
-    echo '<div class="fsr-oh-weekplan">';
+    echo '<div id="fsr-office-hours" class="fsr-oh-weekplan">';
 
     foreach ($weekday_labels as $day => $label) {
         if (empty($grouped[$day])) continue;
@@ -91,6 +98,14 @@ function fsr_office_hours_shortcode($atts) {
                 $item['start_time'] <= $now &&
                 $item['end_time'] >= $now;
             $members = [];
+            $is_highlighted_rule =
+                $highlight_rule !== '' &&
+                strtolower($item['rule_id']) === strtolower($highlight_rule);
+
+            $is_highlighted_date =
+                $is_highlighted_rule &&
+                $highlight_date !== '' &&
+                $item['date'] === $highlight_date;
 
             foreach ($item['member_ids'] as $id) {
                 if (!isset($members_map[$id])) continue;
@@ -106,7 +121,14 @@ function fsr_office_hours_shortcode($atts) {
             }
             $first_names = array_map(fn($m) => $m['first_name'], $members);
             $timeLabel = $item['start_time'] . '–' . $item['end_time'];
-            echo '<details class="fsr-oh-card">';
+            $classes = ['fsr-oh-card'];
+            if ($is_highlighted_rule) {
+                $classes[] = 'is-highlighted';
+            }
+            if ($is_highlighted_date) {
+                $classes[] = 'is-selected-date';
+            }
+            echo '<details class="' . esc_attr(implode(' ', $classes)) . '">';
             // CLOSED VIEW
             echo '<summary class="fsr-oh-summary">';
             if ($is_active) {
