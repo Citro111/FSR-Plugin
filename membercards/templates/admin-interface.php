@@ -536,6 +536,8 @@ jQuery(document).ready(function($) {
                 clone.find('.fsr-input-firstname').val()+' Kopie'
             );
         row.after(clone);
+        clone.find('.fsr-row-body').show();
+        clone.removeClass('is-expanded');
         reindexMemberRows();
         triggerAutoSave();
     });
@@ -547,8 +549,13 @@ jQuery(document).ready(function($) {
             .append(row);
     }
     $(document).on('change','.fsr-team-selector',function(){
-        const row=$(this).closest('.fsr-member-row');
-        moveRowToTeam(row);
+        const row = $(this).closest('.fsr-member-row');
+        const team = $(this).val();
+        row.removeClass('fsr-team-gewaehlte fsr-team-helfer fsr-team-ehemalige');
+        row.addClass('fsr-team-' + team);
+        $('.fsr-team-sortable')
+            .filter('[data-team="'+team+'"]')
+            .append(row);
         triggerAutoSave();
     });
 
