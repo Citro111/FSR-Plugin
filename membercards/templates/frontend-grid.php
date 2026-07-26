@@ -136,7 +136,7 @@ foreach ($teams as $team_id => $team_data) {
             <?php if (!empty($m['amt'])): ?>
                 <div class="fsr-amt-tags">
                     <?php 
-                    $$tags = explode(',', $m['amt']);
+                    $tags = explode(',', $m['amt']);
                     $tags = array_map('trim', $tags);
                     fsr_sort_tags($tags, $amt_order);
                     foreach($tags as $tag) {
