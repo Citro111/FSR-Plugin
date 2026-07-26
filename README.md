@@ -1,14 +1,10 @@
-ReadMe
-
-tt
-
-Uncaught Error: array_map(): Argument #2 ($array) must be of type array, null given
-in C:\Users\enric\Local Sites\entwicklerseite\app\public\wp-content\plugins\FSR-Plugin-main\membercards\templates\frontend-grid.php on line 140
+Uncaught Error: fsr_sort_tags(): Argument #2 ($amt_order) must be of type array, null given, called in C:\Users\enric\Local Sites\entwicklerseite\app\public\wp-content\plugins\FSR-Plugin-main\membercards\templates\frontend-grid.php on line 141
+in C:\Users\enric\Local Sites\entwicklerseite\app\public\wp-content\plugins\FSR-Plugin-main\membercards\members.php on line 265
 
 Call stack:
 
-array_map('trim', NULL)
-wp-content/plugins/FSR-Plugin-main/membercards/templates/frontend-grid.php:140
+fsr_sort_tags(array, NULL)
+wp-content/plugins/FSR-Plugin-main/membercards/templates/frontend-grid.php:141
 include('C:\Users\enric\Local...es\frontend-grid.php')
 wp-content/plugins/FSR-Plugin-main/membercards/members.php:518
 fsr_members_shortcode_renderer(array, '', 'fsr_members')
