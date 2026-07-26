@@ -46,7 +46,7 @@ require_once FSR_PLUGIN_DIR . 'global/search.php';
 require_once FSR_PLUGIN_DIR . 'updates/updates.php';
 
 // 7. Globale Variablen laden
-require_once FSR_PLUGIN_DIR . 'global/Variables.php';
+require_once FSR_PLUGIN_DIR . 'global/variables.php';
 
 register_activation_hook(__FILE__, 'fsr_dw_activate');
 
