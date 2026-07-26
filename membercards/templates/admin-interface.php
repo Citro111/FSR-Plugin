@@ -205,7 +205,7 @@ $all_amt_tags_json = wp_json_encode(array_values($unique_amter));
                 <?php foreach ($unique_amter as $amt_tag) : ?>
                     <div class="fsr-known-tag" data-tag="<?php echo esc_attr($amt_tag); ?>">
                         <span class="dashicons dashicons-menu-alt3"></span>
-                        <?php echo ' ' . esc_html($amt_tag); ?>
+                        <?php echo '   ' . esc_html($amt_tag); ?>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -308,7 +308,7 @@ jQuery(document).ready(function($) {
     }
 
     function triggerAutoSave() {
-        reindeMemberxRows();
+        reindexMemberRows();
         $('#fsr-save-indicator').text('Speichert...').css({'color':'var(--theme-palette-color-6)', 'background':'var(--theme-palette-color-13)', 'border-color':'var(--theme-palette-color-5)'}).fadeIn();
         const formData = $('#fsr-sortable-members :input').serialize();
         const amtOrder = $('#fsr-sortable-amter').data('order') || [];
