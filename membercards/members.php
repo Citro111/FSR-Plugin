@@ -258,8 +258,21 @@ function fsr_upsert_member_records($members, $delete_missing = true) {
             }
         }
     }
-
     return $saved_ids;
+}
+
+function fsr_sort_tags(array $tags, array $amt_order) {
+    usort($tags, function($a, $b) use ($amt_order) {
+        $posA = array_search($a, $amt_order, true);
+        $posB = array_search($b, $amt_order, true);
+        $posA = ($posA === false) ? PHP_INT_MAX : $posA;
+        $posB = ($posB === false) ? PHP_INT_MAX : $posB;
+        if ($posA === $posB) {
+            return strcmp($a, $b);
+        }
+        return $posA <=> $posB;
+    });
+    return $tags;
 }
 
 function fsr_parse_member_import_payload($raw_payload) {

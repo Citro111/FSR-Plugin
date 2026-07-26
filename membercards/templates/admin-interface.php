@@ -10,7 +10,18 @@ foreach ($members as $m) {
     }
 }
 $unique_amter = array_unique(array_filter($all_ameter));
-sort($unique_amter);
+$amt_order = [
+    '1. Vorsitz',
+    '2. Vorsitz',
+    'Finanzen',
+    'Öffentlichkeitsarbeit',
+    'Protokoll',
+    'IT',
+    'Kultur',
+    'Sport',
+    'Soziales'
+];
+fsr_sort_tags($unique_amter, $amt_order);
 
 $team_labels = [
     'gewaehlte' => 'Gewählte',
@@ -92,7 +103,7 @@ $all_amt_tags_json = wp_json_encode(array_values($unique_amter));
     <div class="fsr-filter-wrapper">
         <div class="fsr-filter-group">
             <span class="fsr-filter-label">Filter:</span>
-            <button type="button" class="button fsr-filter-btn" data-filter="gewaehlte">Gewählte</button>
+            <button type="button" class="button fsr-filter-btn active" data-filter="gewaehlte">Gewählte</button>
             <button type="button" class="button fsr-filter-btn" data-filter="helfer">Helfer</button>
             <button type="button" class="button fsr-filter-btn" data-filter="ehemalige">Ehemalige</button>
         </div>
