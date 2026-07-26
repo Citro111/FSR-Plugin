@@ -10,9 +10,9 @@ foreach ($members as $m) {
     }
 }
 $unique_amter = array_unique(array_filter($all_ameter));
-$amt_order = get_option('fsr_membercards_amt_order', $default_amt_order);
+$amt_order = get_option('fsr_membercards_amt_order', FSR_DEFAULT_AMT_ORDER);
 if (empty($amt_order)) {
-    $amt_order = $default_amt_order;
+    $amt_order = FSR_DEFAULT_AMT_ORDER;
 }
 fsr_sort_tags($unique_amter, $amt_order);
 

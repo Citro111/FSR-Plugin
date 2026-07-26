@@ -97,7 +97,7 @@ function fsr_sanitize_member_record($member) {
     $member['abgang_jahr'] = fsr_member_clean_text($member['abgang_jahr']);
     $member['team'] = fsr_member_normalize_team($member['team']);
     $tags = array_filter(array_map('trim', explode(',', $member['amt'])));
-    $amt_order = get_option('fsr_membercards_amt_order', []);
+    $amt_order = get_option('fsr_membercards_amt_order', FSR_DEFAULT_AMT_ORDER);
     $tags = fsr_sort_tags($tags, $amt_order);
     $member['amt'] = implode(', ', $tags);
     return $member;

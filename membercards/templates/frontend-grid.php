@@ -138,7 +138,7 @@ foreach ($teams as $team_id => $team_data) {
                     <?php 
                     $tags = explode(',', $m['amt']);
                     $tags = array_map('trim', $tags);
-                    fsr_sort_tags($tags, get_option('fsr_membercards_amt_order', $default_amt_order));
+                    fsr_sort_tags($tags, get_option('fsr_membercards_amt_order', FSR_DEFAULT_AMT_ORDER));
                     foreach($tags as $tag) {
                         if(trim($tag) !== '') { 
                             echo '<span class="fsr-amt-tag">' . esc_html(trim($tag)) . '</span>'; 
