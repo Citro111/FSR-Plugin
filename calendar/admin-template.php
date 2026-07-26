@@ -67,7 +67,15 @@ function fsr_calendar_render_admin_interface() {
                     </tr>
                 </thead>
                 <tbody id="category-table-body">
-                    <?php foreach ($categories as $index => $category): ?>
+                    <?php
+                    $categories = get_option(
+                        'fsr_calendar_categories',
+                        []
+                    );
+                    if (!is_array($categories)) {
+                        $categories = [];
+                    }
+                    foreach ($categories as $index => $category): ?>
                     <tr>
                         <td>
                             <input 
