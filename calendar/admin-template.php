@@ -45,9 +45,6 @@ function fsr_calendar_render_admin_interface() {
                     </td>
                 </tr>
             </table>
-            <?php submit_button('Kalender speichern'); ?>
-        </form>
-        <form method="post" action="options.php">
             <h2>Kategorien</h2>
             <p>
                 Hier können Links zu den verschiedenen Veranstaltungskategorien hinterlegt werden.
@@ -77,8 +74,10 @@ function fsr_calendar_render_admin_interface() {
                     ?>
                 </tbody>   
             </table>  
+            <?php submit_button('Speichern'); ?>
         </form>
     </div>
+    
     <script>
     jQuery(document).ready(function($) {
         // Add a new category row

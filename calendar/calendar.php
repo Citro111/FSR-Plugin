@@ -125,3 +125,41 @@ function fsr_get_category_url($type) {
     }
     return '';
 }
+
+add_action('admin_init', function () {
+    register_setting(
+        'fsr_settings',
+        FSR_CALENDAR_URL
+    );
+    register_setting(
+        'fsr_settings',
+        'fsr_calendar_categories',
+        [
+            'sanitize_callback' => 'fsr_sanitize_categories'
+        ]
+    );
+});
+function fsr_sanitize_categories($categories) {
+    if (!is_array($categories)) {
+        return [];
+    }
+    foreach ($categories as &$category) {
+        $category['name'] = sanitize_text_field(
+            $category['name']
+        );
+        $category['url'] = esc_url_raw(
+            $category['url']
+        );
+        if(isset($category['additionalNames'])) {
+            $category['additionalNames'] =
+                array_map(
+                    'sanitize_text_field',
+                    explode(
+                        ',',
+                        $category['additionalNames']
+                    )
+                );
+        }
+    }
+    return $categories;
+}
