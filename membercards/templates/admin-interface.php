@@ -83,13 +83,15 @@ $all_amt_tags_json = wp_json_encode(array_values($unique_amter));
         <button type="button" class="button button-primary" id="add-member-btn">
             <span class="dashicons dashicons-plus" style="font-size:16px; vertical-align:middle; margin-top:-2px;"></span> Mitglied hinzufügen
         </button>
+        <button type="button" class="button button-secondary" id="save-changes-btn">
+            <span class="dashicons dashicons-update" style="font-size:16px; vertical-align:middle; margin-top:-2px;"></span> Änderungen speichern
+        </button>
         <div id="fsr-save-indicator">✓ Änderungen gespeichert</div>
     </div>
 
     <div class="fsr-filter-wrapper">
         <div class="fsr-filter-group">
             <span class="fsr-filter-label">Filter:</span>
-            <button type="button" class="button fsr-filter-btn active" data-filter="all">Alle</button>
             <button type="button" class="button fsr-filter-btn" data-filter="gewaehlte">Gewählte</button>
             <button type="button" class="button fsr-filter-btn" data-filter="helfer">Helfer</button>
             <button type="button" class="button fsr-filter-btn" data-filter="ehemalige">Ehemalige</button>
@@ -155,7 +157,6 @@ $all_amt_tags_json = wp_json_encode(array_values($unique_amter));
                         </label>
                         <label class="col-2">Abgegangen im Jahr:<br><input type="text" name="fsr_members_settings[members][<?php echo $index; ?>][abgang_jahr]" value="<?php echo esc_attr($member['abgang_jahr'] ?? ''); ?>" placeholder="z. B. 2025" /></label>
                     </div>
-
                     <div class="fsr-row-footer-actions">
                         <button type="button" class="button button-link-delete remove-member">Dauerhaft löschen</button>
                     </div>
@@ -163,7 +164,6 @@ $all_amt_tags_json = wp_json_encode(array_values($unique_amter));
             </div>
         <?php endforeach; ?>
     </div>
-
     <div class="fsr-import-panel">
         <div class="fsr-import-copy">
             <h4>Bulk Import für das Setup</h4>
@@ -385,6 +385,8 @@ jQuery(document).ready(function($) {
             }
         });
     }
+
+    $('#save-changes-btn').on('click', function() { triggerAutoSave(); });
 
     $('#fsr-sortable-members').sortable({
         handle: '.fsr-row-header', placeholder: 'ui-state-highlight', forcePlaceholderSize: true,
