@@ -6,7 +6,7 @@
 if (!defined('ABSPATH')) {
     exit;
 }
-require_once __DIR__ . '/calendar-functions.php';
+require_once __DIR__ . '/admin-template.php';
 /*
 |--------------------------------------------------------------------------
 | Einstellungen
