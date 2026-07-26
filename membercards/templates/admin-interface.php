@@ -201,7 +201,7 @@ $all_amt_tags_json = wp_json_encode(array_values($unique_amter));
                 <?php foreach ($unique_amter as $amt_tag) : ?>
                     <div class="fsr-known-tag" data-tag="<?php echo esc_attr($amt_tag); ?>">
                         <span class="dashicons dashicons-menu-alt3"></span>
-                        <?php echo esc_html($amt_tag); ?>
+                        <?php echo ' ' . esc_html($amt_tag); ?>
                     </div>
                 <?php endforeach; ?>
             </div>
@@ -403,10 +403,10 @@ jQuery(document).ready(function($) {
         start: function(e, ui){ ui.placeholder.css({'height': ui.item.find('.fsr-row-header').outerHeight()}); },
         update: function() { triggerAutoSave(); }
     });
-    
+
     $('#fsr-sortable-amter').sortable({
-        axis: 'y',
-        placeholder: 'ui-state-highlight'
+        placeholder: 'ui-state-highlight',
+        tolerance: 'pointer'
     });
 
     $(document).on('click', '.fsr-toggle-trigger', function() {
