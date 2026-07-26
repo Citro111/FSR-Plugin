@@ -12,7 +12,6 @@ require_once __DIR__ . '/admin-template.php';
 | Einstellungen
 |--------------------------------------------------------------------------
 */
-define('FSR_CALENDAR_URL', 'fsr_calendar_url');
 add_action('admin_init', function () {
     register_setting(
         'fsr_settings',
