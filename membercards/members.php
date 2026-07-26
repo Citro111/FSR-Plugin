@@ -405,7 +405,7 @@ function fsr_ajax_save_member_order_handler() {
         );
         error_log('AJAX - Amt Order: ' . print_r(get_option('fsr_membercards_amt_order'), true));
     }
-    error_log('AJAX'));
+    error_log('AJAX');
 
     wp_send_json_success([
         'message' => 'Mitglieder gespeichert.',
