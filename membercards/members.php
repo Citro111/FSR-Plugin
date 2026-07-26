@@ -96,16 +96,18 @@ function fsr_sanitize_member_record($member) {
     $member['semester_anzahl'] = $member['semester_anzahl'] === '' ? '' : absint($member['semester_anzahl']);
     $member['abgang_jahr'] = fsr_member_clean_text($member['abgang_jahr']);
     $member['team'] = fsr_member_normalize_team($member['team']);
+    $tags = array_filter(array_map('trim', explode(',', $member['amt'])));
+    $amt_order = get_option('fsr_membercards_amt_order', []);
+    $tags = fsr_sort_tags($tags, $amt_order);
+    $member['amt'] = implode(', ', $tags);
     return $member;
 }
 
 function fsr_sanitize_members_payload($input) {
     $clean = ['members' => []];
-
     if (!is_array($input) || empty($input['members']) || !is_array($input['members'])) {
         return $clean;
     }
-
     foreach ($input['members'] as $member) {
         $member = fsr_sanitize_member_record($member);
         if (fsr_member_is_empty($member) && empty($member['id'])) {
@@ -113,7 +115,6 @@ function fsr_sanitize_members_payload($input) {
         }
         $clean['members'][] = $member;
     }
-
     return $clean;
 }
 
@@ -404,7 +405,7 @@ function fsr_ajax_save_member_order_handler() {
         );
         error_log('AJAX - Amt Order: ' . print_r(get_option('fsr_membercards_amt_order'), true));
     }
-    error_log('AJAX - Saved IDs: ' . print_r($saved_ids, true));
+    error_log('AJAX'));
 
     wp_send_json_success([
         'message' => 'Mitglieder gespeichert.',
