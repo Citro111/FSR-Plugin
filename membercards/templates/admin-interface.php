@@ -10,17 +10,6 @@ foreach ($members as $m) {
     }
 }
 $unique_amter = array_unique(array_filter($all_ameter));
-$default_amt_order = [
-    '1. Vorsitz',
-    '2. Vorsitz',
-    'Finanzen',
-    'Öffentlichkeitsarbeit',
-    'Protokoll',
-    'IT',
-    'Kultur',
-    'Sport',
-    'Soziales'
-];
 $amt_order = get_option('fsr_membercards_amt_order', $default_amt_order);
 if (empty($amt_order)) {
     $amt_order = $default_amt_order;
