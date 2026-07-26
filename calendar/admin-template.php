@@ -50,7 +50,13 @@ function fsr_calendar_render_admin_interface() {
                 Hier können Links zu den verschiedenen Veranstaltungskategorien hinterlegt werden.
                 Die Webseite zeigt dann automatisch die passende Kategorie an.
             </p>
-            <button id="add-category" class="button button-primary">Kategorie hinzufügen</button>
+            <button 
+                type="button"
+                class="button button-primary"
+                id="add-category-btn">
+                <span class="dashicons dashicons-plus" style="font-size:16px; vertical-align:middle; margin-top:-2px;"></span>
+                Kategorie hinzufügen
+            </button>
             <table class="form-table" id="category-table">
                 <thead>
                     <tr>
@@ -60,43 +66,64 @@ function fsr_calendar_render_admin_interface() {
                         <th>Aktion</th>
                     </tr>
                 </thead>
-                <tbody>
-                    <?php
-                    $categories = get_option('fsr_calendar_categories', []);
-                    foreach ($categories as $category) {
-                        echo '<tr>';
-                        echo '<td><input type="text" name="fsr_calendar_categories[][name]" value="' . esc_attr($category['name']) . '" placeholder="Kategorie Name"></td>';
-                        echo '<td><input type="text" name="fsr_calendar_categories[][additionalNames]" value="' . esc_attr(implode(',', $category['additionalNames'] ?? [])) . '" placeholder="Weitere Namen (optional)"></td>';
-                        echo '<td><input type="url" name="fsr_calendar_categories[][url]" value="' . esc_url($category['url']) . '" placeholder="Kategorie URL"></td>';
-                        echo '<td><button class="remove-category">Entfernen</button></td>';
-                        echo '</tr>';
-                    }
-                    ?>
-                </tbody>   
+                <tbody id="category-table-body">
+                    <?php foreach ($categories as $index => $category): ?>
+                    <tr>
+                        <td>
+                            <input 
+                            type="text"
+                            name="fsr_calendar_categories[<?php echo $index; ?>][name]"
+                            value="<?php echo esc_attr($category['name']); ?>"
+                            >
+                        </td>
+                        <td>
+                            <input 
+                            type="text"
+                            name="fsr_calendar_categories[<?php echo $index; ?>][additionalNames]"
+                            value="<?php echo esc_attr(
+                            implode(',', $category['additionalNames'] ?? [])
+                            ); ?>"
+                            >
+                        </td>
+                        <td>
+                            <input 
+                            type="url"
+                            name="fsr_calendar_categories[<?php echo $index; ?>][url]"
+                            value="<?php echo esc_attr($category['url']); ?>"
+                            >
+                        </td>
+                        <td>
+                            <button class="button remove-category">
+                                Entfernen
+                            </button>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
             </table>  
             <?php submit_button('Speichern'); ?>
         </form>
     </div>
     
     <script>
-    jQuery(document).ready(function($) {
-        // Add a new category row
-        $('#add-category').click(function(e) {
-            e.preventDefault();
-            var newRow = '<tr>' +
-                '<td><input type="text" name="fsr_calendar_categories[][name]" placeholder="Kategorie Name"></td>' +
-                '<td><input type="text" name="fsr_calendar_categories[][additionalNames]" placeholder="Weitere Namen (optional)"></td>' +
-                '<td><input type="url" name="fsr_calendar_categories[][url]" placeholder="Kategorie URL"></td>' +
-                '<td><button class="remove-category">Entfernen</button></td>' +
-                '</tr>';
-            $('#category-table tbody').append(newRow);
+        jQuery(document).ready(function($) {
+            // Add a new category row
+            $('#add-category-btn').click(function(e) {
+                e.preventDefault();
+                var newRow = '<tr>' +
+                    '<td><input type="text" name="fsr_calendar_categories[][name]" placeholder="Kategorie Name"></td>' +
+                    '<td><input type="text" name="fsr_calendar_categories[][additionalNames]" placeholder="Weitere Namen (optional)"></td>' +
+                    '<td><input type="url" name="fsr_calendar_categories[][url]" placeholder="Kategorie URL"></td>' +
+                    '<td><button class="remove-category">Entfernen</button></td>' +
+                    '</tr>';
+                $('#category-table tbody').append(newRow);
+            });
+            // Remove a category row
+            $(document).on('click', '.remove-category', function(e) {
+                e.preventDefault();
+                $(this).closest('tr').remove();
+            });
         });
-
-        // Remove a category row
-        $(document).on('click', '.remove-category', function(e) {
-            e.preventDefault();
-            $(this).closest('tr').remove();
-        });
-    });
+    </script>
     <?php
 }
