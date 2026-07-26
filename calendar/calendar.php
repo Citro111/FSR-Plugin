@@ -84,7 +84,7 @@ function fsr_parse_ical($ical){
             $type = sanitize_title($matches[1]);
             $clean_title = trim($matches[2]);
         }
-        
+
         $events[] = [
             'title'=>$clean_title,
             'type'=>$type,
@@ -94,11 +94,34 @@ function fsr_parse_ical($ical){
                 : '',
             'description'=>isset($description[1])
                 ? trim($description[1])
-                : ''
-            'url'=>isset($url[1])
-                ? trim($url[1])
-                : ''
+                : '',
+            'url' => fsr_get_category_url($type)
         ];
     }
     return $events;
+}
+
+function fsr_get_category_url($type) {
+    $categories = get_option(
+        'fsr_calendar_categories',
+        []
+    );
+    foreach($categories as $category) {
+        if(
+            sanitize_title($category['name']) === $type
+        ) {
+            return $category['url'];
+        }
+        foreach(
+            ($category['additionalNames'] ?? []) 
+            as $name
+        ) {
+            if(
+                sanitize_title($name) === $type
+            ) {
+                return $category['url'];
+            }
+        }
+    }
+    return '';
 }

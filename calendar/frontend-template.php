@@ -35,9 +35,7 @@ function fsr_render_events($atts) {
     $result = [];
     $nerdbar_found = false;
     foreach($events as $event){
-        if(
-            stripos($event['title'], 'nerdbar') !== false
-        ){
+        if($event['type'] === 'nerdbar'){
             if($nerdbar_found){
                 continue;
             }
@@ -53,9 +51,11 @@ function fsr_render_events($atts) {
     <div class="fsr-events">
     <?php foreach($result as $event): ?>
         <article class="fsr-event-card">
-            <h5 href="<?php echo esc_url($event['url']); ?>">
-                <?php echo esc_html($event['title']); ?>
-            </h5>
+            <a href="<?php echo esc_url($event['url']); ?>">
+                <h5>
+                    <?php echo esc_html($event['title']); ?>
+                </h5>
+            </a>
             <?php
             if($event['type'] === 'nerdbar') {
                 echo '<small>Alle zwei Wochen</small>';
