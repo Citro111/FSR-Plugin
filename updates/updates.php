@@ -452,24 +452,16 @@ add_filter(
     10,
     3
 );
-
-// Debugging hooks for plugin Logging
-/*
-(
-*/
-    foreach ([
-        'activated_plugin'   => 'ACTIVATED',
-        'deactivated_plugin' => 'DEACTIVATED'
-    ] as $hook => $label) {
-        add_action($hook, function($plugin) use ($label) {
-            fsr_updates_log("$label: $plugin");
-        });
-
-    }
-
-    add_action('admin_menu', function(){
-        require_once __DIR__ . '/templates/adminUI.php';
+foreach ([
+    'activated_plugin'   => 'ACTIVATED',
+    'deactivated_plugin' => 'DEACTIVATED'
+] as $hook => $label) {
+    add_action($hook, function($plugin) use ($label) {
+        fsr_updates_log("$label: $plugin");
     });
-/*
-)
-*/
+
+}
+
+add_action('admin_menu', function(){
+    require_once __DIR__ . '/templates/adminUI.php';
+});

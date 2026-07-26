@@ -48,6 +48,15 @@ function fsr_custom_admin_menu() {
         'fsr-etit-settings-officehours',
         'fsr_custom_settings_page'
     );
+
+    add_submenu_page(
+        'fsr-etit-settings',
+        'Kalender',
+        'Kalender',
+        'manage_options',
+        'fsr-etit-settings-calendar',
+        'fsr_custom_settings_page'
+    );
 }
 
 add_action('admin_init', 'fsr_custom_register_global_settings');
@@ -62,7 +71,8 @@ function fsr_custom_settings_page() {
         'fsr-etit-settings' => 'updates',
         'fsr-etit-settings-dokuwiki' => 'dokuwiki',
         'fsr-etit-settings-membercards' => 'membercards',
-        'fsr-etit-settings-officehours' => 'officehours'
+        'fsr-etit-settings-officehours' => 'officehours',
+        'fsr-etit-settings-calendar' => 'calendar',
     ];
 
     // Rueckwaertskompatibel: alte Links mit ?tab=... weiterhin unterstuetzen.
@@ -77,19 +87,19 @@ function fsr_custom_settings_page() {
         'dokuwiki' => admin_url('admin.php?page=fsr-etit-settings-dokuwiki'),
         'membercards' => admin_url('admin.php?page=fsr-etit-settings-membercards'),
         'officehours' => admin_url('admin.php?page=fsr-etit-settings-officehours'),
+        'calendar' => admin_url('admin.php?page=fsr-etit-settings-calendar'),
     ];
 
     ?>
     <div class="wrap">
         <h1>Configuration</h1>
-
         <h2 class="nav-tab-wrapper">
             <a href="<?php echo esc_url($tab_links['updates']); ?>" class="nav-tab <?php echo $active_tab == 'updates' ? 'nav-tab-active' : ''; ?>">Updates</a>
             <a href="<?php echo esc_url($tab_links['dokuwiki']); ?>" class="nav-tab <?php echo $active_tab == 'dokuwiki' ? 'nav-tab-active' : ''; ?>">DokuWiki Connector</a>
             <a href="<?php echo esc_url($tab_links['membercards']); ?>" class="nav-tab <?php echo $active_tab == 'membercards' ? 'nav-tab-active' : ''; ?>">Mitgliedskarten</a>
             <a href="<?php echo esc_url($tab_links['officehours']); ?>" class="nav-tab <?php echo $active_tab == 'officehours' ? 'nav-tab-active' : ''; ?>">Office Hours</a>
+            <a href="<?php echo esc_url($tab_links['calendar']); ?>" class="nav-tab <?php echo $active_tab == 'calendar' ? 'nav-tab-active' : ''; ?>">Kalender</a>
         </h2>
-
         <?php if ($active_tab == 'dokuwiki') : ?>
             <form method="post" action="options.php" style="margin-top: 20px;">
                 <?php
@@ -114,6 +124,12 @@ function fsr_custom_settings_page() {
             <div style="margin-top: 20px;">
                 <?php
                 fsr_updates_render_admin_interface();
+                ?>
+            </div>
+        <?php elseif ($active_tab == 'calendar') : ?>
+            <div style="margin-top: 20px;">
+                <?php
+                fsr_calendar_render_admin_interface();
                 ?>
             </div>
         <?php else : ?>
