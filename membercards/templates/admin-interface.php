@@ -103,16 +103,9 @@ $all_amt_tags_json = wp_json_encode(array_values($unique_amter));
     <div id="fsr-sortable-members">
         <?php foreach ($members as $index => $member) :
             $team = $member['team'] ?? 'gewaehlte';
-            $is_ehemalige = !empty($member['is_ehemalige']);
             $team_classes = ['fsr-team-' . $team];
-            if ($is_ehemalige) {
-                $team_classes[] = 'fsr-team-ehemalige';
-            }
             $full_display_name = trim(($member['first_name'] ?? '') . ' ' . ($member['last_name'] ?? ''));
             $team_label = $team_labels[$team] ?? ucfirst($team);
-            if ($is_ehemalige && $team !== 'ehemalige') {
-                $team_label .= ' + Ehemalige';
-            }
         ?>
             <div class="fsr-member-row <?php echo esc_attr(implode(' ', $team_classes)); ?>" data-member-id="<?php echo esc_attr($member['id'] ?? 0); ?>">
                 <div class="fsr-row-header">
@@ -160,9 +153,6 @@ $all_amt_tags_json = wp_json_encode(array_values($unique_amter));
                                 <option value="ehemalige" <?php selected($member['team'] ?? '', 'ehemalige'); ?>>Ehemalige</option>
                             </select>
                         </label>
-                        <label class="col-2">Ehemalige:<br>
-                            <input type="checkbox" class="fsr-is-ehemalige" name="fsr_members_settings[members][<?php echo $index; ?>][is_ehemalige]" value="1" <?php checked(!empty($member['is_ehemalige'])); ?> />
-                        </label>
                         <label class="col-2">Abgegangen im Jahr:<br><input type="text" name="fsr_members_settings[members][<?php echo $index; ?>][abgang_jahr]" value="<?php echo esc_attr($member['abgang_jahr'] ?? ''); ?>" placeholder="z. B. 2025" /></label>
                     </div>
 
@@ -192,7 +182,7 @@ $all_amt_tags_json = wp_json_encode(array_values($unique_amter));
             <button type="button" class="button button-secondary" id="fsr-member-import-btn">Import starten</button>
         </div>
         <div class="fsr-import-hint">
-            JSON-Objekte können die Felder <code>first_name</code>, <code>last_name</code>, <code>image</code>, <code>studiengang</code>, <code>abschluss</code>, <code>pronomen</code>, <code>email_prefix</code>, <code>amt</code>, <code>erstes_jahr</code>, <code>semester_anzahl</code>, <code>team</code>, <code>is_ehemalige</code> und <code>abgang_jahr</code> enthalten.
+            JSON-Objekte können die Felder <code>first_name</code>, <code>last_name</code>, <code>image</code>, <code>studiengang</code>, <code>abschluss</code>, <code>pronomen</code>, <code>email_prefix</code>, <code>amt</code>, <code>erstes_jahr</code>, <code>semester_anzahl</code>, <code>team</code> und <code>abgang_jahr</code> enthalten.
         </div>
         <div class="fsr-known-tags">
             <strong>Aktuelle Ämter-Tags:</strong>
@@ -362,7 +352,6 @@ jQuery(document).ready(function($) {
                             <option value="ehemalige">Ehemalige</option>
                         </select>
                     </label>
-                    <label class="col-2">Ehemalige:<br><input type="checkbox" class="fsr-is-ehemalige" name="fsr_members_settings[members][${index}][is_ehemalige]" value="1" /></label>
                     <label class="col-2">Abgegangen im Jahr:<br><input type="text" name="fsr_members_settings[members][${index}][abgang_jahr]" placeholder="z. B. 2025" /></label>
                 </div>
                 <div class="fsr-row-footer-actions">

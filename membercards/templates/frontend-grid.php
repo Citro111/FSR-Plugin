@@ -14,7 +14,6 @@ $teams = [
 foreach ($members as $m) {
     $t_id = $m['team'] ?? 'gewaehlte';
     if (isset($teams[$t_id])) { $teams[$t_id]['list'][] = $m; }
-    //if (!empty($m['is_ehemalige'])) { $teams['ehemalige']['list'][] = $m; }
 }
 
 if (!empty($teams['ehemalige']['list'])) {
