@@ -395,6 +395,14 @@ function fsr_ajax_save_member_order_handler() {
 
     $clean_data = fsr_sanitize_members_payload($form_data['fsr_members_settings']);
     $saved_ids = fsr_upsert_member_records($clean_data['members'], true);
+    if (!empty($_POST['amt_order']) && is_array($_POST['amt_order'])) {
+        update_option(
+            'fsr_membercards_amt_order',
+            array_values(
+                array_map('sanitize_text_field', $_POST['amt_order'])
+            )
+        );
+    }
 
     wp_send_json_success([
         'message' => 'Mitglieder gespeichert.',

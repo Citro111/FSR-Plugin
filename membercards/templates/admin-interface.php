@@ -10,7 +10,7 @@ foreach ($members as $m) {
     }
 }
 $unique_amter = array_unique(array_filter($all_ameter));
-$amt_order = [
+$default_amt_order = [
     '1. Vorsitz',
     '2. Vorsitz',
     'Finanzen',
@@ -21,6 +21,10 @@ $amt_order = [
     'Sport',
     'Soziales'
 ];
+$amt_order = get_option('fsr_membercards_amt_order', $default_amt_order);
+if (empty($amt_order)) {
+    $amt_order = $default_amt_order;
+}
 fsr_sort_tags($unique_amter, $amt_order);
 
 $team_labels = [
@@ -307,10 +311,11 @@ jQuery(document).ready(function($) {
         reindeMemberxRows();
         $('#fsr-save-indicator').text('Speichert...').css({'color':'var(--theme-palette-color-6)', 'background':'var(--theme-palette-color-13)', 'border-color':'var(--theme-palette-color-5)'}).fadeIn();
         const formData = $('#fsr-sortable-members :input').serialize();
+        const amtOrder = $('#fsr-sortable-amter').data('order') || [];
         $.ajax({
             url: ajaxurl,
             type: 'POST',
-            data: { action: 'fsr_save_member_order', order: formData, nonce: nonce },
+            data: { action: 'fsr_save_member_order', order: formData, amt_order: amtOrder, nonce: nonce },
             success: function(response) {
                 if(response.success) {
                     if (response.data && response.data.member_ids) {
@@ -406,7 +411,15 @@ jQuery(document).ready(function($) {
 
     $('#fsr-sortable-amter').sortable({
         placeholder: 'ui-state-highlight',
-        tolerance: 'pointer'
+        tolerance: 'pointer',
+        update: function () {
+            const amtOrder = [];
+            $('#fsr-sortable-amter .fsr-known-tag').each(function () {
+                amtOrder.push($(this).data('tag'));
+            });
+            $('#fsr-sortable-amter').data('order', amtOrder);
+            triggerAutoSave();
+        }
     });
 
     $(document).on('click', '.fsr-toggle-trigger', function() {
