@@ -197,14 +197,13 @@ $all_amt_tags_json = wp_json_encode(array_values($unique_amter));
         </div>
         <div class="fsr-known-tags">
             <strong>Aktuelle Ämter-Tags:</strong>
-            <div class="fsr-known-tags-list">
-                <?php if (!empty($unique_amter)) : ?>
-                    <?php foreach ($unique_amter as $amt_tag) : ?>
-                        <span class="fsr-known-tag"><?php echo esc_html($amt_tag); ?></span>
-                    <?php endforeach; ?>
-                <?php else : ?>
-                    <span class="description">Noch keine Tags vorhanden.</span>
-                <?php endif; ?>
+            <div class="fsr-known-tags-list" id="fsr-sortable-amter">
+                <?php foreach ($unique_amter as $amt_tag) : ?>
+                    <div class="fsr-known-tag" data-tag="<?php echo esc_attr($amt_tag); ?>">
+                        <span class="dashicons dashicons-menu-alt3"></span>
+                        <?php echo esc_html($amt_tag); ?>
+                    </div>
+                <?php endforeach; ?>
             </div>
         </div>
         <div id="fsr-import-status" aria-live="polite"></div>
@@ -403,6 +402,11 @@ jQuery(document).ready(function($) {
         handle: '.fsr-row-header', placeholder: 'ui-state-highlight', forcePlaceholderSize: true,
         start: function(e, ui){ ui.placeholder.css({'height': ui.item.find('.fsr-row-header').outerHeight()}); },
         update: function() { triggerAutoSave(); }
+    });
+    
+    $('#fsr-sortable-amter').sortable({
+        axis: 'y',
+        placeholder: 'ui-state-highlight'
     });
 
     $(document).on('click', '.fsr-toggle-trigger', function() {
