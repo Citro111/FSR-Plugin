@@ -78,11 +78,13 @@ function fsr_parse_ical($ical){
             continue;
         }
         $raw_title = trim($title[1]);
-        $type = fsr_detect_event_category($raw_title);
+        $type = 'none';
         $clean_title = $raw_title;
         if (preg_match('/^\[(.*?)\]\s*(.*)$/', $raw_title, $matches)) {
             $type = sanitize_title($matches[1]);
             $clean_title = trim($matches[2]);
+        } else {
+            $type = fsr_detect_event_category($raw_title);
         }
 
         $events[] = [
@@ -190,12 +192,8 @@ function fsr_detect_event_category($title) {
             }
         }
         foreach ($names as $name) {
-            if (
-                str_contains(
-                    $search,
-                    strtolower(trim($name))
-                )
-            ) {
+            $name = trim(strtolower($name));
+            if ($name !== '' && str_contains($search, $name)) {
                 return sanitize_title(
                     $category['name']
                 );
