@@ -76,9 +76,11 @@ function fsr_render_events($atts) {
                     </h5>
                 </a>
             <?php } else { ?>
-                <h5>
-                    <?php echo esc_html($event['title']); ?>
-                </h5>
+                <a>
+                    <h5>
+                        <?php echo esc_html($event['title']); ?>
+                    </h5>
+                </a>
             <?php } ?>
             <?php
             if($event['type'] === 'nerdbar') {
