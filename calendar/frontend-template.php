@@ -6,16 +6,31 @@ add_shortcode('fsr_events', 'fsr_render_events');
 function fsr_render_events($atts) {
     $atts = shortcode_atts(
         [
-            'count' => 5
+            'count' => 5,
+            'category' => ''
         ],
         $atts
     );
     $count = intval($atts['count']);
+    $category = sanitize_title($atts['category']);
     $calendar_url = get_option(FSR_CALENDAR_URL);
     if (!$calendar_url) {
         return '<p>Kein Kalender hinterlegt.</p>';
     }
     $events = fsr_get_calendar_events($calendar_url);
+    error_log('CALENDAR: Fetched ' . count($events) . ' events from calendar.');
+    error_log('CALENDAR: Category filter: ' . $category);
+    error_log('CALENDAR: Count limit: ' . $count);
+    error_log('CALENDAR: Events: ' . print_r($events, true));
+    if ($category) {
+        $events = array_filter(
+            $events,
+            function($event) use ($category) {
+                return $event['type'] === $category;
+            }
+        );
+    }
+    error_log('CALENDAR: Filtered events: ' . print_r($events, true));
     if (!$events) {
         return '<p>Keine Veranstaltungen gefunden.</p>';
     }
@@ -34,9 +49,9 @@ function fsr_render_events($atts) {
      */
     $result = [];
     $nerdbar_found = false;
-    foreach($events as $event){
-        if($event['type'] === 'nerdbar'){
-            if($nerdbar_found){
+    foreach($events as $event) {
+        if(!$category && $event['type'] === 'nerdbar') {
+            if($nerdbar_found) {
                 continue;
             }
             $nerdbar_found = true;
