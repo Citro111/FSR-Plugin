@@ -42,6 +42,7 @@ function fsr_parse_ical($ical){
         $ical,
         $matches
     );
+    error_log('CALENDAR: Found ' . count($matches[1]) . ' events in calendar data.');
     foreach($matches[1] as $raw){
         preg_match(
             '/SUMMARY:(.*)/',
@@ -73,6 +74,7 @@ function fsr_parse_ical($ical){
         $timestamp = strtotime(
             $date_string
         );
+        error_log('CALENDAR: Parsed event: ' . print_r(var_dump($timestamp), true));
         if(
             $timestamp < time()
         ){
