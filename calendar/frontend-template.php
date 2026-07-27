@@ -18,13 +18,14 @@ function fsr_render_events($atts) {
         return '<p>Kein Kalender hinterlegt.</p>';
     }
     $events = fsr_get_calendar_events($calendar_url);
+    error_log('CALENDAR: Total events fetched: ' . count($events));
     $events = array_filter(
         $events,
         function($event){
             return $event['timestamp'] >= time();
         }
     );
-    error_log('FRONTEND EVENTS: ' . count($events));
+    error_log('CALENDAR: Active events: ' . count($events));
     foreach($events as $event){
         error_log(
             $event['title'] . ' | ' .
