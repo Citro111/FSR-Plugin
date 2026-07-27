@@ -60,6 +60,7 @@ function fsr_render_events($atts) {
         if(count($result) >= $count){
             break;
         }
+        error_log('CALENDAR: Added event: ' . print_r($event, true));
     }
     ob_start();
     ?>
@@ -81,6 +82,7 @@ function fsr_render_events($atts) {
             if($event['type'] === 'nerdbar') {
                 echo '<small>Alle zwei Wochen</small>';
             }
+            error_log('CALENDAR: Rendering event: ' . print_r($event, true));
             ?>
             <div class="fsr-event-date">
                 <?php echo esc_html(
