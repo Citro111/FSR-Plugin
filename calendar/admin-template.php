@@ -79,25 +79,25 @@ function fsr_calendar_render_admin_interface() {
                     <tr>
                         <td>
                             <input 
-                            type="text"
-                            name="fsr_calendar_categories[<?php echo $index; ?>][name]"
-                            value="<?php echo esc_attr($category['name']); ?>"
+                                type="text"
+                                name="fsr_calendar_categories[<?php echo $index; ?>][name]"
+                                value="<?php echo esc_attr($category['name']); ?>"
                             >
                         </td>
                         <td>
                             <input 
-                            type="text"
-                            name="fsr_calendar_categories[<?php echo $index; ?>][additionalNames]"
-                            value="<?php echo esc_attr(
-                            implode(',', $category['additionalNames'] ?? [])
-                            ); ?>"
+                                type="text"
+                                name="fsr_calendar_categories[<?php echo $index; ?>][additionalNames]"
+                                value="<?php echo esc_attr(
+                                implode(',', $category['additionalNames'] ?? [])
+                                ); ?>"
                             >
                         </td>
                         <td>
                             <input 
-                            type="url"
-                            name="fsr_calendar_categories[<?php echo $index; ?>][url]"
-                            value="<?php echo esc_attr($category['url']); ?>"
+                                type="url"
+                                name="fsr_calendar_categories[<?php echo $index; ?>][url]"
+                                value="<?php echo esc_attr($category['url']); ?>"
                             >
                         </td>
                         <td>
@@ -119,9 +119,9 @@ function fsr_calendar_render_admin_interface() {
             $('#add-category-btn').click(function(e) {
                 e.preventDefault();
                 var newRow = '<tr>' +
-                    '<td><input type="text" name="fsr_calendar_categories[][name]" placeholder="Kategorie Name"></td>' +
-                    '<td><input type="text" name="fsr_calendar_categories[][additionalNames]" placeholder="Weitere Namen (optional)"></td>' +
-                    '<td><input type="url" name="fsr_calendar_categories[][url]" placeholder="Kategorie URL"></td>' +
+                    '<td><input type="text" name="fsr_calendar_categories[${categoryIndex}][name]" placeholder="Kategorie Name"></td>' +
+                    '<td><input type="text" name="fsr_calendar_categories[${categoryIndex}][additionalNames]" placeholder="Weitere Namen (optional)"></td>' +
+                    '<td><input type="url" name="fsr_calendar_categories[${categoryIndex}][url]" placeholder="Kategorie URL"></td>' +
                     '<td><button class="remove-category">Entfernen</button></td>' +
                     '</tr>';
                 $('#category-table tbody').append(newRow);

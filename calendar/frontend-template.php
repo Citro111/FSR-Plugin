@@ -51,11 +51,17 @@ function fsr_render_events($atts) {
     <div class="fsr-events">
     <?php foreach($result as $event): ?>
         <article class="fsr-event-card">
-            <a href="<?php echo esc_url($event['url']); ?>">
+            <?php if($event['url'] !== '') { ?>
+                <a href="<?php echo esc_url($event['url']); ?>">
+                    <h5>
+                        <?php echo esc_html($event['title']); ?>
+                    </h5>
+                </a>
+            <?php } else { ?>
                 <h5>
                     <?php echo esc_html($event['title']); ?>
                 </h5>
-            </a>
+            <?php } ?>
             <?php
             if($event['type'] === 'nerdbar') {
                 echo '<small>Alle zwei Wochen</small>';

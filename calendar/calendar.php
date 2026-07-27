@@ -78,7 +78,7 @@ function fsr_parse_ical($ical){
             continue;
         }
         $raw_title = trim($title[1]);
-        $type = 'allgemein';
+        $type = fsr_detect_event_category($raw_title);
         $clean_title = $raw_title;
         if (preg_match('/^\[(.*?)\]\s*(.*)$/', $raw_title, $matches)) {
             $type = sanitize_title($matches[1]);
@@ -162,4 +162,45 @@ function fsr_sanitize_categories($categories) {
         }
     }
     return $categories;
+}
+
+function fsr_detect_event_category($title) {
+    $categories = get_option(
+        'fsr_calendar_categories',
+        []
+    );
+    $search = strtolower($title);
+    foreach ($categories as $category) {
+        $names = [];
+        $names[] = $category['name'];
+        if (!empty($category['additionalNames'])) {
+            if (is_array($category['additionalNames'])) {
+                $names = array_merge(
+                    $names,
+                    $category['additionalNames']
+                );
+            } else {
+                $names = array_merge(
+                    $names,
+                    explode(
+                        ',',
+                        $category['additionalNames']
+                    )
+                );
+            }
+        }
+        foreach ($names as $name) {
+            if (
+                str_contains(
+                    $search,
+                    strtolower(trim($name))
+                )
+            ) {
+                return sanitize_title(
+                    $category['name']
+                );
+            }
+        }
+    }
+    return 'allgemein';
 }
