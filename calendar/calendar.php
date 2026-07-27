@@ -74,10 +74,6 @@ function fsr_parse_ical($ical){
             $date_string
         );
         error_log('CALENDAR: Parsed event: ' . print_r($timestamp, true) . ' - ' . print_r($title[1], true));
-        if($timestamp < time()) {
-            error_log('CALENDAR: Skipping past event: ' . print_r($title[1], true));
-            continue;
-        }
         $raw_title = trim($title[1]);
         $type = 'none';
         $clean_title = $raw_title;
