@@ -40,7 +40,7 @@ function fsr_render_events($atts) {
             }
         );
     }
-    error_log('CALENDAR: Filtered events: ' . print_r($events, true));
+    error_log('CALENDAR: Nach Kategorie gefiltert: ' . count($events));
     if (!$events) {
         return '<p>Keine Veranstaltungen gefunden.</p>';
     }
@@ -59,6 +59,7 @@ function fsr_render_events($atts) {
      */
     $result = [];
     $nerdbar_found = false;
+    error_log("Vor NerdBar Filter: " . count($events));
     foreach($events as $event) {
         if(!$category && $event['type'] === 'nerdbar') {
             if($nerdbar_found) {
@@ -74,6 +75,7 @@ function fsr_render_events($atts) {
         }
         error_log('CALENDAR: Added event: ' . print_r($event, true));
     }
+    error_log("Nach NerdBar Filter: " . count($result));
     ob_start();
     ?>
     <div class="fsr-events">

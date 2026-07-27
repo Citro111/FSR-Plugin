@@ -73,7 +73,6 @@ function fsr_parse_ical($ical){
         $timestamp = strtotime(
             $date_string
         );
-        error_log('CALENDAR: Parsed event: ' . print_r($timestamp, true) . ' - ' . print_r($title[1], true));
         $raw_title = trim($title[1]);
         $type = 'none';
         $clean_title = $raw_title;
@@ -96,7 +95,7 @@ function fsr_parse_ical($ical){
                 : '',
             'url' => fsr_get_category_url($type)
         ];
-        error_log('CALENDAR: Event added: ' . print_r($events[count($events)-1], true));
+        // error_log('CALENDAR: Event added: ' . print_r($events[count($events)-1], true));
     }
     error_log('CALENDAR: Parsed ' . count($events) . ' events from calendar data.');
     return $events;
