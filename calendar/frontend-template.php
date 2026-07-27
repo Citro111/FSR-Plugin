@@ -103,16 +103,16 @@ function fsr_render_events($atts) {
                 <?php echo esc_html($event['location']); ?>
             </div>
             <?php endif; ?>
-            <?php if($event['description']): ?>
             <p>
-                <?php echo esc_html(
-                    wp_trim_words(
-                        $event['description'],
-                        20
-                    )
-                ); ?>
+                <?php if($event['description']): ?>
+                    <?php echo esc_html(
+                        wp_trim_words(
+                            $event['description'],
+                            20
+                        )
+                    ); ?>
+                <?php endif; ?>
             </p>
-            <?php endif; ?>
         </article>
     <?php endforeach; ?>
     </div>
