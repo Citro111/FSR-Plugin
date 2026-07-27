@@ -18,10 +18,20 @@ function fsr_render_events($atts) {
         return '<p>Kein Kalender hinterlegt.</p>';
     }
     $events = fsr_get_calendar_events($calendar_url);
-    error_log('CALENDAR: Fetched ' . count($events) . ' events from calendar.');
-    error_log('CALENDAR: Category filter: ' . $category);
-    error_log('CALENDAR: Count limit: ' . $count);
-    error_log('CALENDAR: Events: ' . print_r($events, true));
+    $events = array_filter(
+        $events,
+        function($event){
+            return $event['timestamp'] >= time();
+        }
+    );
+    error_log('FRONTEND EVENTS: ' . count($events));
+    foreach($events as $event){
+        error_log(
+            $event['title'] . ' | ' .
+            date('d.m.Y H:i', $event['timestamp']) . ' | ' .
+            $event['type']
+        );
+    }
     if ($category) {
         $events = array_filter(
             $events,
