@@ -22,10 +22,13 @@ function fsr_render_events($atts) {
     $events = array_filter(
         $events,
         function($event){
-            return $event['timestamp'] >= time();
+            error_log('CALENDAR: Checking event timestamp: ' . $event['timestamp'] . ' against current time: ' . current_time('timestamp'));
+            return $event['timestamp'] >= current_time('timestamp');
         }
     );
     error_log('CALENDAR: Active events: ' . count($events));
+    $events = array_values($events);
+    error_log('CALENDAR: Active events after reindexing: ' . count($events));
     foreach($events as $event){
         error_log(
             $event['title'] . ' | ' .
