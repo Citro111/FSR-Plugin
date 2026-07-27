@@ -31,6 +31,7 @@ function fsr_get_calendar_events($url){
     if(!$data){
         return [];
     }
+    error_log('CALENDAR: Fetched calendar data: ' . substr($data, 0, 200) . '...');
     return fsr_parse_ical($data);
 }
 
@@ -100,6 +101,7 @@ function fsr_parse_ical($ical){
             'url' => fsr_get_category_url($type)
         ];
     }
+    error_log('CALENDAR: Parsed ' . count($events) . ' events from calendar data.');
     return $events;
 }
 
