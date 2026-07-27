@@ -52,12 +52,14 @@ function fsr_render_events($atts) {
     foreach($events as $event) {
         if(!$category && $event['type'] === 'nerdbar') {
             if($nerdbar_found) {
+                error_log('CALENDAR: Skipping nerdbar event: ' . print_r($event, true));
                 continue;
             }
             $nerdbar_found = true;
         }
         $result[] = $event;
         if(count($result) >= $count){
+            error_log('CALENDAR: Reached count limit of ' . $count . ', stopping event processing.');
             break;
         }
         error_log('CALENDAR: Added event: ' . print_r($event, true));
