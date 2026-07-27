@@ -31,7 +31,7 @@ function fsr_get_calendar_events($url){
     if(!$data){
         return [];
     }
-    error_log('CALENDAR: Fetched calendar data: ' . substr($data, 0, 200) . '...');
+    error_log('CALENDAR: Fetched calendar data: ' . print_r($data, true) . '...');
     return fsr_parse_ical($data);
 }
 
