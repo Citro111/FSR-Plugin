@@ -35,70 +35,29 @@ function fsr_get_calendar_events($url){
     return fsr_parse_ical($data);
 }
 
-function fsr_parse_ical($ical){
+function fsr_parse_ical($ical) {
     $events = [];
-    preg_match_all(
-        '/BEGIN:VEVENT(.*?)END:VEVENT/s',
-        $ical,
-        $matches
-    );
+    preg_match_all('/BEGIN:VEVENT(.*?)END:VEVENT/s', $ical, $matches);
     error_log('CALENDAR: Found ' . count($matches[1]) . ' events in calendar data.');
-    foreach($matches[1] as $raw){
-        preg_match(
-            '/SUMMARY:(.*)/',
-            $raw,
-            $title
-        );
-        preg_match(
-            '/DTSTART[^:]*:(.*)/',
-            $raw,
-            $start_date
-        );
-        preg_match(
-            '/LOCATION:(.*)/',
-            $raw,
-            $location
-        );
-        preg_match(
-            '/DESCRIPTION:(.*)/',
-            $raw,
-            $description
-        );
-        preg_match(
-            '/RRULE:(.*)/',
-            $raw,
-            $recurrence
-        );
-        preg_match(
-            '/END:(.*)/',
-            $raw,
-            $end_date
-        );
-        if(
-            empty($title[1]) ||
-            empty($start_date[1])
-        ){
+    foreach ($matches[1] as $raw) {
+        preg_match('/SUMMARY:(.*)/', $raw, $title);
+        preg_match('/DTSTART(?:;[^:]*)?:(.*)/', $raw, $start_date);
+        preg_match('/DTEND(?:;[^:]*)?:(.*)/', $raw, $end_date);
+        preg_match('/LOCATION:(.*)/', $raw, $location);
+        preg_match('/DESCRIPTION:(.*)/', $raw, $description);
+        preg_match('/RRULE:(.*)/', $raw, $recurrence);
+        if (empty($title[1]) || empty($start_date[1])) {
             continue;
         }
         $date_string = trim($start_date[1]);
-        $end_date_string = trim($end_date[1]);
-        $timestamp = fsr_get_next_event_timestamp($date_string, $recurrence[1] ?? null, $end_date_string);
-        error_log("CALENDAR: Processing raw event: " . print_r($raw, true));
-        error_log(
-            "DTSTART: {$date_string} -> "
-            . gmdate('Y-m-d H:i:s', $timestamp)
-            . " UTC / "
-            . date('Y-m-d H:i:s', $timestamp)
-            . " Local"
-        );
-        error_log("RAW DTSTART: " . $date_string);
-        error_log("Timestamp: " . $timestamp);
-        error_log("Title: " . $title[1]);
-        error_log("Rule: " . ($recurrence[1] ?? 'none'));
-        error_log("End Date: " . ($end_date[1] ?? 'none'));
-        error_log("");
+        $end_date_string = !empty($end_date[1]) ? trim($end_date[1]) : null;
+        $rrule = $recurrence[1] ?? null;
+        $timestamp = fsr_get_next_event_timestamp($date_string, $rrule, $end_date_string);
+        if (!$timestamp) {
+            continue;
+        }
         $raw_title = trim($title[1]);
-        $type = 'none';
+        $type = 'allgemein';
         $clean_title = $raw_title;
         if (preg_match('/^\[(.*?)\]\s*(.*)$/', $raw_title, $matches)) {
             $type = sanitize_title($matches[1]);
@@ -106,20 +65,14 @@ function fsr_parse_ical($ical){
         } else {
             $type = fsr_detect_event_category($raw_title);
         }
-
         $events[] = [
-            'title'=>$clean_title,
-            'type'=>$type,
-            'timestamp'=>$timestamp,
-            'location'=>isset($location[1])
-                ? trim($location[1])
-                : '',
-            'description'=>isset($description[1])
-                ? trim($description[1])
-                : '',
-            'url' => fsr_get_category_url($type)
+            'title' => $clean_title,
+            'type' => $type,
+            'timestamp' => $timestamp,
+            'location' => isset($location[1]) ? trim($location[1]) : '',
+            'description' => isset($description[1]) ? trim($description[1]) : '',
+            'url' => fsr_get_category_url($type),
         ];
-        // error_log('CALENDAR: Event added: ' . print_r($events[count($events)-1], true));
     }
     error_log('CALENDAR: Parsed ' . count($events) . ' events from calendar data.');
     return $events;
@@ -264,70 +217,49 @@ function fsr_search_pages() {
 
 function fsr_get_next_event_timestamp($date_string, $recurrence_rule = null, $end_date_string = null) {
     $now = current_time('timestamp');
-    // Startdatum parsen
     $start_timestamp = strtotime($date_string);
     if (!$start_timestamp) {
         return false;
     }
-    // Kein wiederkehrendes Event
     if (!$recurrence_rule) {
         return $start_timestamp >= $now ? $start_timestamp : false;
     }
-    $end_timestamp = $end_date_string
-        ? strtotime($end_date_string)
-        : null;
-    if ($end_timestamp && $end_timestamp < $now) {
-        return false;
-    }
-    $current = $start_timestamp;
-    // RRULE Werte extrahieren
     $rules = [];
     foreach (explode(';', $recurrence_rule) as $part) {
-        [$key, $value] = explode('=', $part, 2);
-        $rules[$key] = $value;
+        if (str_contains($part, '=')) {
+            [$key, $value] = explode('=', $part, 2);
+            $rules[$key] = $value;
+        }
     }
-    $freq = $rules['FREQ'] ?? null;
-    $interval = isset($rules['INTERVAL'])
-        ? intval($rules['INTERVAL'])
-        : 1;
-    // Sicherheitslimit gegen kaputte RRULEs
+    if (!empty($rules['UNTIL'])) {
+        $until_timestamp = strtotime($rules['UNTIL']);
+        if ($until_timestamp && $until_timestamp < $now) {
+            return false;
+        }
+    }
+    $current = $start_timestamp;
+    $freq = $rules['FREQ'] ?? '';
+    $interval = isset($rules['INTERVAL']) ? max(1, (int)$rules['INTERVAL']) : 1;
     $iterations = 0;
     $max_iterations = 1000;
     while ($current < $now && $iterations < $max_iterations) {
         switch ($freq) {
             case 'DAILY':
-                $current = strtotime(
-                    "+{$interval} day",
-                    $current
-                );
+                $current = strtotime("+{$interval} day", $current);
                 break;
             case 'WEEKLY':
-                $current = strtotime(
-                    "+".(7 * $interval)." days",
-                    $current
-                );
+                $current = strtotime('+' . (7 * $interval) . ' days', $current);
                 break;
             case 'MONTHLY':
-                $current = strtotime(
-                    "+{$interval} month",
-                    $current
-                );
+                $current = strtotime("+{$interval} month", $current);
                 break;
             case 'YEARLY':
-                $current = strtotime(
-                    "+{$interval} year",
-                    $current
-                );
+                $current = strtotime("+{$interval} year", $current);
                 break;
             default:
                 return false;
         }
         $iterations++;
-        if ($end_timestamp && $current > $end_timestamp) {
-            return false;
-        }
     }
-    return $current >= $now
-        ? $current
-        : false;
+    return $current >= $now ? $current : false;
 }
