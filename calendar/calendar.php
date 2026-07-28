@@ -260,22 +260,20 @@ function fsr_sanitize_categories($categories) {
         return [];
     }
     foreach ($categories as &$category) {
-        $category['name'] = sanitize_text_field(
-            $category['name']
-        );
-        $category['page_id'] = absint(
-            $category['page_id'] ?? 0
-        );
-        if(isset($category['additionalNames'])) {
-            $category['additionalNames'] =
+        $category['name'] = sanitize_text_field($category['name'] ?? '');
+        $category['page_id'] = absint($category['page_id'] ?? 0);
+        $names = $category['additionalNames'] ?? [];
+        if (!is_array($names)) {
+            $names = explode(',', $names);
+        }
+        $category['additionalNames'] = array_values(
+            array_filter(
                 array_map(
                     'sanitize_text_field',
-                    explode(
-                        ',',
-                        $category['additionalNames']
-                    )
-                );
-        }
+                    array_map('trim', $names)
+                )
+            )
+        );
     }
     return $categories;
 }
