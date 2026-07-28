@@ -73,6 +73,17 @@ function fsr_parse_ical($ical){
         $timestamp = strtotime(
             $date_string
         );
+        error_log(
+            "DTSTART: {$date_string} -> "
+            . gmdate('Y-m-d H:i:s', $timestamp)
+            . " UTC / "
+            . date('Y-m-d H:i:s', $timestamp)
+            . " Local"
+        );
+        error_log("RAW DTSTART: " . $date_string);
+        error_log("Timestamp: " . $timestamp);
+        error_log("Title: " . $title[1]);
+        error_log("");
         $raw_title = trim($title[1]);
         $type = 'none';
         $clean_title = $raw_title;

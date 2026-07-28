@@ -22,7 +22,7 @@ function fsr_render_events($atts) {
     $events = array_filter(
         $events,
         function($event){
-            error_log('CALENDAR: Checking event: ' . $event['title'] . ' | timestamp: ' . $event['timestamp'] . '-' . current_time('timestamp'));
+            error_log('CALENDAR: Checking event: ' . $event['title'] . ' | timestamp: ' . $event['timestamp'] . '-' . current_time('timestamp') . ' | Status: ' . ($event['timestamp'] >= current_time('timestamp') ? 'active' : 'inactive'));
             return $event['timestamp'] >= current_time('timestamp');
         }
     );
@@ -77,7 +77,6 @@ function fsr_render_events($atts) {
             error_log('CALENDAR: Reached count limit of ' . $count . ', stopping event processing.');
             break;
         }
-        error_log('CALENDAR: Added event: ' . print_r($event, true));
     }
     error_log("Nach NerdBar Filter: " . count($result));
     ob_start();
@@ -85,18 +84,18 @@ function fsr_render_events($atts) {
     <div class="fsr-events">
     <?php foreach($result as $event): ?>
         <article class="fsr-event-card">
-            <?php if($event['url'] !== '') { ?>
+            <?php if($event['url'] !== ''&& $event['url'] !== ) { ?>
                 <a href="<?php echo esc_url($event['url']); ?>">
                     <h5>
                         <?php echo esc_html($event['title']); ?>
                     </h5>
                 </a>
             <?php } else { ?>
-                <a>
-                    <h5>
+                <p>
+                    <h5 margin="0">
                         <?php echo esc_html($event['title']); ?>
                     </h5>
-                </a>
+                </p>
             <?php } ?>
             <?php
             if($event['type'] === 'nerdbar') {
