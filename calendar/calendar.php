@@ -105,7 +105,7 @@ function fsr_merge_calendar_recurrences($events) {
         $base_uid = preg_replace(
             '/_R\d{8}T\d{6}/',
             '',
-            $event['uid']
+            $event['id']
         );
         if (!empty($event['recurrence_id'])) {
             $exceptions[$base_uid][] = $event;
