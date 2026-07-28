@@ -24,6 +24,7 @@ function fsr_render_events($atts) {
         $events,
         function($event){
             error_log('CALENDAR: Checking event: ' . $event['title'] . ' | ID: ' . ($event['id'] ?? 'none'));
+            error_log('CALENDAR: Recurrence ID: ' . ($event['recurrence_id'] ?? 'none'));
             return $event['timestamp'] >= current_time('timestamp');
         }
     );

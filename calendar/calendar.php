@@ -37,21 +37,24 @@ function fsr_get_calendar_events($url){
 
 function fsr_parse_ical($ical) {
     $events = [];
+    error_log('CALENDAR: Parsing iCal data' . print_r($events, true));
     preg_match_all('/BEGIN:VEVENT(.*?)END:VEVENT/s', $ical, $matches);
     error_log('CALENDAR: Found ' . count($matches[1]) . ' events in calendar data.');
     error_log('===================Parsing Events========================');
     foreach ($matches[1] as $raw) {
+        error_log('CALENDAR: Parsing event data: ' . print_r($raw, true));
         preg_match('/SUMMARY:(.*)/', $raw, $title);
         preg_match('/DTSTART(?:;[^:]*)?:(.*)/', $raw, $start_date);
         preg_match('/DTEND(?:;[^:]*)?:(.*)/', $raw, $end_date);
         preg_match('/LOCATION:(.*)/', $raw, $location);
         preg_match('/DESCRIPTION:(.*)/', $raw, $description);
         preg_match('/RRULE:(.*)/', $raw, $recurrence);
-        preg_match('/UID:(.*)/', $raw, $uid);
-        $event_uid = trim($uid[1] ?? '');
-        $recurrence_id = null;
-        if (preg_match('/_R(\d{8}T\d{6})/', $event_uid, $matches)) {
-            $recurrence_id = $matches[1];
+        preg_match('/UID:(.*)/', $raw, $uid_match);
+        preg_match('/RECURRENCE-ID(?:;[^:]*)?:(.*)/', $raw, $recurrence_id_match);
+        $uid = trim($uid_match[1] ?? '');
+        $recurrence_id = trim($recurrence_id_match[1] ?? '');
+        if ($recurrence_id === '' && preg_match('/_R(\d{8}T\d{6})/', $uid, $m)) {
+            $recurrence_id = $m[1];
         }
         if (empty($title[1]) || empty($start_date[1])) {
             continue;
@@ -61,7 +64,6 @@ function fsr_parse_ical($ical) {
         $rrule = $recurrence[1] ?? null;
         $timestamp = fsr_get_next_event_timestamp($date_string, $rrule, $end_date_string);
         if (!$timestamp) {
-            error_log('');
             continue;
         }
         $raw_title = trim($title[1]);
@@ -75,7 +77,7 @@ function fsr_parse_ical($ical) {
         }
         error_log('CALENDAR: Event "' . $clean_title . '" detected as type "' . $type . '" with timestamp ' . $timestamp);
         error_log('CALENDAR: Date string: ' . $date_string . ', Recurrence: ' . ($rrule ?? 'none') . ', End Date: ' . ($end_date_string ?? 'none'));
-        error_log("UID: " . ($event_uid ?? 'none'));
+        error_log("UID: " . ($uid ?? 'none'));
         error_log("RECURRENCE-ID: " . ($recurrence_id ?? 'none'));
         error_log("====================Event Details========================");
         error_log(print_r($raw, true));
@@ -88,7 +90,7 @@ function fsr_parse_ical($ical) {
             'location' => isset($location[1]) ? trim($location[1]) : '',
             'description' => isset($description[1]) ? trim($description[1]) : '',
             'url' => fsr_get_category_url($type),
-            'id' => $event_uid,
+            'id' => $uid,
             'recurrence_id' => $recurrence_id,
         ];
     }
@@ -239,7 +241,6 @@ function fsr_get_next_event_timestamp($date_string, $recurrence_rule = null, $en
         return false;
     }
     if (!$recurrence_rule) {
-        error_log('CALENDAR: No recurrence rule, returning start timestamp: ' . $start_timestamp);
         return $start_timestamp >= $now ? $start_timestamp : false;
     }
     $rules = [];
@@ -252,7 +253,6 @@ function fsr_get_next_event_timestamp($date_string, $recurrence_rule = null, $en
     if (!empty($rules['UNTIL'])) {
         $until_timestamp = strtotime($rules['UNTIL']);
         if ($until_timestamp && $until_timestamp < $now) {
-            error_log('CALENDAR: Event has ended before current time.');
             return false;
         }
     }
