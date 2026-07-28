@@ -389,7 +389,7 @@ function fsr_dw_search($search_term) {
             $date = $time->getAttribute('datetime');
         }
 
-        $virtual_posts[] = fsr_create_virtual_search_post(
+        $virtual_posts[] = fsr_create_virtual_post(
             $title,
             $excerpt,
             $excerpt,

@@ -83,52 +83,15 @@ function fsr_render_events($atts) {
     ob_start();
     ?>
     <div class="fsr-events">
-    <?php foreach($result as $event): ?>
-        <article class="fsr-event-card">
-            <h5 class="fsr-event-title">
-                <?php
-                $current_page_id = get_queried_object_id();
-                $event_page_id = url_to_postid($event['url']);
-                if ($event['url'] !== '' && $event_page_id !== $current_page_id ) : ?>
-                    <a href="<?php echo esc_url($event['url']); ?>">
-                        <?php echo esc_html($event['title']); ?>
-                    </a>
-                <?php else : ?>
-                    <?php echo esc_html($event['title']); ?>
-                <?php endif; ?>
-            </h5>
-            <?php
-            if($event['type'] === 'nerdbar') {
-                echo '<small>Alle zwei Wochen</small>';
-            }
-            error_log('CALENDAR: Rendering event: ' . print_r($event, true));
-            ?>
-            <div class="fsr-event-date">
-                <?php echo esc_html(
-                    date_i18n(
-                        'd.m.Y H:i',
-                        $event['timestamp']
-                    )
-                ); ?>
-                Uhr
-            </div>
-            <?php if($event['location']): ?>
-            <div>
-                📍
-                <?php echo esc_html($event['location']); ?>
-            </div>
-            <?php endif; ?>
-            <p>
-                <?php if($event['description']): ?>
-                    <?php echo esc_html(
-                        wp_trim_words(
-                            $event['description'],
-                            20
-                        )
-                    ); ?>
-                <?php endif; ?>
-            </p>
-        </article>
+        <?php foreach($result as $event):
+            fsr_create_virtual_post(
+                $event['title'],
+                $event['description'],
+                $event['description'],
+                $event['url'],
+                date('Y-m-d H:i:s', $event['timestamp']),
+                'event'
+            ); ?>
     <?php endforeach; ?>
     </div>
     <?php

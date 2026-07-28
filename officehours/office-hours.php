@@ -753,7 +753,7 @@ function fsr_office_hours_search(string $search): array {
             fsr_office_hours_rule_to_text($rule),
             $next_text,
         ]);
-        $results[] = fsr_create_virtual_search_post(
+        $results[] = fsr_create_virtual_post(
             $rule['title'],
             $content,
             $content,
