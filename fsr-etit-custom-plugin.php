@@ -27,25 +27,29 @@ define(
     $plugin_data['Version']
 );
 
-//Globals laden
-// Admin Integration
-fsr_load_module(FSR_PLUGIN_DIR . 'global/admin.php', 'Global Admin');
-// Variables Integration
-fsr_load_module(FSR_PLUGIN_DIR . 'global/variables.php', 'Variables');
-// Search Integration
-fsr_load_module(FSR_PLUGIN_DIR . 'global/search.php', 'Search');
+// 1. Globale Admin-Oberfläche laden
+require_once FSR_PLUGIN_DIR . 'global/admin.php';
 
-//Categories Integration
-// DokuWiki Integration
-fsr_load_module(FSR_PLUGIN_DIR . 'dokuwiki/dw-connector.php', 'DokuWiki');
-// Membercards Integration
-fsr_load_module(FSR_PLUGIN_DIR . 'membercards/members.php', 'Membercards');
-// Office Hours Integration
-fsr_load_module(FSR_PLUGIN_DIR . 'officehours/office-hours.php', 'Office Hours');
-// Update Mechanism Integration
-fsr_load_module(FSR_PLUGIN_DIR . 'updates/updates.php', 'Updates');
-// Calendar Integration
-fsr_load_module(FSR_PLUGIN_DIR . 'calendar/calendar.php', 'Calendar');
+// 2. DokuWiki-Modul laden
+require_once FSR_PLUGIN_DIR . 'dokuwiki/dw-connector.php';
+
+// 3. Membercards-Modul laden
+require_once FSR_PLUGIN_DIR . 'membercards/members.php';
+
+// 4. Office-Hours-Modul laden
+require_once FSR_PLUGIN_DIR . 'officehours/office-hours.php';
+
+// 5. Suchergebnisse erweitern
+require_once FSR_PLUGIN_DIR . 'global/search.php';
+
+// 6. GitHub Updates laden
+require_once FSR_PLUGIN_DIR . 'updates/updates.php';
+
+// 7. Calender laden
+require_once FSR_PLUGIN_DIR . 'calendar/calendar.php';
+
+// 8. Globale Variablen laden
+require_once FSR_PLUGIN_DIR . 'global/variables.php';
 
 register_activation_hook(__FILE__, 'fsr_dw_activate');
 
@@ -89,37 +93,5 @@ function fsr_dw_activation_flush() {
         delete_option(
             'fsr_dw_flush_rewrite'
         );
-    }
-}
-
-function fsr_load_module($file, $name = '') {
-    if (!file_exists($file)) {
-        return false;
-    }
-    // PHP Syntax prüfen
-    $output = [];
-    $result = 0;
-    exec(
-        'php -l ' . escapeshellarg($file),
-        $output,
-        $result
-    );
-    if ($result !== 0) {
-        error_log(
-            'FSR Plugin: Syntaxfehler in ' . $file
-        );
-        return false;
-    }
-    try {
-        require_once $file;
-        return true;
-    } catch (Throwable $e) {
-        error_log(
-            'FSR Plugin Fehler ' .
-            $name .
-            ': ' .
-            $e->getMessage()
-        );
-        return false;
     }
 }
