@@ -41,7 +41,6 @@ function fsr_parse_ical($ical) {
     error_log('CALENDAR: Found ' . count($matches[1]) . ' events in calendar data.');
     error_log('===================Parsing Events========================');
     foreach ($matches[1] as $raw) {
-        error_log('CALENDAR: Parsing raw event data: ' . $raw);
         preg_match('/SUMMARY:(.*)/', $raw, $title);
         preg_match('/DTSTART(?:;[^:]*)?:(.*)/', $raw, $start_date);
         preg_match('/DTEND(?:;[^:]*)?:(.*)/', $raw, $end_date);
@@ -49,7 +48,7 @@ function fsr_parse_ical($ical) {
         preg_match('/DESCRIPTION:(.*)/', $raw, $description);
         preg_match('/RRULE:(.*)/', $raw, $recurrence);
         preg_match('/UID:(.*)/', $raw, $uid);
-        preg_match('/RECURRENCE-ID[^:]*:(.*)/', $raw, $recurrence_id);
+        preg_match('/RECURRENCE-ID(?:;[^:]*)?:(.*)/', $raw, $recurrence_id);
         if (empty($title[1]) || empty($start_date[1])) {
             continue;
         }
@@ -74,6 +73,9 @@ function fsr_parse_ical($ical) {
         error_log('CALENDAR: Date string: ' . $date_string . ', Recurrence: ' . ($rrule ?? 'none') . ', End Date: ' . ($end_date_string ?? 'none'));
         error_log("UID: " . ($uid[1] ?? 'none'));
         error_log("RECURRENCE-ID: " . ($recurrence_id[1] ?? 'none'));
+        error_log("====================Event Details========================");
+        error_log(print_r($raw, true));
+        error_log("=======================End========================");
         error_log("");
         $events[] = [
             'title' => $clean_title,
