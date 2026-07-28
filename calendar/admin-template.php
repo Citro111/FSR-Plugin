@@ -94,11 +94,24 @@ function fsr_calendar_render_admin_interface() {
                             >
                         </td>
                         <td>
-                            <input 
-                                type="url"
-                                name="fsr_calendar_categories[<?php echo $index; ?>][url]"
-                                value="<?php echo esc_attr($category['url']); ?>"
+                            <select
+                                class="fsr-category-page-select"
+                                name="fsr_calendar_categories[<?php echo $index; ?>][page_id]"
                             >
+                                <option value="">-- Seite auswählen --</option>
+                                <?php
+                                if (!empty($category['page_id'])) {
+                                    $page = get_post($category['page_id']);
+                                    if ($page) {
+                                        echo '<option selected value="' .
+                                            esc_attr($page->ID) .
+                                            '">' .
+                                            esc_html($page->post_title) .
+                                            '</option>';
+                                    }
+                                }
+                                ?>
+                            </select>
                         </td>
                         <td>
                             <button class="button remove-category">
@@ -130,6 +143,10 @@ function fsr_calendar_render_admin_interface() {
             $(document).on('click', '.remove-category', function(e) {
                 e.preventDefault();
                 $(this).closest('tr').remove();
+            });
+            $('.fsr-category-page-select').select2({
+                width: '300px',
+                placeholder: 'Seite suchen...'
             });
         });
     </script>

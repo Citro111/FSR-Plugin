@@ -121,7 +121,9 @@ function fsr_get_category_url($type) {
         if(
             sanitize_title($category['name']) === $type
         ) {
-            return $category['url'];
+            return !empty($category['page_id'])
+                ? get_permalink($category['page_id'])
+                : '';
         }
         foreach(
             ($category['additionalNames'] ?? []) 
@@ -130,7 +132,9 @@ function fsr_get_category_url($type) {
             if(
                 sanitize_title($name) === $type
             ) {
-                return $category['url'];
+                return !empty($category['page_id'])
+                    ? get_permalink($category['page_id'])
+                    : '';
             }
         }
     }
@@ -158,8 +162,8 @@ function fsr_sanitize_categories($categories) {
         $category['name'] = sanitize_text_field(
             $category['name']
         );
-        $category['url'] = esc_url_raw(
-            $category['url']
+        $category['page_id'] = absint(
+            $category['page_id'] ?? 0
         );
         if(isset($category['additionalNames'])) {
             $category['additionalNames'] =
@@ -210,4 +214,41 @@ function fsr_detect_event_category($title) {
         }
     }
     return 'allgemein';
+}
+
+function fsr_calendar_admin_scripts($hook) {
+    if ($hook !== 'settings_page_fsr-settings') {
+        return;
+    }
+    wp_enqueue_style('select2');
+    wp_enqueue_script('select2');
+}
+add_action(
+    'admin_enqueue_scripts',
+    'fsr_calendar_admin_scripts'
+);
+
+add_action(
+    'wp_ajax_fsr_search_pages',
+    'fsr_search_pages'
+);
+function fsr_search_pages() {
+    $term = sanitize_text_field(
+        $_GET['q'] ?? ''
+    );
+    $pages = get_posts([
+        'post_type' => 'page',
+        'posts_per_page' => 20,
+        's' => $term
+    ]);
+    $results = [];
+    foreach ($pages as $page) {
+        $results[] = [
+            'id' => $page->ID,
+            'text' => $page->post_title
+        ];
+    }
+    wp_send_json([
+        'results' => $results
+    ]);
 }
