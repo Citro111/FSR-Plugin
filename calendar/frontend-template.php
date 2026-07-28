@@ -83,16 +83,34 @@ function fsr_render_events($atts) {
     ob_start();
     ?>
     <div class="fsr-events">
-        <?php foreach($result as $event):
-            fsr_create_virtual_post(
+        <?php foreach($result as $event): 
+            $post = fsr_create_virtual_post(
                 $event['title'],
                 $event['description'],
                 $event['description'],
                 $event['url'],
                 date('Y-m-d H:i:s', $event['timestamp']),
                 'event'
-            ); ?>
-    <?php endforeach; ?>
+            );
+            setup_postdata($post);
+        ?>
+            <article class="fsr-event">
+                <h5>
+                    <?php if($post->url !== ''): ?>
+                        <a href="<?php echo esc_url($post->url); ?>">
+                            <?php the_title(); ?>
+                        </a>
+                    <?php else: ?>
+                        <?php the_title(); ?>
+                    <?php endif; ?>
+                </h5>
+                <div>
+                    <?php the_content(); ?>
+                </div>
+            </article>
+        <?php endforeach; ?>
+
+        <?php wp_reset_postdata(); ?>
     </div>
     <?php
     return ob_get_clean();

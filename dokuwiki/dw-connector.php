@@ -398,7 +398,6 @@ function fsr_dw_search($search_term) {
             'page'
         );
     }
-
     return $virtual_posts;
 }
 
