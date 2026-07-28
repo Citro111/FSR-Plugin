@@ -407,3 +407,23 @@ function fsr_get_next_event_timestamp($date_string, $recurrence_rule = null, $en
     fsr_updates_log('CALENDAR: Next occurrence timestamp: ' . $current . ' (now: ' . $now . ')');
     return $current >= $now ? $current : false;
 }
+
+function fsr_calendar_search($search_query) {
+    $calendar_url = get_option(FSR_CALENDAR_URL);
+    if (!$calendar_url) {
+        return [];
+    }
+    $events = fsr_get_calendar_events($calendar_url);
+    $search = strtolower(trim($search_query));
+    $results = [];
+    foreach ($events as $event) {
+        if (str_contains(strtolower($event['title']), $search)) {
+            $results[] = [
+                'title' => $event['title'],
+                'url' => $event['url'],
+                'timestamp' => $event['timestamp']
+            ];
+        }
+    }
+    return $results;
+}
