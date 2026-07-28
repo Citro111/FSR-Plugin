@@ -85,19 +85,15 @@ function fsr_render_events($atts) {
     <div class="fsr-events">
     <?php foreach($result as $event): ?>
         <article class="fsr-event-card">
-            <?php if($event['url'] !== '' && $event['url'] !== home_url(add_query_arg([], $wp->request))) { ?>
-                <a href="<?php echo esc_url($event['url']); ?>">
-                    <h5>
+            <h5 class="fsr-event-title">
+                <?php if ($event['url'] !== '' && $event['url'] !== home_url(add_query_arg([], $wp->request))) : ?>
+                    <a href="<?php echo esc_url($event['url']); ?>">
                         <?php echo esc_html($event['title']); ?>
-                    </h5>
-                </a>
-            <?php } else { ?>
-                <p>
-                    <h5 margin="0">
-                        <?php echo esc_html($event['title']); ?>
-                    </h5>
-                </p>
-            <?php } ?>
+                    </a>
+                <?php else : ?>
+                    <?php echo esc_html($event['title']); ?>
+                <?php endif; ?>
+            </h5>
             <?php
             if($event['type'] === 'nerdbar') {
                 echo '<small>Alle zwei Wochen</small>';
