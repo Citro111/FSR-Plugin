@@ -92,25 +92,23 @@ function fsr_render_events($atts) {
                 date('Y-m-d H:i:s', $event['timestamp']),
                 'event'
             );
-            setup_postdata($post);
-        ?>
+            error_log('CALENDAR: Rendering event: ' . print_r($post, true));
+            ?>
             <article class="fsr-event">
                 <h5>
                     <?php if($post->url !== ''): ?>
                         <a href="<?php echo esc_url($post->url); ?>">
-                            <?php echo esc_html($post->title); ?>
+                            <?php echo esc_html($post->post_title); ?>
                         </a>
                     <?php else: ?>
-                        <?php echo esc_html($post->title); ?>
+                        <?php echo esc_html($post->post_title); ?>
                     <?php endif; ?>
                 </h5>
                 <div>
-                    <?php echo esc_html($post->description); ?>
+                    <?php echo esc_html($post->post_content); ?>
                 </div>
             </article>
         <?php endforeach; ?>
-
-        <?php wp_reset_postdata(); ?>
     </div>
     <?php
     return ob_get_clean();
