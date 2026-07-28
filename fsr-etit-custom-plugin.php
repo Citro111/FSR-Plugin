@@ -27,29 +27,26 @@ define(
     $plugin_data['Version']
 );
 
-// 1. Globale Admin-Oberfläche laden
-require_once FSR_PLUGIN_DIR . 'global/admin.php';
-
-// 2. DokuWiki-Modul laden
-require_once FSR_PLUGIN_DIR . 'dokuwiki/dw-connector.php';
-
-// 3. Membercards-Modul laden
-require_once FSR_PLUGIN_DIR . 'membercards/members.php';
-
-// 4. Office-Hours-Modul laden
-require_once FSR_PLUGIN_DIR . 'officehours/office-hours.php';
-
-// 5. Suchergebnisse erweitern
+// Globale Suchergebnisse erweitern
 require_once FSR_PLUGIN_DIR . 'global/search.php';
+// Globale Variablen laden
+require_once FSR_PLUGIN_DIR . 'global/variables.php';
+// Globale Admin-Oberfläche laden
+require_once FSR_PLUGIN_DIR . 'global/admin.php';
+// Globale Frontend-Funktionen laden
+require_once FSR_PLUGIN_DIR . 'global/frontend-functions.php';
 
-// 6. GitHub Updates laden
+// DokuWiki-Modul laden
+require_once FSR_PLUGIN_DIR . 'dokuwiki/dw-connector.php';
+// Membercards-Modul laden
+require_once FSR_PLUGIN_DIR . 'membercards/members.php';
+// Office-Hours-Modul laden
+require_once FSR_PLUGIN_DIR . 'officehours/office-hours.php';
+// GitHub Updates laden
 require_once FSR_PLUGIN_DIR . 'updates/updates.php';
-
-// 7. Calender laden
+// Kalender laden
 require_once FSR_PLUGIN_DIR . 'calendar/calendar.php';
 
-// 8. Globale Variablen laden
-require_once FSR_PLUGIN_DIR . 'global/variables.php';
 
 register_activation_hook(__FILE__, 'fsr_dw_activate');
 
