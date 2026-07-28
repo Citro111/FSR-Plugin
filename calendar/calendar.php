@@ -39,7 +39,9 @@ function fsr_parse_ical($ical) {
     $events = [];
     preg_match_all('/BEGIN:VEVENT(.*?)END:VEVENT/s', $ical, $matches);
     error_log('CALENDAR: Found ' . count($matches[1]) . ' events in calendar data.');
+    error_log('===================Parsing Events========================');
     foreach ($matches[1] as $raw) {
+        error_log('CALENDAR: Parsing raw event data: ' . $raw);
         preg_match('/SUMMARY:(.*)/', $raw, $title);
         preg_match('/DTSTART(?:;[^:]*)?:(.*)/', $raw, $start_date);
         preg_match('/DTEND(?:;[^:]*)?:(.*)/', $raw, $end_date);
@@ -80,6 +82,7 @@ function fsr_parse_ical($ical) {
             'location' => isset($location[1]) ? trim($location[1]) : '',
             'description' => isset($description[1]) ? trim($description[1]) : '',
             'url' => fsr_get_category_url($type),
+            'id' => $uid[1] ?? null,
         ];
     }
     error_log('CALENDAR: Parsed ' . count($events) . ' events from calendar data.');

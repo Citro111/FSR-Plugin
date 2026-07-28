@@ -23,7 +23,7 @@ function fsr_render_events($atts) {
     $events = array_filter(
         $events,
         function($event){
-            error_log('CALENDAR: Checking event: ' . $event['title'] . ' | timestamp: ' . $event['timestamp'] . '-' . current_time('timestamp') . ' | Status: ' . ($event['timestamp'] >= current_time('timestamp') ? 'active' : 'inactive'));
+            error_log('CALENDAR: Checking event: ' . $event['title'] . ' | ID: ' . ($event['id'] ?? 'none'));
             return $event['timestamp'] >= current_time('timestamp');
         }
     );
