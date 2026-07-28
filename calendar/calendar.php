@@ -262,18 +262,19 @@ function fsr_sanitize_categories($categories) {
     foreach ($categories as &$category) {
         $category['name'] = sanitize_text_field($category['name'] ?? '');
         $category['page_id'] = absint($category['page_id'] ?? 0);
-        $names = $category['additionalNames'] ?? [];
-        if (!is_array($names)) {
-            $names = explode(',', $names);
+        $additional = $category['additionalNames'] ?? [];
+        if (is_string($additional)) {
+            $additional = array_map(
+                'trim',
+                explode(',', $additional)
+            );
+        } elseif (!is_array($additional)) {
+            $additional = [];
         }
-        $category['additionalNames'] = array_values(
-            array_filter(
-                array_map(
-                    'sanitize_text_field',
-                    array_map('trim', $names)
-                )
-            )
-        );
+        $category['additionalNames'] = array_values(array_filter(array_map(
+            'sanitize_text_field',
+            $additional
+        )));
     }
     return $categories;
 }
