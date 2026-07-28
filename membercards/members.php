@@ -564,13 +564,10 @@ function fsr_get_membercards_layout_settings() {
 }
 
 function fsr_membercards_search($search_term) {
-
     $search_term = trim(wp_strip_all_tags($search_term));
-
     if ($search_term === '') {
         return '';
     }
-
     $query = new WP_Query([
         'post_type'      => 'fsr_member',
         'post_status'    => 'publish',
@@ -578,17 +575,13 @@ function fsr_membercards_search($search_term) {
         'orderby'        => 'menu_order',
         'order'          => 'ASC',
     ]);
-
     if (!$query->have_posts()) {
         return '';
     }
     $virtual_posts = [];
     $url_overview = fsr_get_shortcode_usage_overview(['fsr_members']);
-
     foreach ($query->posts as $post) {
-
         $member = fsr_member_post_to_record($post);
-
         $searchable = implode(' ', [
             $member['first_name'] ?? '',
             $member['last_name'] ?? '',
@@ -598,12 +591,10 @@ function fsr_membercards_search($search_term) {
             $member['studiengang'] ?? '',
             $member['abschluss'] ?? '',
         ]);
-
         if (stripos($searchable, $search_term) === false) {
             continue;
         }
         $content = $member['first_name'] . ' ' . $member['last_name'] . ' ' . $member['amt'];
-
         $virtual_posts[] = fsr_create_virtual_post(
             $title = fsr_member_post_title($member),
             $excerpt = $content,
@@ -613,8 +604,6 @@ function fsr_membercards_search($search_term) {
             $type = 'page'
         );
     }
-
     wp_reset_postdata();
-
     return $virtual_posts;
 }
