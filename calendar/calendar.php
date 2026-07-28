@@ -37,12 +37,10 @@ function fsr_get_calendar_events($url){
 
 function fsr_parse_ical($ical) {
     $events = [];
-    error_log('CALENDAR: Parsing iCal data' . print_r($events, true));
     preg_match_all('/BEGIN:VEVENT(.*?)END:VEVENT/s', $ical, $matches);
     error_log('CALENDAR: Found ' . count($matches[1]) . ' events in calendar data.');
     error_log('===================Parsing Events========================');
     foreach ($matches[1] as $raw) {
-        error_log('CALENDAR: Parsing event data: ' . print_r($raw, true));
         preg_match('/SUMMARY:(.*)/', $raw, $title);
         preg_match('/DTSTART(?:;[^:]*)?:(.*)/', $raw, $start_date);
         preg_match('/DTEND(?:;[^:]*)?:(.*)/', $raw, $end_date);
@@ -53,8 +51,9 @@ function fsr_parse_ical($ical) {
         preg_match('/RECURRENCE-ID(?:;[^:]*)?:(.*)/', $raw, $recurrence_id_match);
         $uid = trim($uid_match[1] ?? '');
         $recurrence_id = trim($recurrence_id_match[1] ?? '');
-        if ($recurrence_id === '' && preg_match('/_R(\d{8}T\d{6})/', $uid, $m)) {
+        if ($recurrence_id === '' && preg_match('/_R(\d{8}T)/', $uid, $m)) {
             $recurrence_id = $m[1];
+            error_log('CALENDAR: Extracted recurrence ID from UID: ' . $recurrence_id);
         }
         if (empty($title[1]) || empty($start_date[1])) {
             continue;
@@ -95,7 +94,67 @@ function fsr_parse_ical($ical) {
         ];
     }
     error_log('CALENDAR: Parsed ' . count($events) . ' events from calendar data.');
+    $events = fsr_merge_calendar_recurrences($events);
     return $events;
+}
+
+function fsr_merge_calendar_recurrences($events) {
+    $exceptions = [];
+    $masters = [];
+    foreach ($events as $event) {
+        $base_uid = preg_replace(
+            '/_R\d{8}T\d{6}/',
+            '',
+            $event['uid']
+        );
+        if (!empty($event['recurrence_id'])) {
+            $exceptions[$base_uid][] = $event;
+        } else {
+            $masters[$base_uid] = $event;
+        }
+    }
+    $result = [];
+    foreach ($masters as $uid => $master) {
+        $has_exception = false;
+        if (isset($exceptions[$uid])) {
+            foreach ($exceptions[$uid] as $exception) {
+                if (
+                    !empty($exception['recurrence_id'])
+                    &&
+                    fsr_timestamp_matches_recurrence(
+                        $master['timestamp'],
+                        $exception['recurrence_id']
+                    )
+                ) {
+                    $result[] = $exception;
+                    $has_exception = true;
+                }
+            }
+        }
+        if (!$has_exception) {
+            $result[] = $master;
+        }
+    }
+    foreach ($exceptions as $uid => $items) {
+        if (!isset($masters[$uid])) {
+            foreach ($items as $item) {
+                $result[] = $item;
+            }
+        }
+    }
+    return $result;
+}
+function fsr_timestamp_matches_recurrence($timestamp, $recurrence_id) {
+    if (!$recurrence_id) {
+        return false;
+    }
+    $recurrence_timestamp = strtotime($recurrence_id);
+    if (!$recurrence_timestamp) {
+        return false;
+    }
+    return abs(
+        $timestamp - $recurrence_timestamp
+    ) < 86400;
 }
 
 function fsr_get_category_url($type) {
