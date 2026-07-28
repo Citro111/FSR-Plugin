@@ -19,20 +19,20 @@ function fsr_render_events($atts) {
         return '<p>Kein Kalender hinterlegt.</p>';
     }
     $events = fsr_get_calendar_events($calendar_url);
-    error_log('CALENDAR: Total events fetched: ' . count($events));
+    fsr_updates_log('CALENDAR: Total events fetched: ' . count($events));
     $events = array_filter(
         $events,
         function($event){
-            error_log('CALENDAR: Checking event: ' . $event['title'] . ' | ID: ' . ($event['id'] ?? 'none'));
-            error_log('CALENDAR: Recurrence ID: ' . ($event['recurrence_id'] ?? 'none'));
+            fsr_updates_log('CALENDAR: Checking event: ' . $event['title'] . ' | ID: ' . ($event['id'] ?? 'none'));
+            fsr_updates_log('CALENDAR: Recurrence ID: ' . ($event['recurrence_id'] ?? 'none'));
             return $event['timestamp'] >= current_time('timestamp');
         }
     );
-    error_log('CALENDAR: Active events: ' . count($events));
+    fsr_updates_log('CALENDAR: Active events: ' . count($events));
     $events = array_values($events);
-    error_log('CALENDAR: Active events after reindexing: ' . count($events));
+    fsr_updates_log('CALENDAR: Active events after reindexing: ' . count($events));
     foreach($events as $event){
-        error_log(
+        fsr_updates_log(
             $event['title'] . ' | ' .
             date('d.m.Y H:i', $event['timestamp']) . ' | ' .
             $event['type']
@@ -46,7 +46,7 @@ function fsr_render_events($atts) {
             }
         );
     }
-    error_log('CALENDAR: Nach Kategorie gefiltert: ' . count($events));
+    fsr_updates_log('CALENDAR: Nach Kategorie gefiltert: ' . count($events));
     if (!$events) {
         return '<p>Keine Veranstaltungen gefunden.</p>';
     }
@@ -65,22 +65,22 @@ function fsr_render_events($atts) {
      */
     $result = [];
     $nerdbar_found = false;
-    error_log("Vor NerdBar Filter: " . count($events));
+    fsr_updates_log("Vor NerdBar Filter: " . count($events));
     foreach($events as $event) {
         if(!$category && $event['type'] === 'nerdbar') {
             if($nerdbar_found) {
-                error_log('CALENDAR: Skipping nerdbar event: ' . print_r($event, true));
+                fsr_updates_log('CALENDAR: Skipping nerdbar event: ' . print_r($event, true));
                 continue;
             }
             $nerdbar_found = true;
         }
         $result[] = $event;
         if(count($result) >= $count){
-            error_log('CALENDAR: Reached count limit of ' . $count . ', stopping event processing.');
+            fsr_updates_log('CALENDAR: Reached count limit of ' . $count . ', stopping event processing.');
             break;
         }
     }
-    error_log("Nach NerdBar Filter: " . count($result));
+    fsr_updates_log("Nach NerdBar Filter: " . count($result));
     ob_start();
     ?>
     <div class="fsr-events">
@@ -102,7 +102,7 @@ function fsr_render_events($atts) {
             if($event['type'] === 'nerdbar') {
                 echo '<small>Alle zwei Wochen</small>';
             }
-            error_log('CALENDAR: Rendering event: ' . print_r($event, true));
+            fsr_updates_log('CALENDAR: Rendering event: ' . print_r($event, true));
             ?>
             <div class="fsr-event-date">
                 <?php echo esc_html(

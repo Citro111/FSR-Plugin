@@ -403,9 +403,9 @@ function fsr_ajax_save_member_order_handler() {
                 array_map('sanitize_text_field', $_POST['amt_order'])
             )
         );
-        error_log('AJAX - Amt Order: ' . print_r(get_option('fsr_membercards_amt_order'), true));
+        fsr_updates_log('AJAX - Amt Order: ' . print_r(get_option('fsr_membercards_amt_order'), true));
     }
-    error_log('AJAX');
+    fsr_updates_log('AJAX');
 
     wp_send_json_success([
         'message' => 'Mitglieder gespeichert.',

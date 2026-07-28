@@ -50,3 +50,40 @@ function fsr_create_virtual_post(
         'filter'             => 'raw',
     ]);
 }
+
+function fsr_updates_log($message) {
+    static $logging;
+    $logging ??= fsr_updates_settings()['logging'];
+    if (!$logging) return;
+    $log = get_transient('fsr_updates_qm_log');
+    if (!is_array($log)) {
+        $log = [];
+    }
+
+    if (is_array($message) || is_object($message)) {
+        $message = print_r($message, true);
+    } else {
+        $message = (string) $message;
+    }
+
+    $log[] = '[' . current_time('mysql') . '] ' . $message;
+    error_log('FSR UPDATES LOG: ' . $message);
+
+    set_transient('fsr_updates_qm_log', $log, 1 * MINUTE_IN_SECONDS);
+}
+
+function fsr_updates_flush_log() {
+    $log = get_transient('fsr_updates_qm_log');
+
+    if (empty($log) || !is_array($log)) {
+        return;
+    }
+
+    foreach ($log as $line) {
+        do_action('qm/debug', $line);
+    }
+}
+add_action(
+    'load-admin_page_fsr-etit-settings-updates',
+    'fsr_updates_flush_log'
+);

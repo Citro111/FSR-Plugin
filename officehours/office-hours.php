@@ -407,7 +407,7 @@ function fsr_office_hours_collect_occurrences(
 function fsr_office_hours_handle_portal_actions(): array {
     $message = '';
     $ok = false;
-    error_log('OFFICE HOURS: ' . print_r($_POST, true));
+    fsr_updates_log('OFFICE HOURS: ' . print_r($_POST, true));
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
         return [false, ''];
     }
@@ -535,20 +535,20 @@ function fsr_office_hours_handle_portal_actions(): array {
 
     if (isset($_POST['fsr_oh_delete_rule_submit'])) {
 
-        error_log('DELETE HANDLER START');
+        fsr_updates_log('DELETE HANDLER START');
 
         if (!wp_verify_nonce($_POST['_fsr_oh_delete_nonce'] ?? '', 'fsr_oh_delete_rule_submit')) {
-            error_log('DELETE NONCE FAILED');
+            fsr_updates_log('DELETE NONCE FAILED');
             return [false, 'Ungültige Anfrage.'];
         }
 
         $rule_id = sanitize_key($_POST['rule_id'] ?? '');
 
-        error_log('DELETE RULE ID: ' . $rule_id);
+        fsr_updates_log('DELETE RULE ID: ' . $rule_id);
 
         $settings = fsr_office_hours_get_settings();
 
-        error_log(print_r($settings['rules'], true));
+        fsr_updates_log(print_r($settings['rules'], true));
 
         $rules = is_array($settings['rules'] ?? null) ? $settings['rules'] : [];
 
@@ -560,13 +560,13 @@ function fsr_office_hours_handle_portal_actions(): array {
 
         $after = count($rules);
 
-        error_log("DELETE COUNT BEFORE: $before AFTER: $after");
+        fsr_updates_log("DELETE COUNT BEFORE: $before AFTER: $after");
 
         $settings['rules'] = array_values($rules);
 
         update_option('fsr_office_hours_settings', $settings);
 
-        error_log('DELETE SAVED');
+        fsr_updates_log('DELETE SAVED');
 
         wp_safe_redirect(remove_query_arg('edit_rule'));
         exit;

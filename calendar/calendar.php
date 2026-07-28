@@ -38,8 +38,8 @@ function fsr_get_calendar_events($url){
 function fsr_parse_ical($ical) {
     $events = [];
     preg_match_all('/BEGIN:VEVENT(.*?)END:VEVENT/s', $ical, $matches);
-    error_log('CALENDAR: Found ' . count($matches[1]) . ' events in calendar data.');
-    error_log('===================Parsing Events========================');
+    fsr_updates_log('CALENDAR: Found ' . count($matches[1]) . ' events in calendar data.');
+    fsr_updates_log('===================Parsing Events========================');
     foreach ($matches[1] as $raw) {
         preg_match('/SUMMARY:(.*)/', $raw, $title_match);
         preg_match('/DTSTART(?:;TZID=([^:;]+))?(?:;[^:]*)?:(.*)/', $raw, $start_match);
@@ -63,7 +63,7 @@ function fsr_parse_ical($ical) {
         // Falls Google die Instanz nur in der UID kodiert
         if ($recurrence_id === '' && preg_match('/_R(\d{8}T\d{6})/', $uid, $m)) {
             $recurrence_id = $m[1];
-            error_log('CALENDAR: Extracted recurrence ID from UID: ' . $recurrence_id);
+            fsr_updates_log('CALENDAR: Extracted recurrence ID from UID: ' . $recurrence_id);
         }
         $timestamp = fsr_get_next_event_timestamp(
             $start_value,
@@ -82,10 +82,10 @@ function fsr_parse_ical($ical) {
         } else {
             $type = fsr_detect_event_category($title);
         }
-        error_log('CALENDAR: Event "' . $clean_title . '" detected as type "' . $type . '" with timestamp ' . $timestamp);
-        error_log('CALENDAR: Date string: ' . $start_value . ', Recurrence: ' . ($rrule ?? 'none') . ', End Date: ' . ($end_value ?? 'none'));
-        error_log('UID: ' . ($uid ?: 'none'));
-        error_log('RECURRENCE-ID: ' . ($recurrence_id ?: 'none'));
+        fsr_updates_log('CALENDAR: Event "' . $clean_title . '" detected as type "' . $type . '" with timestamp ' . $timestamp);
+        fsr_updates_log('CALENDAR: Date string: ' . $start_value . ', Recurrence: ' . ($rrule ?? 'none') . ', End Date: ' . ($end_value ?? 'none'));
+        fsr_updates_log('UID: ' . ($uid ?: 'none'));
+        fsr_updates_log('RECURRENCE-ID: ' . ($recurrence_id ?: 'none'));
         $events[] = [
             'title'         => $clean_title,
             'type'          => $type,
@@ -98,7 +98,7 @@ function fsr_parse_ical($ical) {
             'rrule'         => $rrule,
         ];
     }
-    error_log('CALENDAR: Parsed ' . count($events) . ' events from calendar data.');
+    fsr_updates_log('CALENDAR: Parsed ' . count($events) . ' events from calendar data.');
     return fsr_merge_calendar_recurrences($events);
 }
 
@@ -158,7 +158,7 @@ function fsr_merge_calendar_recurrences($events) {
             str_contains($event['id'], '_R');
         if ($is_exception) {
             $exceptions[$base_uid][] = $event;
-            error_log(
+            fsr_updates_log(
                 'CALENDAR: Found exception for UID '
                 . $base_uid
                 . ' -> '
@@ -166,7 +166,7 @@ function fsr_merge_calendar_recurrences($events) {
             );
         } else {
             $masters[$base_uid] = $event;
-            error_log(
+            fsr_updates_log(
                 'CALENDAR: Found master UID '
                 . $base_uid
                 . ' -> '
@@ -178,7 +178,7 @@ function fsr_merge_calendar_recurrences($events) {
     foreach ($masters as $uid => $master) {
         if (!empty($exceptions[$uid])) {
             foreach ($exceptions[$uid] as $exception) {
-                error_log(
+                fsr_updates_log(
                     'CALENDAR: Replacing master '
                     . $master['title']
                     . ' with exception '
@@ -198,7 +198,7 @@ function fsr_merge_calendar_recurrences($events) {
             }
         }
     }
-    error_log(
+    fsr_updates_log(
         'CALENDAR: After recurrence merge: '
         . count($result)
         . ' events'
@@ -358,7 +358,7 @@ function fsr_get_next_event_timestamp($date_string, $recurrence_rule = null, $en
     $now = current_time('timestamp');
     $start_timestamp = fsr_parse_ical_datetime($date_string, $tzid);
     if (!$start_timestamp) {
-        error_log('CALENDAR: Invalid start date string: ' . $date_string);
+        fsr_updates_log('CALENDAR: Invalid start date string: ' . $date_string);
         return false;
     }
     if (!$recurrence_rule) {
@@ -398,12 +398,12 @@ function fsr_get_next_event_timestamp($date_string, $recurrence_rule = null, $en
                 $dt = $dt->modify("+{$interval} year");
                 break;
             default:
-                error_log('CALENDAR: Unsupported recurrence frequency: ' . $freq);
+                fsr_updates_log('CALENDAR: Unsupported recurrence frequency: ' . $freq);
                 return false;
         }
         $current = $dt->setTimezone(new DateTimeZone('UTC'))->getTimestamp();
         $iterations++;
     }
-    error_log('CALENDAR: Next occurrence timestamp: ' . $current . ' (now: ' . $now . ')');
+    fsr_updates_log('CALENDAR: Next occurrence timestamp: ' . $current . ' (now: ' . $now . ')');
     return $current >= $now ? $current : false;
 }
