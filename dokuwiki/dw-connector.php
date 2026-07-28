@@ -290,15 +290,11 @@ function fsr_dw_current_page() {
 }
 
 function fsr_dw_search($search_term) {
-
     $search_term = trim($search_term);
-
     if ($search_term === '') {
         return [];
     }
-
     $settings = fsr_dw_get_settings();
-
     $url =
         rtrim($settings['base_url'], '/') .
         '/aktuelles?do=search&id=' .
@@ -306,89 +302,57 @@ function fsr_dw_search($search_term) {
         '&sf=1&q=' .
         urlencode($search_term . ' @protokolle') .
         '&srt=mtime';
-
     $response = wp_remote_get($url, [
         'timeout' => 15,
         'user-agent' => 'Mozilla/5.0'
     ]);
-
     if (is_wp_error($response)) {
         return [];
     }
-
     $html = wp_remote_retrieve_body($response);
-
     if (!$html) {
         return [];
     }
-
     libxml_use_internal_errors(true);
-
     $dom = new DOMDocument();
     $dom->loadHTML('<?xml encoding="utf-8" ?>'.$html);
-
     $xpath = new DOMXPath($dom);
-
     $virtual_posts = [];
-
     foreach ($xpath->query("//div[contains(@class,'search_fullpage_result')]") as $result) {
-
         // ---------------- Link ----------------
-
         $link = $result->getElementsByTagName('a')->item(0);
-
         if (!$link) {
             continue;
         }
-
         $href = $link->getAttribute('href');
-
         // ---------------- Titel ----------------
-
         $page = $link->getAttribute('data-wiki-id');
-
         if ($page === '') {
-
             parse_str(parse_url($href, PHP_URL_QUERY), $query);
-
             $page = $query['id'] ?? '';
         }
-
         $title = basename(str_replace(':', '/', $page));
         $title = str_replace('_', ' ', $title);
         $title = str_replace('ae', 'ä', $title);
         $title = str_replace('oe', 'ö', $title);
         $title = str_replace('ue', 'ü', $title);
         $title = ucwords($title);
-
         // ---------------- URL ----------------
-
         $url = home_url('/wiki/' . $page);
-
         // ---------------- Snippet ----------------
-
         $excerpt = '';
-
         $snippet = $xpath->query(".//dd[contains(@class,'snippet')]", $result)->item(0);
-
         if ($snippet) {
-
             $excerpt = trim(
                 preg_replace('/\s+/', ' ', strip_tags($snippet->textContent))
             );
         }
-
         // ---------------- Datum ----------------
-
         $date = '';
-
         $time = $result->getElementsByTagName('time')->item(0);
-
         if ($time) {
-
             $date = $time->getAttribute('datetime');
         }
-
         $virtual_posts[] = fsr_create_virtual_post(
             $title,
             $excerpt,

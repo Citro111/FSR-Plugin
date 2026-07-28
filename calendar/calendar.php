@@ -418,11 +418,14 @@ function fsr_calendar_search($search_query) {
     $results = [];
     foreach ($events as $event) {
         if (str_contains(strtolower($event['title']), $search)) {
-            $results[] = [
-                'title' => $event['title'],
-                'url' => $event['url'],
-                'timestamp' => $event['timestamp']
-            ];
+            $results[] = fsr_create_virtual_post(
+                $event['title'],
+                $event['description'],
+                $event['description'],
+                $event['url'],
+                $event['timestamp'],
+                'page'
+            );
         }
     }
     return $results;
