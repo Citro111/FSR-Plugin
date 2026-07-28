@@ -52,7 +52,7 @@ function fsr_parse_ical($ical){
         preg_match(
             '/DTSTART[^:]*:(.*)/',
             $raw,
-            $date
+            $start_date
         );
         preg_match(
             '/LOCATION:(.*)/',
@@ -64,16 +64,26 @@ function fsr_parse_ical($ical){
             $raw,
             $description
         );
+        preg_match(
+            '/RRULE:(.*)/',
+            $raw,
+            $recurrence
+        );
+        preg_match(
+            '/END:(.*)/',
+            $raw,
+            $end_date
+        );
         if(
             empty($title[1]) ||
-            empty($date[1])
+            empty($start_date[1])
         ){
             continue;
         }
-        $date_string = trim($date[1]);
-        $timestamp = strtotime(
-            $date_string
-        );
+        $date_string = trim($start_date[1]);
+        $end_date_string = trim($end_date[1]);
+        $timestamp = fsr_get_next_event_timestamp($date_string, $recurrence[1] ?? null, $end_date_string);
+        error_log("CALENDAR: Processing raw event: " . print_r($raw, true));
         error_log(
             "DTSTART: {$date_string} -> "
             . gmdate('Y-m-d H:i:s', $timestamp)
@@ -84,6 +94,8 @@ function fsr_parse_ical($ical){
         error_log("RAW DTSTART: " . $date_string);
         error_log("Timestamp: " . $timestamp);
         error_log("Title: " . $title[1]);
+        error_log("Rule: " . ($recurrence[1] ?? 'none'));
+        error_log("End Date: " . ($end_date[1] ?? 'none'));
         error_log("");
         $raw_title = trim($title[1]);
         $type = 'none';
@@ -248,4 +260,74 @@ function fsr_search_pages() {
     wp_send_json([
         'results' => $results
     ]);
+}
+
+function fsr_get_next_event_timestamp($date_string, $recurrence_rule = null, $end_date_string = null) {
+    $now = current_time('timestamp');
+    // Startdatum parsen
+    $start_timestamp = strtotime($date_string);
+    if (!$start_timestamp) {
+        return false;
+    }
+    // Kein wiederkehrendes Event
+    if (!$recurrence_rule) {
+        return $start_timestamp >= $now ? $start_timestamp : false;
+    }
+    $end_timestamp = $end_date_string
+        ? strtotime($end_date_string)
+        : null;
+    if ($end_timestamp && $end_timestamp < $now) {
+        return false;
+    }
+    $current = $start_timestamp;
+    // RRULE Werte extrahieren
+    $rules = [];
+    foreach (explode(';', $recurrence_rule) as $part) {
+        [$key, $value] = explode('=', $part, 2);
+        $rules[$key] = $value;
+    }
+    $freq = $rules['FREQ'] ?? null;
+    $interval = isset($rules['INTERVAL'])
+        ? intval($rules['INTERVAL'])
+        : 1;
+    // Sicherheitslimit gegen kaputte RRULEs
+    $iterations = 0;
+    $max_iterations = 1000;
+    while ($current < $now && $iterations < $max_iterations) {
+        switch ($freq) {
+            case 'DAILY':
+                $current = strtotime(
+                    "+{$interval} day",
+                    $current
+                );
+                break;
+            case 'WEEKLY':
+                $current = strtotime(
+                    "+".(7 * $interval)." days",
+                    $current
+                );
+                break;
+            case 'MONTHLY':
+                $current = strtotime(
+                    "+{$interval} month",
+                    $current
+                );
+                break;
+            case 'YEARLY':
+                $current = strtotime(
+                    "+{$interval} year",
+                    $current
+                );
+                break;
+            default:
+                return false;
+        }
+        $iterations++;
+        if ($end_timestamp && $current > $end_timestamp) {
+            return false;
+        }
+    }
+    return $current >= $now
+        ? $current
+        : false;
 }
