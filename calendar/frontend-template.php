@@ -11,6 +11,7 @@ function fsr_render_events($atts) {
         ],
         $atts
     );
+    global $wp;
     $count = intval($atts['count']);
     $category = sanitize_title($atts['category']);
     $calendar_url = get_option(FSR_CALENDAR_URL);
@@ -84,7 +85,7 @@ function fsr_render_events($atts) {
     <div class="fsr-events">
     <?php foreach($result as $event): ?>
         <article class="fsr-event-card">
-            <?php if($event['url'] !== ''&& $event['url'] !== ) { ?>
+            <?php if($event['url'] !== '' && $event['url'] !== home_url(add_query_arg([], $wp->request))) { ?>
                 <a href="<?php echo esc_url($event['url']); ?>">
                     <h5>
                         <?php echo esc_html($event['title']); ?>
