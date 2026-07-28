@@ -54,6 +54,7 @@ function fsr_parse_ical($ical) {
         $rrule = $recurrence[1] ?? null;
         $timestamp = fsr_get_next_event_timestamp($date_string, $rrule, $end_date_string);
         if (!$timestamp) {
+            error_log('CALENDAR: Skipping event "' . $title[1] . '" because it is has no valid date.');
             continue;
         }
         $raw_title = trim($title[1]);
@@ -65,6 +66,8 @@ function fsr_parse_ical($ical) {
         } else {
             $type = fsr_detect_event_category($raw_title);
         }
+        error_log('CALENDAR: Event "' . $clean_title . '" detected as type "' . $type . '" with timestamp ' . $timestamp);
+        error_log('CALENDAR: Date string: ' . $date_string . ', Recurrence: ' . ($rrule ?? 'none') . ', End Date: ' . ($end_date_string ?? 'none'));
         $events[] = [
             'title' => $clean_title,
             'type' => $type,
@@ -84,9 +87,7 @@ function fsr_get_category_url($type) {
         []
     );
     foreach($categories as $category) {
-        if(
-            sanitize_title($category['name']) === $type
-        ) {
+        if(sanitize_title($category['name']) === $type) {
             return !empty($category['page_id'])
                 ? get_permalink($category['page_id'])
                 : '';
@@ -219,9 +220,11 @@ function fsr_get_next_event_timestamp($date_string, $recurrence_rule = null, $en
     $now = current_time('timestamp');
     $start_timestamp = strtotime($date_string);
     if (!$start_timestamp) {
+        error_log('CALENDAR: Invalid start date string: ' . $date_string);
         return false;
     }
     if (!$recurrence_rule) {
+        error_log('CALENDAR: No recurrence rule, returning start timestamp: ' . $start_timestamp);
         return $start_timestamp >= $now ? $start_timestamp : false;
     }
     $rules = [];
@@ -234,6 +237,7 @@ function fsr_get_next_event_timestamp($date_string, $recurrence_rule = null, $en
     if (!empty($rules['UNTIL'])) {
         $until_timestamp = strtotime($rules['UNTIL']);
         if ($until_timestamp && $until_timestamp < $now) {
+            error_log('CALENDAR: Event has ended before current time.');
             return false;
         }
     }
@@ -257,9 +261,11 @@ function fsr_get_next_event_timestamp($date_string, $recurrence_rule = null, $en
                 $current = strtotime("+{$interval} year", $current);
                 break;
             default:
+                error_log('CALENDAR: Unsupported recurrence frequency: ' . $freq);
                 return false;
         }
         $iterations++;
     }
+    error_log('CALENDAR: Next occurrence timestamp: ' . $current . ' (now: ' . $now . ')');
     return $current >= $now ? $current : false;
 }
