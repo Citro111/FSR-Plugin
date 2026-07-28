@@ -768,7 +768,6 @@ function fsr_office_hours_search(string $search): array {
             $occurrence['date'] ?? '',
             'page'
         );
-        $url .= '#fsr-office-hours';
     }
     return $results;
 }   
