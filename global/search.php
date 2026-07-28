@@ -20,8 +20,8 @@ function fsr_extend_search_results($posts, $query) {
         $posts,
         fsr_membercards_search($search),
         fsr_office_hours_search($search),
-        fsr_dw_search($search),
-        fsr_calendar_search($search)
+        fsr_calendar_search($search),
+        fsr_dw_search($search)
     );
     usort($posts, function($a, $b) {
         return strtotime($b->post_date)
