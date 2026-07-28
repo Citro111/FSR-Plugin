@@ -423,7 +423,7 @@ function fsr_calendar_search($search_query) {
                 $event['description'],
                 $event['description'],
                 $event['url'],
-                $event['timestamp'],
+                strtotime($event['timestamp']),
                 'page'
             );
         }
