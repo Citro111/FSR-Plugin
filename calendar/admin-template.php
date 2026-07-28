@@ -5,10 +5,6 @@
 if (!defined('ABSPATH')) {
     exit;
 }
-register_setting(
-    'fsr_settings',
-    'fsr_calendar_categories'
-);
 function fsr_calendar_render_admin_interface() {
     ?>
     <div class="wrap">
@@ -134,10 +130,29 @@ function fsr_calendar_render_admin_interface() {
                 var newRow = '<tr>' +
                     '<td><input type="text" name="fsr_calendar_categories[${categoryIndex}][name]" placeholder="Kategorie Name"></td>' +
                     '<td><input type="text" name="fsr_calendar_categories[${categoryIndex}][additionalNames]" placeholder="Weitere Namen (optional)"></td>' +
-                    '<td><input type="url" name="fsr_calendar_categories[${categoryIndex}][url]" placeholder="Kategorie URL"></td>' +
+                    '<td>' + '<select class="fsr-category-page-select" name="fsr_calendar_categories[${categoryIndex}][page_id]">' + '<option value="">-- Seite auswählen --</option>' + '</select>' + '</td>' +
                     '<td><button class="remove-category">Entfernen</button></td>' +
                     '</tr>';
                 $('#category-table tbody').append(newRow);
+                $('.fsr-category-page-select').select2({
+                    width: '300px',
+                    placeholder: 'Seite suchen...',
+                    minimumInputLength: 2,
+                    ajax: {
+                        url: ajaxurl,
+                        dataType: 'json',
+                        delay: 250,
+                        data: function(params) {
+                            return {
+                                action: 'fsr_search_pages',
+                                q: params.term
+                            };
+                        },
+                        processResults: function(data) {
+                            return data;
+                        }
+                    }
+                });
             });
             // Remove a category row
             $(document).on('click', '.remove-category', function(e) {
@@ -146,7 +161,22 @@ function fsr_calendar_render_admin_interface() {
             });
             $('.fsr-category-page-select').select2({
                 width: '300px',
-                placeholder: 'Seite suchen...'
+                placeholder: 'Seite suchen...',
+                minimumInputLength: 2,
+                ajax: {
+                    url: ajaxurl,
+                    dataType: 'json',
+                    delay: 250,
+                    data: function(params) {
+                        return {
+                            action: 'fsr_search_pages',
+                            q: params.term
+                        };
+                    },
+                    processResults: function(data) {
+                        return data;
+                    }
+                }
             });
         });
     </script>

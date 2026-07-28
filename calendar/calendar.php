@@ -15,6 +15,7 @@ add_action('admin_init', function () {
         FSR_CALENDAR_URL
     );
 });
+
 function fsr_get_calendar_events($url){
     $response = wp_remote_get(
         $url,
@@ -142,10 +143,6 @@ function fsr_get_category_url($type) {
 }
 
 add_action('admin_init', function () {
-    register_setting(
-        'fsr_settings',
-        FSR_CALENDAR_URL
-    );
     register_setting(
         'fsr_settings',
         'fsr_calendar_categories',
