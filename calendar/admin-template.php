@@ -135,7 +135,7 @@ function fsr_calendar_render_admin_interface() {
             // Add a new category row
             $('#add-category-btn').click(function(e) {
                 e.preventDefault();
-                let newRow = 
+                let newRow = `
                 <tr>
                     <td><input type="text" name="fsr_calendar_categories[${categoryIndex}][name]" placeholder="Kategorie Name"></td>
                     <td><input type="text" name="fsr_calendar_categories[${categoryIndex}][additionalNames]" placeholder="Weitere Namen (optional)"></td>
@@ -149,7 +149,6 @@ function fsr_calendar_render_admin_interface() {
                                 'sort_order'  => 'ASC',
                                 'number'      => 0,
                             ]);
-
                             foreach ($pages as $page) {
                                 echo '<option value="' . esc_attr($page->ID) . '">' . esc_html($page->post_title) . '</option>';
                             }
