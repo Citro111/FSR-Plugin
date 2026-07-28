@@ -98,14 +98,14 @@ function fsr_render_events($atts) {
                 <h5>
                     <?php if($post->url !== ''): ?>
                         <a href="<?php echo esc_url($post->url); ?>">
-                            <?php the_title(); ?>
+                            <?php echo esc_html($post->title); ?>
                         </a>
                     <?php else: ?>
-                        <?php the_title(); ?>
+                        <?php echo esc_html($post->title); ?>
                     <?php endif; ?>
                 </h5>
                 <div>
-                    <?php the_content(); ?>
+                    <?php echo esc_html($post->description); ?>
                 </div>
             </article>
         <?php endforeach; ?>
