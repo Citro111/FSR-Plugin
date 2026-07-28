@@ -86,7 +86,10 @@ function fsr_render_events($atts) {
     <?php foreach($result as $event): ?>
         <article class="fsr-event-card">
             <h5 class="fsr-event-title">
-                <?php if ($event['url'] !== '' && $event['url'] !== home_url(add_query_arg([], $wp->request))) : ?>
+                <?php
+                $current_page_id = get_queried_object_id();
+                $event_page_id = url_to_postid($event['url']);
+                if ($event['url'] !== '' && $event_page_id !== $current_page_id ) : ?>
                     <a href="<?php echo esc_url($event['url']); ?>">
                         <?php echo esc_html($event['title']); ?>
                     </a>
