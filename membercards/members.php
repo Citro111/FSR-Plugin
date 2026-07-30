@@ -501,81 +501,70 @@ function fsr_members_render_admin_interface() {
 
 function fsr_members_shortcode_renderer($atts) {
     $a = shortcode_atts([
-        'team'  => 'all',
+        'team'  => '',
         'amt'   => '',
         'name'  => '',
         'email' => '',
         'infos' => '',
     ], $atts);
-
     $team = sanitize_key((string) ($a['team'] ?? 'all'));
-
-    if (!in_array($team, ['all', FSR_TEAM1, FSR_TEAM2, FSR_TEAM3], true)) {
+    error_log('SHORTCODE: Team: ' . $team . ' | Amt: ' . $a['amt'] . ' | Name: ' . $a['name'] . ' | Email: ' . $a['email'] . ' | Infos: ' . $a['infos']);
+    if (!in_array($team, ['all', 'gewählte', 'helfer', 'ehemalige'], true)) {
         $team = 'all';
     }
-
     $data = fsr_get_members_data($team);
     $members = $data['members'] ?? [];
-
     // Filter nach Infos
     $infos = [];
-
     if (!empty($a['infos'])) {
         $infos = array_map(
             'trim',
             explode(',', strtolower($a['infos']))
         );
+        error_log('INFO FILTER: ' . print_r($infos, true));
     }
-
     // Filter nach Amt
     if (!empty($a['amt'])) {
         $filter_amt = strtolower(trim($a['amt']));
-
         $members = array_filter($members, function($member) use ($filter_amt) {
             $aemter = array_map(
                 'trim',
                 explode(',', strtolower($member['amt'] ?? ''))
             );
-
             return in_array($filter_amt, $aemter, true);
         });
+        error_log('AMT FILTER: ' . $filter_amt . ' | Remaining members: ' . count($members));
     }
-
     // Filter nach Name
     if (!empty($a['name'])) {
         $filter_name = strtolower(trim($a['name']));
-
         $members = array_filter($members, function($member) use ($filter_name) {
             $name = strtolower(
                 ($member['first_name'] ?? '') . ' ' .
                 ($member['last_name'] ?? '')
             );
-
             return str_contains($name, $filter_name);
         });
+        error_log('NAME FILTER: ' . $filter_name . ' | Remaining members: ' . count($members));
     }
-
     // Filter nach Email-Präfix
     if (!empty($a['email'])) {
         $filter_email = strtolower(trim($a['email']));
-
         $members = array_filter($members, function($member) use ($filter_email) {
             return str_contains(
                 strtolower($member['email_prefix'] ?? ''),
                 $filter_email
             );
         });
+        error_log('EMAIL FILTER: ' . $filter_email . ' | Remaining members: ' . count($members));
     }
-
     $layout_settings = fsr_get_membercards_layout_settings();
-
     if (empty($members)) {
+        error_log('NO MATCHING MEMBERS FOUND');
         return '<div class="fsr-members-empty">Keine passenden Mitglieder gefunden.</div>';
     }
-
     ob_start();
     include plugin_dir_path(__FILE__) . 'templates/frontend-grid.php';
-
     return ob_get_clean();
 }
 
