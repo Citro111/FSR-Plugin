@@ -509,11 +509,14 @@ function fsr_members_shortcode_renderer($atts) {
     ], $atts);
     $team = sanitize_key((string) ($a['team'] ?? 'all'));
     error_log('SHORTCODE: Team: ' . $team . ' | Amt: ' . $a['amt'] . ' | Name: ' . $a['name'] . ' | Email: ' . $a['email'] . ' | Infos: ' . $a['infos']);
-    if (!in_array($team, ['all', 'gewählte', 'helfer', 'ehemalige'], true)) {
+    if (!in_array($team, ['all', 'gewaehlte', 'helfer', 'ehemalige'], true)) {
         $team = 'all';
+        error_log('SHORTCODE: Invalid team specified. Defaulting to "all".');
     }
+    error_log('SHORTCODE: Fetching members for team: ' . $team);
     $data = fsr_get_members_data($team);
     $members = $data['members'] ?? [];
+    error_log('SHORTCODE: Members fetched: ' . print_r($members, true));
     // Filter nach Infos
     $infos = [];
     if (!empty($a['infos'])) {

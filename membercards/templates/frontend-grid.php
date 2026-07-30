@@ -77,11 +77,7 @@ if (!empty($teams['ehemalige']['list'])) {
 if ($a['team'] !== 'all' && isset($teams[$a['team']])) { 
     $teams = [$a['team'] => $teams[$a['team']]]; 
 }
-
-echo '<div class="fsr-teams-container">';
-//echo '<div class="fsr-member-intro">';
-//echo '<p>Die Mitgliederkarten werden aus einzelnen, strukturiert gespeicherten Einträgen gerendert. So bleiben Import, Pflege und Sortierung deutlich stabiler als bei einem einzigen Options-Array.</p>';
-echo '</div>';
+error_log('SHORTCODE: Rendering grid for teams: ' . implode(', ', array_keys($teams)));
 
 foreach ($teams as $team_id => $team_data) {
     if (empty($team_data['list'])) continue;
