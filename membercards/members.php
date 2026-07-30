@@ -500,22 +500,82 @@ function fsr_members_render_admin_interface() {
 }
 
 function fsr_members_shortcode_renderer($atts) {
-    $a = shortcode_atts(['team' => 'all'], $atts);
+    $a = shortcode_atts([
+        'team'  => 'all',
+        'amt'   => '',
+        'name'  => '',
+        'email' => '',
+        'infos' => '',
+    ], $atts);
+
     $team = sanitize_key((string) ($a['team'] ?? 'all'));
+
     if (!in_array($team, ['all', FSR_TEAM1, FSR_TEAM2, FSR_TEAM3], true)) {
         $team = 'all';
     }
 
     $data = fsr_get_members_data($team);
     $members = $data['members'] ?? [];
+
+    // Filter nach Infos
+    $infos = [];
+
+    if (!empty($a['infos'])) {
+        $infos = array_map(
+            'trim',
+            explode(',', strtolower($a['infos']))
+        );
+    }
+
+    // Filter nach Amt
+    if (!empty($a['amt'])) {
+        $filter_amt = strtolower(trim($a['amt']));
+
+        $members = array_filter($members, function($member) use ($filter_amt) {
+            $aemter = array_map(
+                'trim',
+                explode(',', strtolower($member['amt'] ?? ''))
+            );
+
+            return in_array($filter_amt, $aemter, true);
+        });
+    }
+
+    // Filter nach Name
+    if (!empty($a['name'])) {
+        $filter_name = strtolower(trim($a['name']));
+
+        $members = array_filter($members, function($member) use ($filter_name) {
+            $name = strtolower(
+                ($member['first_name'] ?? '') . ' ' .
+                ($member['last_name'] ?? '')
+            );
+
+            return str_contains($name, $filter_name);
+        });
+    }
+
+    // Filter nach Email-Präfix
+    if (!empty($a['email'])) {
+        $filter_email = strtolower(trim($a['email']));
+
+        $members = array_filter($members, function($member) use ($filter_email) {
+            return str_contains(
+                strtolower($member['email_prefix'] ?? ''),
+                $filter_email
+            );
+        });
+    }
+
     $layout_settings = fsr_get_membercards_layout_settings();
 
     if (empty($members)) {
-        return '<div class="fsr-members-empty">Noch keine Mitglieder hinterlegt.</div>';
+        return '<div class="fsr-members-empty">Keine passenden Mitglieder gefunden.</div>';
     }
 
     ob_start();
     include plugin_dir_path(__FILE__) . 'templates/frontend-grid.php';
+
     return ob_get_clean();
 }
 

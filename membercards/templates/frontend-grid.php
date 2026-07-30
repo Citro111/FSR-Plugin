@@ -5,6 +5,51 @@ $layout_settings = isset($layout_settings) && is_array($layout_settings) ? $layo
 $desktop_cols = max(1, min(6, absint($layout_settings['desktop_cols'] ?? 4)));
 $tablet_cols = max(1, min($desktop_cols, absint($layout_settings['tablet_cols'] ?? 2)));
 $mobile_cols = max(1, min($tablet_cols, absint($layout_settings['mobile_cols'] ?? 1)));
+$display_infos = [];
+
+if (!empty($a['infos'])) {
+    $display_infos = array_map(
+        'trim',
+        explode(',', strtolower($a['infos']))
+    );
+}
+
+function fsr_render_member_infos($member, $infos) {
+    if (empty($infos)) {
+        return;
+    }
+    $available = [
+        'email'       => 'email_prefix',
+        'vorname'     => 'first_name',
+        'nachname'    => 'last_name',
+        'amt'         => 'amt',
+        'studiengang' => 'studiengang',
+        'abschluss'   => 'abschluss',
+        'pronomen'    => 'pronomen',
+        'start'       => 'erstes_jahr',
+        'semester'    => 'semester_anzahl',
+        'abgang'      => 'abgang_jahr',
+    ];
+    echo '<div class="fsr-extra-infos">';
+    foreach ($infos as $label) {
+        if (!isset($available[$label])) {
+            continue;
+        }
+        $field = $available[$label];
+        if (empty($member[$field])) {
+            continue;
+        }
+        $value = $member[$field];
+        if ($label === 'email') {
+            $value .= ' (at) fsr-etit.de';
+        }
+        echo '<div class="fsr-extra-info-item">';
+        echo '<strong>' . esc_html(ucfirst($label)) . ':</strong> ';
+        echo esc_html($value);
+        echo '</div>';
+    }
+    echo '</div>';
+}
 
 $teams = [
     'gewaehlte' => ['title' => 'Gewählte Mitglieder', 'list' => []],
@@ -152,6 +197,7 @@ foreach ($teams as $team_id => $team_data) {
                     <?php echo esc_html($prefix . ' (at) fsr-etit.de'); ?>
                 </p>
             <?php endif; ?>
+            <?php fsr_render_member_infos($m, $display_infos); ?>
             <?php if ($team_id === 'ehemalige') : ?>
                 <div class="fsr-ehemalige-info">
                     <?php if(!empty($m['erstes_jahr'])): ?><div>Dabei seit: <?php echo esc_html($m['erstes_jahr']); ?></div><?php endif; ?>
