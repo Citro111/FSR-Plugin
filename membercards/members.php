@@ -319,13 +319,11 @@ function fsr_parse_member_import_payload($raw_payload) {
             $parsed[] = $row;
         }
     }
-
     $members = [];
     foreach ($parsed as $row) {
         if (!is_array($row)) {
             continue;
         }
-
         $members[] = [
             'id' => $row['id'] ?? $row['post_id'] ?? 0,
             'first_name' => $row['first_name'] ?? $row['vorname'] ?? '',

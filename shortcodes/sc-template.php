@@ -25,7 +25,8 @@ if (!defined('ABSPATH')) exit;
                 <tr>
                     <th>Name</th>
                     <th>Beschreibung</th>
-                    <th>Mögliche Werte</th>
+                    <th>Möglichen Werte</th>
+                    <th>Default</th>
                 </tr>
             </thead>
             <tbody>
@@ -39,6 +40,9 @@ if (!defined('ABSPATH')) exit;
                     </td>
                     <td>
                         <?php echo esc_html($attr['values']); ?>
+                    </td>
+                    <td>
+                        <?php echo esc_html($attr['default'] ?? ''); ?>
                     </td>
                 </tr>
                 <?php endforeach; ?>

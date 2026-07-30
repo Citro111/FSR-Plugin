@@ -14,10 +14,12 @@ function fsr_get_registered_shortcodes() {
                 'team' => [
                     'description' => 'Filtert nach Team.',
                     'values' => 'all, gewaehlte, helfer, ehemalige',
+                    'default' => 'all',
                 ],
                 'amt' => [
                     'description' => 'Filtert nach Amt.',
-                    'values' => 'z.B. Vorstand',
+                    'values' => get_option('fsr_membercards_amt_order'),
+                    'default' => '',
                 ],
             ],
             'example' => '[fsr_members team="gewaehlte" amt="Vorstand"]',
@@ -29,11 +31,28 @@ function fsr_get_registered_shortcodes() {
             'attributes' => [
                 'amt' => [
                     'description' => 'Filtert nach Amt.',
-                    'values' => 'z.B. Vorsitz',
+                    'values' => get_option('fsr_membercards_amt_order'),
+                    'default' => '',
                 ],
                 'fields' => [
-                    'description' => 'Auszugebende Felder.',
-                    'values' => 'email, vorname, nachname',
+                    'description' => 'Die Infos die ausgegeben werden.',
+                    'values' => 'email, vorname, nachname, studiengang, abschluss, pronomen, amt, semester, start, abgang',
+                    'default' => 'email',
+                ],
+                'team' => [
+                    'description' => 'Filtert nach Team.',
+                    'values' => 'all, gewaehlte, helfer, ehemalige',
+                    'default' => 'all',
+                ],
+                'sep' => [
+                    'description' => 'Trennzeichen zwischen mehreren Personen.',
+                    'values' => 'any string',
+                    'default' => ', ',
+                ],
+                'name' => [
+                    'description' => 'Vor und Nachname des Mitglieds, falls amt leer ist.',
+                    'values' => 'any string',
+                    'default' => '',
                 ],
             ],
             'example' => '[fsr_member_info amt="Vorsitz" fields="email"]',
@@ -55,11 +74,19 @@ function fsr_get_registered_shortcodes() {
 
     ];
 }
+
 function fsr_get_shortcode_usage($specific_shortcode = null) {
     global $wpdb;
-    $shortcodes = array_keys(fsr_get_registered_shortcodes());
-    if ($specific_shortcode !== null && in_array($specific_shortcode, $shortcodes)) {
+    $registered = fsr_get_registered_shortcodes();
+    $shortcodes = array_keys($registered);
+    if (
+        $specific_shortcode !== null &&
+        isset($registered[$specific_shortcode])
+    ) {
         $shortcodes = [$specific_shortcode];
+    }
+    if (empty($shortcodes)) {
+        return [];
     }
     $conditions = [];
     $values = [];
@@ -67,13 +94,11 @@ function fsr_get_shortcode_usage($specific_shortcode = null) {
         $conditions[] = 'post_content LIKE %s';
         $values[] = '%' . $wpdb->esc_like('[' . $shortcode) . '%';
     }
-    if (empty($conditions)) {
-        return [];
-    }
     $sql = "
         SELECT ID, post_title, post_type, post_status, post_content
         FROM {$wpdb->posts}
-        WHERE post_status NOT IN ('trash','auto-draft')
+        WHERE post_status IN ('publish','draft','private','pending')
+        AND post_type NOT IN ('revision','attachment')
         AND (" . implode(' OR ', $conditions) . ")
         ORDER BY post_modified DESC
     ";
@@ -83,9 +108,14 @@ function fsr_get_shortcode_usage($specific_shortcode = null) {
     $usage = [];
     foreach ($posts as $post) {
         foreach ($shortcodes as $shortcode) {
-            if (stripos($post->post_content, '[' . $shortcode) !== false) {
+            if (
+                stripos(
+                    $post->post_content,
+                    '[' . $shortcode
+                ) !== false
+            ) {
                 $usage[$shortcode][] = [
-                    'id' => $post->ID,
+                    'id' => (int) $post->ID,
                     'title' => $post->post_title ?: '(Ohne Titel)',
                     'type' => $post->post_type,
                     'status' => $post->post_status,
