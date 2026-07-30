@@ -447,55 +447,11 @@ function fsr_ajax_import_members_handler() {
     ]);
 }
 
-function fsr_get_shortcode_usage_overview($shortcodes = ['fsr_members', 'fsr_office_hours', 'fsr_office_hours_sick']) {
-    global $wpdb;
-
-    $like_parts = [];
-    $like_values = [];
-
-    foreach ($shortcodes as $shortcode) {
-        $like_parts[] = 'post_content LIKE %s';
-        $like_values[] = '%[' . $wpdb->esc_like($shortcode) . '%';
-    }
-
-    $sql = "SELECT ID, post_title, post_type, post_status, post_content
-            FROM {$wpdb->posts}
-            WHERE post_status NOT IN ('auto-draft', 'trash', 'inherit')
-            AND (" . implode(' OR ', $like_parts) . ")
-            ORDER BY post_modified DESC";
-
-    $rows = $wpdb->get_results($wpdb->prepare($sql, $like_values));
-    if (empty($rows)) {
-        return [];
-    }
-
-    $usage = [];
-    $pattern = '/\[(fsr_members|fsr_office_hours|fsr_office_hours_sick)\b[^\]]*\]/i';
-
-    foreach ($rows as $row) {
-        if (!preg_match_all($pattern, (string) $row->post_content, $matches)) {
-            continue;
-        }
-
-        $found_shortcodes = array_values(array_unique(array_map('strtolower', $matches[1])));
-        $usage[] = [
-            'id' => (int) $row->ID,
-            'title' => $row->post_title !== '' ? $row->post_title : '(Ohne Titel)',
-            'type' => (string) $row->post_type,
-            'status' => (string) $row->post_status,
-            'shortcodes' => $found_shortcodes,
-            'edit_link' => get_edit_post_link((int) $row->ID, ''),
-            'view_link' => get_permalink((int) $row->ID),
-        ];
-    }
-    return $usage;
-}
-
 function fsr_members_render_admin_interface() {
     $data = fsr_get_members_data('all');
     $members = $data['members'] ?? [];
     $layout_settings = fsr_get_membercards_layout_settings();
-    $shortcode_usage = fsr_get_shortcode_usage_overview();
+    
     include plugin_dir_path(__FILE__) . 'templates/admin-interface.php';
 }
 
@@ -658,7 +614,7 @@ function fsr_membercards_search($search_term) {
         return '';
     }
     $virtual_posts = [];
-    $url_overview = fsr_get_shortcode_usage_overview(['fsr_members']);
+    $url_overview = fsr_get_shortcode_usage(['fsr_members']);
     foreach ($query->posts as $post) {
         $member = fsr_member_post_to_record($post);
         $searchable = implode(' ', [

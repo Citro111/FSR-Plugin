@@ -42,10 +42,10 @@ function fsr_custom_admin_menu() {
 
     add_submenu_page(
         'fsr-etit-settings',
-        'Office Hours',
-        'Office Hours',
+        'Shortcodes',
+        'Shortcodes',
         'manage_options',
-        'fsr-etit-settings-officehours',
+        'fsr-etit-settings-shortcodes',
         'fsr_custom_settings_page'
     );
 

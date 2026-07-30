@@ -46,6 +46,8 @@ require_once FSR_PLUGIN_DIR . 'officehours/office-hours.php';
 require_once FSR_PLUGIN_DIR . 'updates/updates.php';
 // Kalender laden
 require_once FSR_PLUGIN_DIR . 'calendar/calendar.php';
+// Shortcodes laden
+require_once FSR_PLUGIN_DIR . 'shortcodes/shortcodes.php';
 
 
 register_activation_hook(__FILE__, 'fsr_dw_activate');
