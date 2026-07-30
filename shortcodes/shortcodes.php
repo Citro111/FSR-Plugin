@@ -65,13 +65,30 @@ function fsr_get_registered_shortcodes() {
             'example' => '[fsr_office_hours]',
         ],
 
-        'fsr_office_hours_sick' => [
-            'title' => 'Krankheitsvertretung',
-            'description' => 'Zeigt Hinweise zu ausgefallenen Sprechstunden.',
+        'fsr_office_hours_portal' => [
+            'title' => 'Portal für die Sprechstunden',
+            'description' => 'Zeigt das Portal für die Sprechstunden an. Hier können sich Mitglieder eintragen oder abmelden.',
             'attributes' => [],
-            'example' => '[fsr_office_hours_sick]',
+            'example' => '[fsr_office_hours_portal] Kann in der URL gespeichert werden: ?member=[MEMBERID]',
         ],
 
+        'fsr_events' => [
+            'title' => 'Events',
+            'description' => 'Zeigt die aktuellen Events.',
+            'attributes' => [
+                'count' => [
+                    'description' => 'Anzahl der anzuzeigenden Events.',
+                    'values' => 'any integer',
+                    'default' => 5,
+                ],
+                'category' => [
+                    'description' => 'Filtert nach Kategorie.',
+                    'values' => get_option('fsr_calendar_categories', []),
+                    'default' => '',
+                ],
+            ],
+            'example' => '[fsr_events]',
+        ],
     ];
 }
 
