@@ -103,5 +103,5 @@ function fsr_render_shortcode_admin_page() {
     $shortcodes = fsr_get_registered_shortcodes();
     $usage = fsr_get_shortcode_usage();
 
-    include __DIR__ . '/templates/sc-template.php';
+    include __DIR__ . '/sc-template.php';
 }
