@@ -40,10 +40,6 @@ $all_amt_tags_json = wp_json_encode(array_values($unique_amter));
     </h3>
 
     <div class="fsr-shortcode-info">
-        <strong>Shortcodes</strong><br>
-        Alle Mitglieder anzeigen: <code>[fsr_members]</code><br>
-        Nur ein Team anzeigen: <code>[fsr_members team="gewaehlte"]</code>, <code>[fsr_members team="helfer"]</code>, <code>[fsr_members team="ehemalige"]</code>
-
         <form method="post" action="options.php" class="fsr-layout-settings-form">
             <?php settings_fields('fsr_membercards_layout_settings'); ?>
             <h4>Responsive Spalten (global für alle [fsr_members]-Shortcodes)</h4>
@@ -54,30 +50,6 @@ $all_amt_tags_json = wp_json_encode(array_values($unique_amter));
             </div>
             <?php submit_button('Layout speichern', 'secondary', 'submit', false); ?>
         </form>
-
-        <?php if (!empty($shortcode_usage)) : ?>
-            <div class="fsr-shortcode-usage">
-                <h4>Shortcodes aktuell verwendet in</h4>
-                <ul>
-                    <?php foreach ($shortcode_usage as $usage) : ?>
-                        <li>
-                            <?php if (!empty($usage['edit_link'])) : ?>
-                                <a href="<?php echo esc_url($usage['edit_link']); ?>"><?php echo esc_html($usage['title']); ?></a>
-                            <?php else : ?>
-                                <?php echo esc_html($usage['title']); ?>
-                            <?php endif; ?>
-                            (<?php echo esc_html($usage['type']); ?>, <?php echo esc_html($usage['status']); ?>)
-                            - <?php echo esc_html(implode(', ', $usage['shortcodes'])); ?>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-                <p class="description">Hinweis: Erfasst werden Inhalte aus dem eigentlichen Beitragstext. Shortcodes in externen Builder-Daten sind ggf. nicht sichtbar.</p>
-            </div>
-        <?php else : ?>
-            <p class="description">Aktuell keine Verwendung der Plugin-Shortcodes im Beitragstext gefunden.</p>
-        <?php endif; ?>
-
-        <p>Jedes Mitglied wird als eigener Datensatz gespeichert. Dadurch sind Import, Sortierung und spätere Pflege robuster.</p>
     </div>
 
     <div class="fsr-admin-top-bar">

@@ -42,20 +42,20 @@ function fsr_custom_admin_menu() {
 
     add_submenu_page(
         'fsr-etit-settings',
-        'Shortcodes',
-        'Shortcodes',
-        'manage_options',
-        'fsr-etit-settings-shortcodes',
-        'fsr_custom_settings_page'
-    );
-
-    add_submenu_page(
-        'fsr-etit-settings',
         'Kalender',
         'Kalender',
         'manage_options',
         'fsr-etit-settings-calendar',
         'fsr_custom_settings_page'
+    );
+
+    add_submenu_page(
+        'fsr-etit-settings',
+        'Shortcodes',
+        'Shortcodes',
+        'manage_options',
+        'fsr-etit-settings-shortcodes',
+        'fsr_render_shortcode_admin_page',
     );
 }
 
@@ -71,7 +71,7 @@ function fsr_custom_settings_page() {
         'fsr-etit-settings' => 'updates',
         'fsr-etit-settings-dokuwiki' => 'dokuwiki',
         'fsr-etit-settings-membercards' => 'membercards',
-        'fsr-etit-settings-officehours' => 'officehours',
+        'fsr-etit-settings-shortcodes' => 'shortcodes',
         'fsr-etit-settings-calendar' => 'calendar',
     ];
 
@@ -86,7 +86,7 @@ function fsr_custom_settings_page() {
         'updates' => admin_url('admin.php?page=fsr-etit-settings'),
         'dokuwiki' => admin_url('admin.php?page=fsr-etit-settings-dokuwiki'),
         'membercards' => admin_url('admin.php?page=fsr-etit-settings-membercards'),
-        'officehours' => admin_url('admin.php?page=fsr-etit-settings-officehours'),
+        'shortcodes' => admin_url('admin.php?page=fsr-etit-settings-shortcodes'),
         'calendar' => admin_url('admin.php?page=fsr-etit-settings-calendar'),
     ];
 
@@ -97,7 +97,7 @@ function fsr_custom_settings_page() {
             <a href="<?php echo esc_url($tab_links['updates']); ?>" class="nav-tab <?php echo $active_tab == 'updates' ? 'nav-tab-active' : ''; ?>">Updates</a>
             <a href="<?php echo esc_url($tab_links['dokuwiki']); ?>" class="nav-tab <?php echo $active_tab == 'dokuwiki' ? 'nav-tab-active' : ''; ?>">DokuWiki Connector</a>
             <a href="<?php echo esc_url($tab_links['membercards']); ?>" class="nav-tab <?php echo $active_tab == 'membercards' ? 'nav-tab-active' : ''; ?>">Mitgliedskarten</a>
-            <a href="<?php echo esc_url($tab_links['officehours']); ?>" class="nav-tab <?php echo $active_tab == 'officehours' ? 'nav-tab-active' : ''; ?>">Office Hours</a>
+            <a href="<?php echo esc_url($tab_links['shortcodes']); ?>" class="nav-tab <?php echo $active_tab == 'shortcodes' ? 'nav-tab-active' : ''; ?>">Shortcodes</a>
             <a href="<?php echo esc_url($tab_links['calendar']); ?>" class="nav-tab <?php echo $active_tab == 'calendar' ? 'nav-tab-active' : ''; ?>">Kalender</a>
         </h2>
         <?php if ($active_tab == 'dokuwiki') : ?>
@@ -112,12 +112,10 @@ function fsr_custom_settings_page() {
             <div style="margin-top: 20px;">
                 <?php fsr_members_render_admin_interface(); ?>
             </div>
-        <?php elseif ($active_tab == 'officehours') : ?>
+        <?php elseif ($active_tab == 'shortcodes') : ?>
             <form method="post" action="options.php" style="margin-top: 20px;">
                 <?php
-                settings_fields('fsr_office_hours_settings');
-                fsr_office_hours_render_admin_interface();
-                submit_button('Office Hours speichern');
+                fsr_shortcodes_render_admin_interface();
                 ?>
             </form>
         <?php elseif ($active_tab == 'updates') : ?>
