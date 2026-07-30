@@ -1,5 +1,13 @@
 <?php
 if (!defined('ABSPATH')) exit;
+
+function fsr_shortcode_admin_value($value) {
+    if (is_array($value)) {
+        return implode(', ', $value);
+    }
+
+    return (string) $value;
+}
 ?>
 
 <div class="wrap">
@@ -44,13 +52,13 @@ if (!defined('ABSPATH')) exit;
                             <code><?php echo esc_html($name); ?></code>
                         </td>
                         <td>
-                            <?php echo esc_html($attr['description'] ?? ''); ?>
+                            <?php echo esc_html(fsr_shortcode_admin_value($attr['description'] ?? '')); ?>
                         </td>
                         <td>
-                            <?php echo esc_html($attr['values'] ?? ''); ?>
+                            <?php echo esc_html(fsr_shortcode_admin_value($attr['values'] ?? '')); ?>
                         </td>
                         <td>
-                            <?php echo esc_html($attr['default'] ?? ''); ?>
+                            <?php echo esc_html(fsr_shortcode_admin_value($attr['default'] ?? '')); ?>
                         </td>
                     </tr>
                 <?php endforeach; ?>
