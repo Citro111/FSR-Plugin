@@ -32,7 +32,7 @@ if (!empty($teams['ehemalige']['list'])) {
 if ($a['team'] !== 'all' && isset($teams[$a['team']])) { 
     $teams = [$a['team'] => $teams[$a['team']]]; 
 }
-error_log('SHORTCODE: Rendering grid for teams: ' . implode(', ', array_keys($teams)));
+fsr_updates_log('SHORTCODE: Rendering grid for teams: ' . implode(', ', array_keys($teams)));
 
 foreach ($teams as $team_id => $team_data) {
     if (empty($team_data['list'])) continue;
