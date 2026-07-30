@@ -612,7 +612,7 @@ function fsr_membercards_search($search_term) {
         return '';
     }
     $virtual_posts = [];
-    $url_overview = fsr_get_shortcode_usage(['fsr_members']);
+    $url_overview = fsr_get_shortcode_usage('fsr_members');
     foreach ($query->posts as $post) {
         $member = fsr_member_post_to_record($post);
         $searchable = implode(' ', [
@@ -632,7 +632,7 @@ function fsr_membercards_search($search_term) {
             $title = fsr_member_post_title($member),
             $excerpt = $content,
             $content = $content,
-            $url = $url_overview[0]['view_link'] ?? '',
+            $url = $url_overview['fsr_members'][0]['view'] ?? '',
             $date = '',
             $type = 'page'
         );

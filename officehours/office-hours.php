@@ -763,7 +763,7 @@ function fsr_office_hours_search(string $search): array {
                     'fsr_oh_date' => $occurrence['date'] ?? '',
                     'member' => fsr_office_hours_member_param(),
                 ],
-                fsr_get_shortcode_usage_overview(['fsr_office_hours'])[0]['view_link'] ?? home_url()
+                fsr_get_shortcode_usage('fsr_office_hours')['fsr_office_hours'][0]['view'] ?? home_url()
             ),
             $occurrence['date'] ?? '',
             'page'
