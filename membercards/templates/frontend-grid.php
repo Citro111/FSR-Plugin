@@ -14,42 +14,7 @@ if (!empty($a['infos'])) {
     );
 }
 
-function fsr_render_member_infos($member, $infos) {
-    if (empty($infos)) {
-        return;
-    }
-    $available = [
-        'email'       => 'email_prefix',
-        'vorname'     => 'first_name',
-        'nachname'    => 'last_name',
-        'amt'         => 'amt',
-        'studiengang' => 'studiengang',
-        'abschluss'   => 'abschluss',
-        'pronomen'    => 'pronomen',
-        'start'       => 'erstes_jahr',
-        'semester'    => 'semester_anzahl',
-        'abgang'      => 'abgang_jahr',
-    ];
-    echo '<div class="fsr-extra-infos">';
-    foreach ($infos as $label) {
-        if (!isset($available[$label])) {
-            continue;
-        }
-        $field = $available[$label];
-        if (empty($member[$field])) {
-            continue;
-        }
-        $value = $member[$field];
-        if ($label === 'email') {
-            $value .= ' (at) fsr-etit.de';
-        }
-        echo '<div class="fsr-extra-info-item">';
-        echo '<strong>' . esc_html(ucfirst($label)) . ':</strong> ';
-        echo esc_html($value);
-        echo '</div>';
-    }
-    echo '</div>';
-}
+
 
 $teams = [
     'gewaehlte' => ['title' => 'Gewählte Mitglieder', 'list' => []],

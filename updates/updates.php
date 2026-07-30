@@ -328,8 +328,6 @@ function fsr_updates_after_update($upgrader, $hook_extra) {
     fsr_updates_log('Package URL: ' . $remote['download']);
     fsr_updates_log('Current commit: ' . get_option('fsr_installed_commit'));
     fsr_updates_log('Remote commit: ' . $remote['commit_sha']);
-    fsr_updates_log('UPGRADE RETURN' . print_r($result, true));
-    fsr_updates_log('PLUGIN EXISTS' . (file_exists(WP_PLUGIN_DIR . '/' . $plugin_file) ? 'YES' : 'NO'));
     fsr_updates_log('Installed version updated: ' . $remote['version']);
     fsr_updates_log('Active plugins after update: ' .
         print_r(
