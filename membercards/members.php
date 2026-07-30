@@ -504,8 +504,7 @@ function fsr_members_shortcode_renderer($atts) {
         'team'  => '',
         'amt'   => '',
         'name'  => '',
-        'email' => '',
-        'infos' => '',
+        'email' => ''
     ], $atts);
     $team = sanitize_key((string) ($a['team'] ?? 'all'));
     error_log('SHORTCODE: Team: ' . $team . ' | Amt: ' . $a['amt'] . ' | Name: ' . $a['name'] . ' | Email: ' . $a['email'] . ' | Infos: ' . $a['infos']);
@@ -516,16 +515,6 @@ function fsr_members_shortcode_renderer($atts) {
     error_log('SHORTCODE: Fetching members for team: ' . $team);
     $data = fsr_get_members_data($team);
     $members = $data['members'] ?? [];
-    error_log('SHORTCODE: Members fetched: ' . print_r($members, true));
-    // Filter nach Infos
-    $infos = [];
-    if (!empty($a['infos'])) {
-        $infos = array_map(
-            'trim',
-            explode(',', strtolower($a['infos']))
-        );
-        error_log('INFO FILTER: ' . print_r($infos, true));
-    }
     // Filter nach Amt
     if (!empty($a['amt'])) {
         $filter_amt = strtolower(trim($a['amt']));
@@ -597,43 +586,44 @@ function fsr_sanitize_membercards_layout_settings($input) {
         'mobile_cols' => $mobile,
     ];
 }
-
-function fsr_render_member_infos($member, $infos) {
-    if (empty($infos)) {
-        return;
-    }
-    $available = [
-        'email'       => 'email_prefix',
-        'vorname'     => 'first_name',
-        'nachname'    => 'last_name',
-        'amt'         => 'amt',
-        'studiengang' => 'studiengang',
-        'abschluss'   => 'abschluss',
-        'pronomen'    => 'pronomen',
-        'start'       => 'erstes_jahr',
-        'semester'    => 'semester_anzahl',
-        'abgang'      => 'abgang_jahr',
-    ];
-    echo '<div class="fsr-extra-infos">';
-    foreach ($infos as $label) {
-        if (!isset($available[$label])) {
-            continue;
+/*
+    function fsr_render_member_infos($member, $infos) {
+        if (empty($infos)) {
+            return;
         }
-        $field = $available[$label];
-        if (empty($member[$field])) {
-            continue;
+        $available = [
+            'email'       => 'email_prefix',
+            'vorname'     => 'first_name',
+            'nachname'    => 'last_name',
+            'amt'         => 'amt',
+            'studiengang' => 'studiengang',
+            'abschluss'   => 'abschluss',
+            'pronomen'    => 'pronomen',
+            'start'       => 'erstes_jahr',
+            'semester'    => 'semester_anzahl',
+            'abgang'      => 'abgang_jahr',
+        ];
+        echo '<div class="fsr-extra-infos">';
+        foreach ($infos as $label) {
+            if (!isset($available[$label])) {
+                continue;
+            }
+            $field = $available[$label];
+            if (empty($member[$field])) {
+                continue;
+            }
+            $value = $member[$field];
+            if ($label === 'email') {
+                $value .= ' (at) fsr-etit.de';
+            }
+            echo '<div class="fsr-extra-info-item">';
+            echo '<strong>' . esc_html(ucfirst($label)) . ':</strong> ';
+            echo esc_html($value);
+            echo '</div>';
         }
-        $value = $member[$field];
-        if ($label === 'email') {
-            $value .= ' (at) fsr-etit.de';
-        }
-        echo '<div class="fsr-extra-info-item">';
-        echo '<strong>' . esc_html(ucfirst($label)) . ':</strong> ';
-        echo esc_html($value);
         echo '</div>';
     }
-    echo '</div>';
-}
+*/
 
 function fsr_register_membercards_layout_settings() {
     register_setting(
@@ -695,4 +685,71 @@ function fsr_membercards_search($search_term) {
     }
     wp_reset_postdata();
     return $virtual_posts;
+}
+
+
+add_shortcode('fsr_member_info', 'fsr_member_info_shortcode_renderer');
+function fsr_member_info_shortcode_renderer($atts) {
+    $a = shortcode_atts([
+        'team'   => 'all',
+        'amt'    => '',
+        'name'   => '',
+        'fields' => 'email',
+        'sep'    => '<br>',
+    ], $atts);
+    $members = fsr_get_members_data($a['team'])['members'] ?? [];
+    // Nach Amt filtern
+    if (!empty($a['amt'])) {
+        $amt = strtolower(trim($a['amt']));
+        $members = array_filter($members, function($m) use ($amt) {
+            $aemter = array_map('trim', explode(',', strtolower($m['amt'] ?? '')));
+            return in_array($amt, $aemter, true);
+        });
+    }
+    // Nach Namen filtern
+    if (!empty($a['name'])) {
+        $name = strtolower(trim($a['name']));
+        $members = array_filter($members, function($m) use ($name) {
+            return str_contains(
+                strtolower(($m['first_name'] ?? '') . ' ' . ($m['last_name'] ?? '')),
+                $name
+            );
+        });
+    }
+    if (empty($members)) {
+        return '';
+    }
+    $field_map = [
+        'vorname'     => 'first_name',
+        'nachname'    => 'last_name',
+        'studiengang' => 'studiengang',
+        'abschluss'   => 'abschluss',
+        'pronomen'    => 'pronomen',
+        'amt'         => 'amt',
+        'semester'    => 'semester_anzahl',
+        'start'       => 'erstes_jahr',
+        'abgang'      => 'abgang_jahr',
+    ];
+    $fields = array_map('trim', explode(',', strtolower($a['fields'])));
+    $output = [];
+    foreach ($members as $m) {
+        $line = [];
+        foreach ($fields as $field) {
+            if ($field === 'email') {
+                if (!empty($m['email_prefix'])) {
+                    $line[] = esc_html($m['email_prefix'] . '@fsr-etit.de');
+                }
+                continue;
+            }
+            if (!isset($field_map[$field])) {
+                continue;
+            }
+            $value = $m[$field_map[$field]] ?? '';
+            if ($value !== '') {
+                $line[] = esc_html($value);
+            }
+        }
+        $output[] = implode(' ', $line);
+    }
+    return implode($a['sep'], $output);
 }

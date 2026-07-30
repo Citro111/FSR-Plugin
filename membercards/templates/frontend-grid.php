@@ -5,16 +5,6 @@ $layout_settings = isset($layout_settings) && is_array($layout_settings) ? $layo
 $desktop_cols = max(1, min(6, absint($layout_settings['desktop_cols'] ?? 4)));
 $tablet_cols = max(1, min($desktop_cols, absint($layout_settings['tablet_cols'] ?? 2)));
 $mobile_cols = max(1, min($tablet_cols, absint($layout_settings['mobile_cols'] ?? 1)));
-$display_infos = [];
-
-if (!empty($a['infos'])) {
-    $display_infos = array_map(
-        'trim',
-        explode(',', strtolower($a['infos']))
-    );
-}
-
-
 
 $teams = [
     'gewaehlte' => ['title' => 'Gewählte Mitglieder', 'list' => []],
@@ -157,14 +147,6 @@ foreach ($teams as $team_id => $team_data) {
                 <p class="fsr-email-text">
                     <?php echo esc_html($prefix . ' (at) fsr-etit.de'); ?>
                 </p>
-            <?php endif; ?>
-            <?php fsr_render_member_infos($m, $display_infos); ?>
-            <?php if ($team_id === 'ehemalige') : ?>
-                <div class="fsr-ehemalige-info">
-                    <?php if(!empty($m['erstes_jahr'])): ?><div>Dabei seit: <?php echo esc_html($m['erstes_jahr']); ?></div><?php endif; ?>
-                    <?php if(!empty($m['abgang_jahr'])): ?><div>Abgegangen im Jahr: <?php echo esc_html($m['abgang_jahr']); ?></div><?php endif; ?>
-                    <?php if(!empty($m['semester_anzahl'])): ?><div>Semester im FSR: <?php echo esc_html($m['semester_anzahl']); ?></div><?php endif; ?>
-                </div>
             <?php endif; ?>
         </article>
         <?php
