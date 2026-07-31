@@ -91,7 +91,7 @@ foreach ($teams as $team_id => $team_data) {
                     </div>
                 <?php endif; ?>
                 <?php if (!empty($prefix)): ?>
-                    <p class="fsr-email-text"><?php echo esc_html($prefix . ' (at) fsr-etit.de'); ?></p>
+                    <p class="fsr-email-text"><?php echo esc_html($prefix . FSR_EMAIL_SUFFIX); ?></p>
                 <?php endif; ?>
                 <div class="fsr-ehemalige-info">
                     <?php if(!empty($m['erstes_jahr'])): ?><div>Dabei seit: <?php echo esc_html($m['erstes_jahr']); ?></div><?php endif; ?>
@@ -145,7 +145,7 @@ foreach ($teams as $team_id => $team_data) {
             <?php endif; ?>
             <?php if (!empty($prefix)): ?>
                 <p class="fsr-email-text">
-                    <?php echo esc_html($prefix . ' (at) fsr-etit.de'); ?>
+                    <?php echo esc_html($prefix . FSR_EMAIL_SUFFIX); ?>
                 </p>
             <?php endif; ?>
         </article>

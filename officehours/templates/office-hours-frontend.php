@@ -32,7 +32,7 @@ function fsr_office_hours_shortcode($atts) {
             'id' => $m['id'],
             'first_name' => $m['first_name'] ?? '',
             'last_name' => $m['last_name'] ?? '',
-            'email' => !empty($m['email_prefix']) ? $m['email_prefix'] . ' (at) fsr-etit.de' : '',
+            'email' => !empty($m['email_prefix']) ? $m['email_prefix'] . FSR_EMAIL_SUFFIX : '',
             'study' => trim(($m['studiengang'] ?? '') . ' ' . ($m['abschluss'] ?? '')),
             'roles' => !empty($m['amt']) ? [$m['amt']] : [],
         ];

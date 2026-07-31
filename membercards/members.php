@@ -568,7 +568,7 @@ function fsr_sanitize_membercards_layout_settings($input) {
             }
             $value = $member[$field];
             if ($label === 'email') {
-                $value .= ' (at) fsr-etit.de';
+                $value .= FSR_EMAIL_SUFFIX;
             }
             echo '<div class="fsr-extra-info-item">';
             echo '<strong>' . esc_html(ucfirst($label)) . ':</strong> ';
@@ -691,7 +691,7 @@ function fsr_member_info_shortcode_renderer($atts) {
         foreach ($fields as $field) {
             if ($field === 'email') {
                 if (!empty($m['email_prefix'])) {
-                    $line[] = esc_html($m['email_prefix'] . '@fsr-etit.de');
+                    $line[] = esc_html($m['email_prefix'] . FSR_EMAIL_SUFFIX);
                 }
                 continue;
             }
