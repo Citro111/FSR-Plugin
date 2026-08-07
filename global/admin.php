@@ -123,6 +123,10 @@ function fsr_etit_settings_page(): void {
             <div style="margin-top:20px;">
                 <?php fsr_etit_calendar_render_admin_interface(); ?>
             </div>
+        <?php elseif ($active_tab === 'shortcodes') : ?>
+            <div style="margin-top:20px;">
+                <?php fsr_etit_render_shortcode_admin_page(); ?>
+            </div>
         <?php else : ?>
             <p>Dieser Bereich besitzt eine eigene Unterseite.</p>
         <?php endif; ?>
