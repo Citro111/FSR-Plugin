@@ -23,7 +23,7 @@ function fsr_etit_admin_menu(): void {
         ['DokuWiki', 'fsr-etit-settings-dokuwiki', 'fsr_etit_settings_page'],
         ['Mitgliedskarten', 'fsr-etit-settings-membercards', 'fsr_etit_settings_page'],
         ['Kalender', 'fsr-etit-settings-calendar', 'fsr_etit_settings_page'],
-        ['Shortcodes', 'fsr-etit-settings-shortcodes', 'fsr_etit_render_shortcode_admin_page'],
+        ['Shortcodes', 'fsr-etit-settings-shortcodes', 'fsr_etit_settings_page'],
     ];
 
     foreach ($pages as [$title, $slug, $callback]) {
