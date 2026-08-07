@@ -1,71 +1,90 @@
 <?php
-if(!defined('ABSPATH')) exit;
-function fsr_dw_render_admin_fields() {
 
-    $s = fsr_dw_get_settings();
+if (!defined('ABSPATH')) {
+    exit;
+}
 
-    echo '<h3>DokuWiki Einstellungen</h3>';
+function fsr_etit_dokuwiki_render_admin_fields(): void {
+    if (!current_user_can('manage_options')) {
+        return;
+    }
 
-    echo '<table class="form-table">';
+    $settings = fsr_etit_dokuwiki_get_settings();
+    ?>
+    <h2>DokuWiki-Einstellungen</h2>
+    <?php settings_errors(FSR_ETIT_OPTION_DOKUWIKI_SETTINGS); ?>
+    <table class="form-table">
+        <tr>
+            <th scope="row"><label for="fsr-etit-dokuwiki-url">DokuWiki-URL</label></th>
+            <td>
+                <input
+                    id="fsr-etit-dokuwiki-url"
+                    class="regular-text"
+                    type="url"
+                    name="<?php echo esc_attr(FSR_ETIT_OPTION_DOKUWIKI_SETTINGS); ?>[base_url]"
+                    value="<?php echo esc_attr($settings['base_url']); ?>"
+                    required
+                >
+                <p class="description">Aus Sicherheitsgründen ist ausschließlich eine öffentliche HTTPS-URL zulässig.</p>
+            </td>
+        </tr>
+        <tr>
+            <th scope="row"><label for="fsr-etit-dokuwiki-start">Startseite</label></th>
+            <td>
+                <input
+                    id="fsr-etit-dokuwiki-start"
+                    class="regular-text"
+                    name="<?php echo esc_attr(FSR_ETIT_OPTION_DOKUWIKI_SETTINGS); ?>[start_page]"
+                    value="<?php echo esc_attr($settings['start_page']); ?>"
+                    required
+                >
+            </td>
+        </tr>
+        <tr>
+            <th scope="row"><label for="fsr-etit-dokuwiki-cache">Cache-Dauer</label></th>
+            <td>
+                <input
+                    id="fsr-etit-dokuwiki-cache"
+                    type="number"
+                    min="0"
+                    max="<?php echo esc_attr(DAY_IN_SECONDS); ?>"
+                    name="<?php echo esc_attr(FSR_ETIT_OPTION_DOKUWIKI_SETTINGS); ?>[cache_time]"
+                    value="<?php echo esc_attr($settings['cache_time']); ?>"
+                > Sekunden
+            </td>
+        </tr>
+    </table>
 
-    echo "<tr>
-        <th>DokuWiki URL</th>
-        <td>
-            <input style='width:400px' 
-            name='dw_bridge_settings[base_url]' 
-            value='".esc_attr($s['base_url'])."'>
-        </td>
-    </tr>";
-
-    echo "<tr>
-        <th>Startseite</th>
-        <td>
-            <input name='dw_bridge_settings[start_page]' 
-            value='".esc_attr($s['start_page'])."'>
-        </td>
-    </tr>";
-
-    echo "<tr>
-        <th>Cache (Sekunden)</th>
-        <td>
-            <input type='number' 
-            name='dw_bridge_settings[cache_time]' 
-            value='".esc_attr($s['cache_time'])."'>
-        </td>
-    </tr>";
-
-    echo '</table>';
-
+    <h2>DokuWiki-Cache</h2>
+    <?php
     global $wpdb;
-
-    echo '<h3>DokuWiki Cache</h3>';
-
+    $timeout_like = $wpdb->esc_like('_transient_timeout_fsr_etit_dokuwiki_') . '%';
     $transients = $wpdb->get_results(
-        "
-        SELECT option_name, option_value
-        FROM {$wpdb->options}
-        WHERE option_name LIKE '_transient_timeout_dw_%'
-        "
+        $wpdb->prepare(
+            "SELECT option_name, option_value FROM {$wpdb->options} WHERE option_name LIKE %s ORDER BY option_name ASC LIMIT 100",
+            $timeout_like
+        )
     );
 
     if ($transients) {
         foreach ($transients as $transient) {
             $name = str_replace('_transient_timeout_', '', $transient->option_name);
-            $time = intval($transient->option_value);
-            echo '<p>';
-            echo esc_html($name) . ': ';
-            echo $time . ' (' . date('Y-m-d H:i:s', $time) . ')';
-            if ($time < time()) {
-                echo ' <strong>(abgelaufen)</strong>';
-            }
-            echo '</p>';
+            $time = absint($transient->option_value);
+            printf(
+                '<p><code>%s</code>: %s%s</p>',
+                esc_html($name),
+                esc_html(wp_date('d.m.Y H:i:s', $time, wp_timezone())),
+                $time < time() ? ' <strong>(abgelaufen)</strong>' : ''
+            );
         }
     } else {
         echo '<p>Keine Cache-Einträge gefunden.</p>';
     }
-    echo '<p>';
-    echo '<button type="submit" name="dw_clear_cache" value="1" class="button">';
-    echo 'DokuWiki Cache löschen';
-    echo '</button>';
-    echo '</p>';
-}   
+    ?>
+    <p>
+        <button type="submit" name="dw_clear_cache" value="1" class="button">
+            DokuWiki-Cache löschen
+        </button>
+    </p>
+    <?php
+}

@@ -1,778 +1,813 @@
 <?php
+
 if (!defined('ABSPATH')) {
     exit;
 }
 
 require_once __DIR__ . '/templates/office-hours-frontend.php';
 require_once __DIR__ . '/templates/office-hours-portal.php';
-require_once __DIR__ . '/templates/office-hours-adminUI.php';
 
-add_action('admin_init', 'fsr_office_hours_register_settings');
-add_action('admin_enqueue_scripts', function () {
-    wp_enqueue_script('select2');
-    wp_enqueue_style('select2');
-});
+add_action('admin_init', 'fsr_etit_office_hours_register_settings');
+add_action('template_redirect', 'fsr_etit_office_hours_process_portal_request', 5);
+add_shortcode('fsr_office_hours_portal', 'fsr_etit_office_hours_portal_shortcode');
+add_shortcode('fsr_office_hours', 'fsr_etit_office_hours_shortcode');
 
-add_shortcode('fsr_office_hours_portal', 'fsr_office_hours_portal_shortcode');
-add_shortcode('fsr_office_hours', 'fsr_office_hours_shortcode');
-
-function fsr_office_hours_register_settings(): void {
+function fsr_etit_office_hours_register_settings(): void {
     register_setting(
-        'fsr_office_hours_settings',
-        'fsr_office_hours_settings',
+        'fsr_etit_office_hours_settings',
+        FSR_ETIT_OPTION_OFFICE_HOURS,
         [
-            'sanitize_callback' => 'fsr_sanitize_office_hours_settings',
+            'type'              => 'array',
+            'sanitize_callback' => 'fsr_etit_sanitize_office_hours_settings',
+            'default'           => ['rules' => [], 'cancellations' => []],
         ]
     );
 }
 
-function fsr_office_hours_get_settings(): array {
-    return wp_parse_args(get_option('fsr_office_hours_settings', []), [
-        'rules' => [],
-        'cancellations' => [],
-    ]);
+/**
+ * Capability required for every write in the frontend management portal.
+ */
+function fsr_etit_office_hours_manage_capability(): string {
+    $capability = sanitize_key(fsr_etit_scalar_string(
+        apply_filters('fsr_etit_office_hours_manage_capability', 'manage_options')
+    ));
+    return $capability !== '' ? $capability : 'manage_options';
 }
 
-function fsr_office_hours_sanitize_time($time, string $fallback = '10:00'): string {
-    $time = trim((string) $time);
-    return preg_match('/^([01][0-9]|2[0-3]):[0-5][0-9]$/', $time) ? $time : $fallback;
+function fsr_etit_office_hours_get_settings(): array {
+    $settings = get_option(FSR_ETIT_OPTION_OFFICE_HOURS, []);
+    $settings = is_array($settings) ? $settings : [];
+    return fsr_etit_sanitize_office_hours_settings($settings);
 }
 
-function fsr_office_hours_normalize_member_ids($incoming_ids): array {
-    if (!is_array($incoming_ids)) {
-        $incoming_ids = [$incoming_ids];
+function fsr_etit_office_hours_sanitize_time($time, string $fallback = '10:00'): string {
+    $time = trim(fsr_etit_scalar_string($time));
+    return preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d$/', $time) ? $time : $fallback;
+}
+
+function fsr_etit_office_hours_is_valid_date($date): bool {
+    $date = fsr_etit_scalar_string($date);
+    if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+        return false;
     }
 
-    $ids = [];
-    foreach ($incoming_ids as $value) {
-        $id = absint($value);
-        if ($id > 0) {
-            $ids[] = $id;
-        }
-    }
-
-    return array_values(array_unique($ids));
+    $parsed = DateTimeImmutable::createFromFormat('!Y-m-d', $date, wp_timezone());
+    return $parsed instanceof DateTimeImmutable && $parsed->format('Y-m-d') === $date;
 }
 
-function fsr_office_hours_sanitize_rule($rule, int $index = 0): array {
-    
+function fsr_etit_office_hours_sanitize_date($date): string {
+    $date = sanitize_text_field(fsr_etit_scalar_string($date));
+    return fsr_etit_office_hours_is_valid_date($date)
+        ? $date
+        : wp_date('Y-m-d', time(), wp_timezone());
+}
+
+function fsr_etit_office_hours_normalize_member_ids($incoming_ids): array {
+    $incoming_ids = is_array($incoming_ids) ? $incoming_ids : [$incoming_ids];
+    $incoming_ids = array_filter($incoming_ids, 'is_scalar');
+    $ids = array_map('absint', $incoming_ids);
+    return array_values(array_unique(array_filter($ids)));
+}
+
+function fsr_etit_office_hours_new_rule_id(): string {
+    return 'rule_' . substr(str_replace('-', '', wp_generate_uuid4()), 0, 16);
+}
+
+function fsr_etit_office_hours_sanitize_rule($rule, int $index = 0): array {
     $rule = is_array($rule) ? $rule : [];
-
-    $id = sanitize_key((string) ($rule['id'] ?? ''));
-    if ($id === '') {
-        $id = 'rule_' . ($index + 1) . '_' . strtolower(wp_generate_password(6, false, false));
-    }
-
-    $recurrence = sanitize_key((string) ($rule['recurrence'] ?? 'monthly_nth'));
-    if (!in_array($recurrence, ['monthly_nth', 'weekly'], true)) {
-        $recurrence = 'monthly_nth';
+    $id = sanitize_key(fsr_etit_scalar_string($rule['id'] ?? '')) ?: fsr_etit_office_hours_new_rule_id();
+    $recurrence = sanitize_key(fsr_etit_scalar_string($rule['recurrence'] ?? 'weekly'));
+    $recurrence = in_array($recurrence, ['monthly_nth', 'weekly'], true) ? $recurrence : 'weekly';
+    $start_time = fsr_etit_office_hours_sanitize_time($rule['start_time'] ?? '10:00', '10:00');
+    $end_time = fsr_etit_office_hours_sanitize_time($rule['end_time'] ?? '12:00', '12:00');
+    if ($end_time <= $start_time) {
+        $start_time = '10:00';
+        $end_time = '12:00';
     }
 
     return [
-        'id' => $id,
-        'type' => sanitize_key((string) ($rule['type'] ?? 'office_hour')),
-        'title' => sanitize_text_field((string) ($rule['title'] ?? 'Office Hour')),
-        'recurrence' => $recurrence,
-        'nth_week' => max(1, min(4, absint($rule['nth_week'] ?? 1))),
-        'weekday' => max(1, min(7, absint($rule['weekday'] ?? 3))),
-        'week_interval' => max(1, min(8, absint($rule['week_interval'] ?? 1))),
-        'start_time' => fsr_office_hours_sanitize_time($rule['start_time'] ?? '10:00', '10:00'),
-        'end_time' => fsr_office_hours_sanitize_time($rule['end_time'] ?? '12:00', '12:00'),
-        'location' => sanitize_text_field((string) ($rule['location'] ?? 'FSR Büro')),
-        'member_ids' => fsr_office_hours_normalize_member_ids($rule['member_ids'] ?? []),
-        'created_at' => sanitize_text_field((string) ($rule['created_at'] ?? current_time('mysql'))),
-        'notes' => sanitize_text_field((string) ($rule['notes'] ?? '')),
-        'start_date' => fsr_office_hours_sanitize_date($rule['start_date'] ?? current_time('Y-m-d')),
+        'id'            => $id,
+        'type'          => sanitize_key(fsr_etit_scalar_string($rule['type'] ?? 'office_hour')) ?: 'office_hour',
+        'title'         => sanitize_text_field(fsr_etit_scalar_string($rule['title'] ?? 'Sprechstunde')) ?: 'Sprechstunde',
+        'recurrence'    => $recurrence,
+        'nth_week'      => max(1, min(4, absint(fsr_etit_scalar_string($rule['nth_week'] ?? 1)))),
+        'weekday'       => max(1, min(7, absint(fsr_etit_scalar_string($rule['weekday'] ?? 3)))),
+        'week_interval' => max(1, min(8, absint(fsr_etit_scalar_string($rule['week_interval'] ?? 1)))),
+        'start_time'    => $start_time,
+        'end_time'      => $end_time,
+        'location'      => sanitize_text_field(fsr_etit_scalar_string($rule['location'] ?? 'FSR-Büro')) ?: 'FSR-Büro',
+        'member_ids'    => fsr_etit_office_hours_normalize_member_ids($rule['member_ids'] ?? []),
+        'created_at'    => sanitize_text_field(fsr_etit_scalar_string($rule['created_at'] ?? current_time('mysql'))),
+        'notes'         => sanitize_text_field(fsr_etit_scalar_string($rule['notes'] ?? '')),
+        'start_date'    => fsr_etit_office_hours_sanitize_date($rule['start_date'] ?? current_time('Y-m-d')),
     ];
 }
 
-function fsr_office_hours_sanitize_date($date): string {
-    $date = sanitize_text_field((string) $date);
+function fsr_etit_sanitize_office_hours_settings($input): array {
+    $input = is_array($input) ? $input : [];
+    $clean = ['rules' => [], 'cancellations' => []];
+    $rule_ids = [];
+    $rule_members = [];
+    $rules_by_id = [];
 
-    if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-        return $date;
+    foreach (array_slice((array) ($input['rules'] ?? []), 0, 500) as $index => $rule) {
+        $rule = fsr_etit_office_hours_sanitize_rule($rule, $index);
+        if (empty($rule['member_ids'])) {
+            continue;
+        }
+        if (isset($rule_ids[$rule['id']])) {
+            $rule['id'] = fsr_etit_office_hours_new_rule_id();
+        }
+        $rule_ids[$rule['id']] = true;
+        $rule_members[$rule['id']] = $rule['member_ids'];
+        $rules_by_id[$rule['id']] = $rule;
+        $clean['rules'][] = $rule;
     }
 
-    return current_time('Y-m-d');
-}
-
-function fsr_sanitize_office_hours_settings($input): array {
-    $clean = [
-        'rules' => [],
-        'cancellations' => [],
-    ];
-
-    $rules = $input['rules'] ?? [];
-    if (is_array($rules)) {
-        foreach (array_values($rules) as $index => $rule) {
-            $clean_rule = fsr_office_hours_sanitize_rule($rule, $index);
-            if (empty($clean_rule['member_ids'])) {
-                continue;
-            }
-            $clean['rules'][] = $clean_rule;
+    $seen = [];
+    foreach (array_slice((array) ($input['cancellations'] ?? []), 0, 5000) as $item) {
+        if (!is_array($item)) {
+            continue;
         }
-    }
-
-    $cancellations = $input['cancellations'] ?? [];
-    if (is_array($cancellations)) {
-        foreach ($cancellations as $item) {
-            if (!is_array($item)) {
-                continue;
-            }
-
-            $rule_id = sanitize_key((string) ($item['rule_id'] ?? ''));
-            $member_id = absint($item['member_id'] ?? 0);
-            $date = sanitize_text_field((string) ($item['occurrence_date'] ?? ''));
-
-            if ($rule_id === '' || $member_id <= 0 || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
-                continue;
-            }
-
-            $clean['cancellations'][] = [
-                'rule_id' => $rule_id,
-                'member_id' => $member_id,
-                'occurrence_date' => $date,
-                'reason' => sanitize_text_field((string) ($item['reason'] ?? '')),
-                'created_at' => sanitize_text_field((string) ($item['created_at'] ?? current_time('mysql'))),
-            ];
+        $rule_id = sanitize_key(fsr_etit_scalar_string($item['rule_id'] ?? ''));
+        $member_id = absint(fsr_etit_scalar_string($item['member_id'] ?? 0));
+        $date = sanitize_text_field(fsr_etit_scalar_string($item['occurrence_date'] ?? ''));
+        if (
+            $rule_id === '' ||
+            $member_id === 0 ||
+            !fsr_etit_office_hours_is_valid_date($date) ||
+            !isset($rule_members[$rule_id]) ||
+            !in_array($member_id, $rule_members[$rule_id], true) ||
+            !fsr_etit_office_hours_date_matches_rule($rules_by_id[$rule_id] ?? [], $date)
+        ) {
+            continue;
         }
+
+        $key = $rule_id . '|' . $member_id . '|' . $date;
+        if (isset($seen[$key])) {
+            continue;
+        }
+        $seen[$key] = true;
+        $clean['cancellations'][] = [
+            'rule_id'        => $rule_id,
+            'member_id'      => $member_id,
+            'occurrence_date'=> $date,
+            'reason'         => sanitize_text_field(fsr_etit_scalar_string($item['reason'] ?? '')),
+            'created_at'     => sanitize_text_field(fsr_etit_scalar_string($item['created_at'] ?? current_time('mysql'))),
+        ];
     }
 
     return $clean;
 }
 
-function fsr_office_hours_get_all_members(): array {
-    $data = fsr_get_members_data('all');
-    $members = $data['members'] ?? [];
-    return is_array($members) ? $members : [];
+function fsr_etit_office_hours_save_settings(array $settings): bool {
+    $clean = fsr_etit_sanitize_office_hours_settings($settings);
+    if (update_option(FSR_ETIT_OPTION_OFFICE_HOURS, $clean, false)) {
+        return true;
+    }
+
+    return get_option(FSR_ETIT_OPTION_OFFICE_HOURS, null) === $clean;
 }
 
-function fsr_office_hours_is_allowed_member(array $member): bool {
-    return $member['team'] == FSR_TEAM1 || $member['team'] == FSR_TEAM2;
+function fsr_etit_office_hours_get_all_members(): array {
+    $data = fsr_etit_get_members_data('all');
+    return is_array($data['members'] ?? null) ? $data['members'] : [];
 }
 
-function fsr_office_hours_get_allowed_members(): array {
+function fsr_etit_office_hours_is_allowed_member(array $member): bool {
+    return in_array(
+        $member['team'] ?? '',
+        [FSR_ETIT_TEAM_ELECTED, FSR_ETIT_TEAM_HELPERS],
+        true
+    );
+}
+
+function fsr_etit_office_hours_get_allowed_members(): array {
     $allowed = [];
-
-    foreach (fsr_office_hours_get_all_members() as $member) {
-        if (!is_array($member) || empty($member['id']) || !fsr_office_hours_is_allowed_member($member)) {
+    foreach (fsr_etit_office_hours_get_all_members() as $member) {
+        if (!is_array($member) || empty($member['id']) || !fsr_etit_office_hours_is_allowed_member($member)) {
             continue;
         }
-
-        $name = trim(
-            (string) ($member['first_name'] ?? '') . ' ' .
-            (string) ($member['last_name'] ?? '')
-        );
-
+        $name = trim((string) ($member['first_name'] ?? '') . ' ' . (string) ($member['last_name'] ?? ''));
         $allowed[] = [
-            'id' => (int) $member['id'],
+            'id'   => (int) $member['id'],
             'name' => $name !== '' ? $name : ('ID ' . (int) $member['id']),
         ];
     }
-
     return $allowed;
 }
 
-function fsr_office_hours_get_members_by_id(): array {
+function fsr_etit_office_hours_allowed_member_ids(): array {
+    return array_map(
+        static fn(array $member): int => (int) $member['id'],
+        fsr_etit_office_hours_get_allowed_members()
+    );
+}
+
+function fsr_etit_office_hours_get_members_by_id(): array {
     $map = [];
-
-    foreach (fsr_office_hours_get_all_members() as $member) {
-        if (!is_array($member) || empty($member['id'])) {
-            continue;
+    foreach (fsr_etit_office_hours_get_all_members() as $member) {
+        if (is_array($member) && !empty($member['id'])) {
+            $map[(int) $member['id']] = $member;
         }
-
-        $map[(int) $member['id']] = $member;
     }
-
     return $map;
 }
 
-function fsr_office_hours_get_rule_members(array $rule): array {
-    $allowed_members = fsr_office_hours_get_allowed_members();
-    $allowed_map = [];
-    foreach ($allowed_members as $member) {
-        $allowed_map[(int) $member['id']] = $member['name'];
-    }
-
+function fsr_etit_office_hours_get_rule_members(array $rule): array {
+    $member_map = fsr_etit_office_hours_get_members_by_id();
     $names = [];
-    foreach (($rule['member_ids'] ?? []) as $member_id) {
-        $member_id = (int) $member_id;
-        if (isset($allowed_map[$member_id])) {
-            $names[] = $allowed_map[$member_id];
+    foreach ((array) ($rule['member_ids'] ?? []) as $member_id) {
+        $member = $member_map[(int) $member_id] ?? null;
+        if (!$member || !fsr_etit_office_hours_is_allowed_member($member)) {
+            continue;
+        }
+        $name = trim((string) ($member['first_name'] ?? '') . ' ' . (string) ($member['last_name'] ?? ''));
+        if ($name !== '') {
+            $names[] = $name;
         }
     }
-
     return $names;
 }
 
-function fsr_office_hours_member_param(): int {
-    return absint($_GET['member'] ?? $_POST['member'] ?? 0);
+function fsr_etit_office_hours_member_param(): int {
+    $value = $_GET['member'] ?? $_POST['member'] ?? 0;
+    return absint(fsr_etit_scalar_string(wp_unslash($value)));
 }
 
-function fsr_office_hours_get_member_by_id(int $member_id): ?array {
-    if ($member_id <= 0) {
-        return null;
-    }
-
-    foreach (fsr_office_hours_get_all_members() as $member) {
-        if ((int) ($member['id'] ?? 0) === $member_id) {
-            return $member;
-        }
-    }
-
-    return null;
+function fsr_etit_office_hours_get_member_by_id(int $member_id): ?array {
+    $member = fsr_etit_office_hours_get_members_by_id()[$member_id] ?? null;
+    return is_array($member) ? $member : null;
 }
 
-function fsr_office_hours_get_selected_member(): ?array {
+function fsr_etit_office_hours_get_selected_member(): ?array {
+    static $resolved = false;
     static $selected = null;
-
-    if ($selected !== null) {
+    if ($resolved) {
         return $selected;
     }
+    $resolved = true;
 
-    $member_id = fsr_office_hours_member_param();
-    $member = fsr_office_hours_get_member_by_id($member_id);
-
-    if ($member && fsr_office_hours_is_allowed_member($member)) {
+    $member = fsr_etit_office_hours_get_member_by_id(fsr_etit_office_hours_member_param());
+    if ($member && fsr_etit_office_hours_is_allowed_member($member)) {
         return $selected = $member;
     }
 
-    $allowed = fsr_office_hours_get_allowed_members();
-    if (!empty($allowed)) {
-        $fallback_id = (int) $allowed[0]['id'];
-        return $selected = fsr_office_hours_get_member_by_id($fallback_id);
-    }
-
-    return $selected = null;
+    $allowed = fsr_etit_office_hours_get_allowed_members();
+    return $selected = !empty($allowed)
+        ? fsr_etit_office_hours_get_member_by_id((int) $allowed[0]['id'])
+        : null;
 }
 
-function fsr_office_hours_set_cancellation(string $rule_id, int $member_id, string $date, string $reason = ''): void {
-    $settings = fsr_office_hours_get_settings();
-    $settings['cancellations'] = is_array($settings['cancellations'] ?? null) ? $settings['cancellations'] : [];
-
-    foreach ($settings['cancellations'] as $key => $entry) {
-        if (
+function fsr_etit_office_hours_update_cancellation(
+    string $rule_id,
+    int $member_id,
+    string $date,
+    string $reason,
+    bool $cancel
+): bool {
+    $settings = fsr_etit_office_hours_get_settings();
+    $filtered = [];
+    foreach ($settings['cancellations'] as $entry) {
+        $matches =
             ($entry['rule_id'] ?? '') === $rule_id &&
-            absint($entry['member_id'] ?? 0) === $member_id &&
-            ($entry['occurrence_date'] ?? '') === $date
-        ) {
-            unset($settings['cancellations'][$key]);
-            $settings['cancellations'] = array_values($settings['cancellations']);
-            update_option('fsr_office_hours_settings', $settings);
-            return;
+            (int) ($entry['member_id'] ?? 0) === $member_id &&
+            ($entry['occurrence_date'] ?? '') === $date;
+        if (!$matches) {
+            $filtered[] = $entry;
         }
     }
 
-    $settings['cancellations'][] = [
-        'rule_id' => $rule_id,
-        'member_id' => $member_id,
-        'occurrence_date' => $date,
-        'reason' => $reason,
-        'created_at' => current_time('mysql'),
-    ];
+    if ($cancel) {
+        $filtered[] = [
+            'rule_id'         => $rule_id,
+            'member_id'       => $member_id,
+            'occurrence_date' => $date,
+            'reason'          => sanitize_text_field($reason),
+            'created_at'      => current_time('mysql'),
+        ];
+    }
 
-    update_option('fsr_office_hours_settings', $settings);
+    $settings['cancellations'] = $filtered;
+    return fsr_etit_office_hours_save_settings($settings);
 }
 
-function fsr_office_hours_member_is_cancelled(array $cancellations, string $rule_id, string $date, int $member_id): bool {
+function fsr_etit_office_hours_member_is_cancelled(
+    array $cancellations,
+    string $rule_id,
+    string $date,
+    int $member_id
+): bool {
     foreach ($cancellations as $entry) {
         if (
             ($entry['rule_id'] ?? '') === $rule_id &&
-            absint($entry['member_id'] ?? 0) === $member_id &&
+            (int) ($entry['member_id'] ?? 0) === $member_id &&
             ($entry['occurrence_date'] ?? '') === $date
         ) {
             return true;
         }
     }
-
     return false;
 }
 
-function fsr_office_hours_collect_occurrences(
+function fsr_etit_office_hours_occurrence_is_cancelled($rule, $date, $cancellations): bool {
+    $member_ids = fsr_etit_office_hours_normalize_member_ids($rule['member_ids'] ?? []);
+    if (empty($member_ids)) {
+        return true;
+    }
+    foreach ($member_ids as $member_id) {
+        if (!fsr_etit_office_hours_member_is_cancelled($cancellations, $rule['id'], $date, $member_id)) {
+            return false;
+        }
+    }
+    return true;
+}
+
+function fsr_etit_office_hours_date_object(string $date): ?DateTimeImmutable {
+    if (!fsr_etit_office_hours_is_valid_date($date)) {
+        return null;
+    }
+    $value = DateTimeImmutable::createFromFormat('!Y-m-d', $date, wp_timezone());
+    return $value instanceof DateTimeImmutable ? $value : null;
+}
+
+function fsr_etit_office_hours_nth_weekday_date($year, $month, $weekday, $nth): ?string {
+    $first = fsr_etit_office_hours_date_object(sprintf('%04d-%02d-01', $year, $month));
+    if (!$first) {
+        return null;
+    }
+    $delta = ((int) $weekday - (int) $first->format('N') + 7) % 7;
+    $candidate = $first->modify('+' . ($delta + ((max(1, (int) $nth) - 1) * 7)) . ' days');
+    return (int) $candidate->format('n') === (int) $month ? $candidate->format('Y-m-d') : null;
+}
+
+function fsr_etit_office_hours_collect_occurrences(
     array $rules,
     int $limit = 12,
-    bool $hide_fully_cancelled = true): array {
-    $settings = fsr_office_hours_get_settings();
-    $cancellations = $settings['cancellations'] ?? [];
-    $today = current_time('Y-m-d');
-    $today_ts = strtotime($today);
+    bool $hide_fully_cancelled = true,
+    ?array $cancellations = null,
+    ?array $allowed_member_ids = null
+): array {
+    $limit = max(1, min(200, $limit));
+    if ($cancellations === null) {
+        $cancellations = fsr_etit_office_hours_get_settings()['cancellations'];
+    }
+    if ($allowed_member_ids === null) {
+        $allowed_member_ids = fsr_etit_office_hours_allowed_member_ids();
+    }
+    $allowed_member_ids = fsr_etit_office_hours_normalize_member_ids($allowed_member_ids);
+    $today = new DateTimeImmutable('today', wp_timezone());
     $bucket = [];
+
     foreach ($rules as $rule) {
         if (!is_array($rule)) {
             continue;
         }
-        $rule = fsr_office_hours_sanitize_rule($rule);
+        $rule = fsr_etit_office_hours_sanitize_rule($rule);
+        $rule['member_ids'] = array_values(array_intersect(
+            $rule['member_ids'],
+            $allowed_member_ids
+        ));
         if (empty($rule['member_ids'])) {
             continue;
         }
-        /*
-        |--------------------------------------------------------------------------
-        | Monatliche Regeln
-        |--------------------------------------------------------------------------
-        */
+        $start_date = fsr_etit_office_hours_date_object($rule['start_date']) ?: $today;
+
         if ($rule['recurrence'] === 'monthly_nth') {
-            for ($offset = 0; $offset < 12; $offset++) {
-                $month_ts = strtotime("first day of +{$offset} month", $today_ts);
-                $year  = (int) date('Y', $month_ts);
-                $month = (int) date('n', $month_ts);
-                $date = fsr_office_hours_nth_weekday_date(
-                    $year,
-                    $month,
-                    (int) $rule['weekday'],
-                    (int) $rule['nth_week']
+            for ($offset = 0; $offset < 24; $offset++) {
+                $month = $today->modify('first day of +' . $offset . ' months');
+                $date = fsr_etit_office_hours_nth_weekday_date(
+                    (int) $month->format('Y'),
+                    (int) $month->format('n'),
+                    $rule['weekday'],
+                    $rule['nth_week']
                 );
-                if (!$date || $date < $today) {
+                $candidate = $date ? fsr_etit_office_hours_date_object($date) : null;
+                if (!$candidate || $candidate < $today || $candidate < $start_date) {
                     continue;
                 }
-                if (
-                    $hide_fully_cancelled &&
-                    fsr_office_hours_occurrence_is_cancelled(
-                        $rule,
-                        $date,
-                        $cancellations
-                    )
-                ) {
-                    continue;
-                }
-                $bucket[$rule['id'] . '_' . $date] = [
-                    'rule_id'    => $rule['id'],
-                    'title'      => $rule['title'],
-                    'date'       => $date,
-                    'start_time' => $rule['start_time'],
-                    'end_time'   => $rule['end_time'],
-                    'location'   => $rule['location'],
-                    'notes'      => $rule['notes'],
-                    'member_ids' => $rule['member_ids'],
-                ];
+                fsr_etit_office_hours_add_occurrence(
+                    $bucket,
+                    $rule,
+                    $date,
+                    $cancellations,
+                    $hide_fully_cancelled
+                );
             }
             continue;
         }
-        /*
-        |--------------------------------------------------------------------------
-        | Wöchentliche Regeln
-        |--------------------------------------------------------------------------
-        */
-        $weekday = (int) $rule['weekday'];
+
+        $delta = ($rule['weekday'] - (int) $start_date->format('N') + 7) % 7;
+        $candidate = $start_date->modify('+' . $delta . ' days');
         $interval = max(1, (int) $rule['week_interval']);
-        $start_ts = strtotime($rule['start_date'] ?? $today);
-        if (!$start_ts) {
-            $start_ts = $today_ts;
+        $guard = 0;
+        while ($candidate < $today && $guard < 5200) {
+            $candidate = $candidate->modify('+' . $interval . ' weeks');
+            $guard++;
         }
-        $cursor = max($start_ts, $today_ts);
-        for ($i = 0; $i < 16; $i++) {
-            $currentWeekday = (int) date('N', $cursor);
-            $delta = ($weekday - $currentWeekday + 7) % 7;
-            $candidate_ts = strtotime("+{$delta} days", $cursor);
-            $date = date('Y-m-d', $candidate_ts);
-            $weeks_since_start = floor(
-                ($candidate_ts - $start_ts) / WEEK_IN_SECONDS
+        for ($index = 0; $index < max(52, $limit * 2); $index++) {
+            $date = $candidate->format('Y-m-d');
+            fsr_etit_office_hours_add_occurrence(
+                $bucket,
+                $rule,
+                $date,
+                $cancellations,
+                $hide_fully_cancelled
             );
-            if ($weeks_since_start % $interval !== 0) {
-                $cursor = strtotime("+1 day", $cursor);
-                continue;
-            }
-            if ($date >= $today) {
-                if (
-                    !$hide_fully_cancelled ||
-                    !fsr_office_hours_occurrence_is_cancelled(
-                        $rule,
-                        $date,
-                        $cancellations
-                    )
-                ) {
-                    $bucket[$rule['id'] . '_' . $date] = [
-                        'rule_id'    => $rule['id'],
-                        'title'      => $rule['title'],
-                        'date'       => $date,
-                        'start_time' => $rule['start_time'],
-                        'end_time'   => $rule['end_time'],
-                        'location'   => $rule['location'],
-                        'notes'      => $rule['notes'],
-                        'member_ids' => $rule['member_ids'],
-                    ];
-                }
-            }
-            $cursor = strtotime("+{$interval} week", $candidate_ts);
+            $candidate = $candidate->modify('+' . $interval . ' weeks');
         }
     }
-    usort($bucket, static function ($a, $b) {
+
+    usort($bucket, static function ($left, $right): int {
         return strcmp(
-            $a['date'] . ' ' . $a['start_time'],
-            $b['date'] . ' ' . $b['start_time']
+            $left['date'] . ' ' . $left['start_time'],
+            $right['date'] . ' ' . $right['start_time']
         );
     });
-    return array_slice(array_values($bucket), 0, max(1, $limit));
+    return array_slice(array_values($bucket), 0, $limit);
 }
 
-function fsr_office_hours_handle_portal_actions(): array {
-    $message = '';
-    $ok = false;
-    fsr_updates_log('OFFICE HOURS: ' . print_r($_POST, true));
-    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+function fsr_etit_office_hours_add_occurrence(
+    array &$bucket,
+    array $rule,
+    string $date,
+    array $cancellations,
+    bool $hide_fully_cancelled
+): void {
+    if (
+        $hide_fully_cancelled &&
+        fsr_etit_office_hours_occurrence_is_cancelled($rule, $date, $cancellations)
+    ) {
+        return;
+    }
+
+    $bucket[$rule['id'] . '_' . $date] = [
+        'rule_id'    => $rule['id'],
+        'title'      => $rule['title'],
+        'date'       => $date,
+        'start_time' => $rule['start_time'],
+        'end_time'   => $rule['end_time'],
+        'location'   => $rule['location'],
+        'notes'      => $rule['notes'],
+        'member_ids' => $rule['member_ids'],
+    ];
+}
+
+function fsr_etit_office_hours_find_rule_index(array $rules, string $rule_id): ?int {
+    foreach ($rules as $index => $rule) {
+        if (sanitize_key((string) ($rule['id'] ?? '')) === $rule_id) {
+            return (int) $index;
+        }
+    }
+    return null;
+}
+
+function fsr_etit_office_hours_date_matches_rule(array $rule, string $date): bool {
+    $candidate = fsr_etit_office_hours_date_object($date);
+    $rule = fsr_etit_office_hours_sanitize_rule($rule);
+    $start = fsr_etit_office_hours_date_object($rule['start_date']);
+    if (!$candidate || !$start || $candidate < $start || (int) $candidate->format('N') !== $rule['weekday']) {
+        return false;
+    }
+
+    if ($rule['recurrence'] === 'monthly_nth') {
+        return $date === fsr_etit_office_hours_nth_weekday_date(
+            (int) $candidate->format('Y'),
+            (int) $candidate->format('n'),
+            $rule['weekday'],
+            $rule['nth_week']
+        );
+    }
+
+    $delta = ($rule['weekday'] - (int) $start->format('N') + 7) % 7;
+    $first = $start->modify('+' . $delta . ' days');
+    if ($candidate < $first) {
+        return false;
+    }
+
+    $days = (int) $first->diff($candidate)->format('%a');
+    return $days % (7 * max(1, (int) $rule['week_interval'])) === 0;
+}
+
+function fsr_etit_office_hours_is_portal_submission(): bool {
+    foreach ([
+        'fsr_oh_join_submit',
+        'fsr_oh_cancellation_submit',
+        'fsr_oh_create_rule_submit',
+        'fsr_oh_delete_rule_submit',
+        'fsr_oh_edit_rule_submit',
+    ] as $action) {
+        if (isset($_POST[$action])) {
+            return true;
+        }
+    }
+    return false;
+}
+
+/**
+ * Processes portal writes before the theme sends output and prevents duplicate
+ * form submissions when the result page is refreshed.
+ */
+function fsr_etit_office_hours_process_portal_request(): void {
+    $method = isset($_SERVER['REQUEST_METHOD'])
+        ? strtoupper(sanitize_text_field(fsr_etit_scalar_string(wp_unslash($_SERVER['REQUEST_METHOD']))))
+        : 'GET';
+    if ($method !== 'POST' || !fsr_etit_office_hours_is_portal_submission()) {
+        return;
+    }
+
+    [$success, $message] = fsr_etit_office_hours_handle_portal_actions();
+    set_transient(
+        'fsr_etit_office_hours_notice_' . get_current_user_id(),
+        ['success' => (bool) $success, 'message' => sanitize_text_field($message)],
+        MINUTE_IN_SECONDS
+    );
+
+    $redirect = wp_get_referer();
+    $redirect = $redirect ? $redirect : home_url('/');
+    $member_id = isset($_POST['member'])
+        ? absint(fsr_etit_scalar_string(wp_unslash($_POST['member'])))
+        : 0;
+    if ($member_id > 0) {
+        $redirect = add_query_arg('member', $member_id, $redirect);
+    }
+
+    if (!wp_safe_redirect($redirect, 303, 'FSR ET/IT Website Tools')) {
+        wp_safe_redirect(home_url('/'), 303, 'FSR ET/IT Website Tools');
+    }
+    exit;
+}
+
+function fsr_etit_office_hours_get_notice(): array {
+    $key = 'fsr_etit_office_hours_notice_' . get_current_user_id();
+    $notice = get_transient($key);
+    delete_transient($key);
+    return is_array($notice)
+        ? [(bool) ($notice['success'] ?? false), sanitize_text_field(fsr_etit_scalar_string($notice['message'] ?? ''))]
+        : [false, ''];
+}
+
+function fsr_etit_office_hours_handle_portal_actions(): array {
+    $request_method = isset($_SERVER['REQUEST_METHOD'])
+        ? strtoupper(sanitize_text_field(fsr_etit_scalar_string(wp_unslash($_SERVER['REQUEST_METHOD']))))
+        : 'GET';
+    if ($request_method !== 'POST') {
         return [false, ''];
     }
-
-    if (isset($_POST['fsr_oh_join_submit'])) {
-        if (!wp_verify_nonce($_POST['_fsr_oh_join_nonce'] ?? '', 'fsr_oh_join_submit')) {
-            return [false, 'Ungültige Anfrage.'];
-        }
-
-        $member_id = absint($_POST['member'] ?? 0);
-        $rule_id = sanitize_key($_POST['rule_id'] ?? '');
-
-        $member = fsr_office_hours_get_member_by_id($member_id);
-        if (!$member || !fsr_office_hours_is_allowed_member($member)) {
-            return [false, 'Mitglied nicht erlaubt oder nicht gefunden.'];
-        }
-
-        $settings = fsr_office_hours_get_settings();
-        $rules = is_array($settings['rules'] ?? null) ? $settings['rules'] : [];
-
-        foreach ($rules as &$rule) {
-            if (!is_array($rule)) {
-                continue;
-            }
-
-            if (($rule['id'] ?? '') === $rule_id) {
-                $rule = fsr_office_hours_sanitize_rule($rule);
-                $rule['member_ids'] = fsr_office_hours_normalize_member_ids($rule['member_ids'] ?? []);
-                if (!in_array($member_id, $rule['member_ids'], true)) {
-                    $rule['member_ids'][] = $member_id;
-                }
-                $rule['member_ids'] = array_values(array_unique($rule['member_ids']));
-                break;
-            }
-        }
-        unset($rule);
-
-        $settings['rules'] = $rules;
-        update_option('fsr_office_hours_settings', $settings);
-
-        return [true, 'Du wurdest zur Sprechstunde hinzugefügt.'];
+    if (!current_user_can(fsr_etit_office_hours_manage_capability())) {
+        return [false, 'Du hast keine Berechtigung, Sprechstunden zu ändern.'];
     }
 
-    if (isset($_POST['fsr_oh_cancellation_submit'])) {
-        if (!wp_verify_nonce($_POST['_fsr_oh_cancel_nonce'] ?? '', 'fsr_oh_cancellation_submit')) {
+    $post = wp_unslash($_POST);
+    $settings = fsr_etit_office_hours_get_settings();
+    $rules = $settings['rules'];
+    $allowed_member_ids = fsr_etit_office_hours_allowed_member_ids();
+
+    if (isset($post['fsr_oh_join_submit'])) {
+        if (!wp_verify_nonce(sanitize_text_field(fsr_etit_scalar_string($post['_fsr_oh_join_nonce'] ?? '')), 'fsr_oh_join_submit')) {
             return [false, 'Ungültige Anfrage.'];
         }
-
-        $member_id = absint($_POST['member'] ?? 0);
-        $rule_id = sanitize_key($_POST['rule_id'] ?? '');
-        $date = sanitize_text_field($_POST['date'] ?? '');
-        $reason = sanitize_text_field($_POST['reason'] ?? '');
-        $action = sanitize_key($_POST['cancel_action'] ?? 'toggle');
-
-        $member = fsr_office_hours_get_member_by_id($member_id);
-        if (!$member || !fsr_office_hours_is_allowed_member($member)) {
-            return [false, 'Mitglied nicht erlaubt oder nicht gefunden.'];
+        $member_id = absint(fsr_etit_scalar_string($post['member'] ?? 0));
+        $rule_id = sanitize_key(fsr_etit_scalar_string($post['rule_id'] ?? ''));
+        $index = fsr_etit_office_hours_find_rule_index($rules, $rule_id);
+        if (!in_array($member_id, $allowed_member_ids, true) || $index === null) {
+            return [false, 'Mitglied oder Sprechstunde wurde nicht gefunden.'];
         }
+        $rules[$index]['member_ids'] = array_values(array_unique(array_merge(
+            fsr_etit_office_hours_normalize_member_ids($rules[$index]['member_ids'] ?? []),
+            [$member_id]
+        )));
+        $settings['rules'] = $rules;
+        if (!fsr_etit_office_hours_save_settings($settings)) {
+            return [false, 'Die Änderung konnte nicht gespeichert werden.'];
+        }
+        return [true, 'Das Mitglied wurde zur Sprechstunde hinzugefügt.'];
+    }
 
-        if ($rule_id === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+    if (isset($post['fsr_oh_cancellation_submit'])) {
+        if (!wp_verify_nonce(sanitize_text_field(fsr_etit_scalar_string($post['_fsr_oh_cancel_nonce'] ?? '')), 'fsr_oh_cancellation_submit')) {
+            return [false, 'Ungültige Anfrage.'];
+        }
+        $member_id = absint(fsr_etit_scalar_string($post['member'] ?? 0));
+        $rule_id = sanitize_key(fsr_etit_scalar_string($post['rule_id'] ?? ''));
+        $date = sanitize_text_field(fsr_etit_scalar_string($post['date'] ?? ''));
+        $index = fsr_etit_office_hours_find_rule_index($rules, $rule_id);
+        if (
+            $index === null ||
+            !fsr_etit_office_hours_is_valid_date($date) ||
+            !fsr_etit_office_hours_date_matches_rule($rules[$index] ?? [], $date) ||
+            !in_array($member_id, fsr_etit_office_hours_normalize_member_ids($rules[$index]['member_ids'] ?? []), true)
+        ) {
             return [false, 'Ungültiger Termin.'];
         }
-
-        if ($action === 'uncancel') {
-            fsr_office_hours_set_cancellation($rule_id, $member_id, $date, '');
-            return [true, 'Teilnahme wieder aktiviert.'];
-        }
-
-        fsr_office_hours_set_cancellation($rule_id, $member_id, $date, $reason);
-        return [true, 'Teilnahme erfolgreich abgesagt.'];
-    }
-
-    if (isset($_POST['fsr_oh_create_rule_submit'])) {
-        if (!wp_verify_nonce($_POST['_fsr_oh_create_nonce'] ?? '', 'fsr_oh_create_rule_submit')) {
-            return [false, 'Ungültige Anfrage.'];
-        }
-
-        $member_id = absint($_POST['member'] ?? 0);
-        $member = fsr_office_hours_get_member_by_id($member_id);
-        if (!$member || !fsr_office_hours_is_allowed_member($member)) {
-            return [false, 'Mitglied nicht erlaubt oder nicht gefunden.'];
-        }
-
-        $title = sanitize_text_field($_POST['title'] ?? 'Office Hour');
-        $location = sanitize_text_field($_POST['location'] ?? 'FSR Büro');
-        $type = sanitize_key($_POST['type'] ?? 'office_hour');
-        $recurrence = sanitize_key($_POST['recurrence'] ?? 'weekly');
-        $weekday = max(1, min(7, absint($_POST['weekday'] ?? 3)));
-        $nth_week = max(1, min(4, absint($_POST['nth_week'] ?? 1)));
-        $week_interval = max(1, min(8, absint($_POST['week_interval'] ?? 1)));
-        $start_time = fsr_office_hours_sanitize_time($_POST['start_time'] ?? '10:00', '10:00');
-        $end_time = fsr_office_hours_sanitize_time($_POST['end_time'] ?? '12:00', '12:00');
-        $notes = sanitize_text_field($_POST['notes'] ?? '');
-        $start_date = fsr_office_hours_sanitize_date(
-            $_POST['start_date'] ?? current_time('Y-m-d')
+        $cancel = sanitize_key(fsr_etit_scalar_string($post['cancel_action'] ?? 'cancel')) !== 'uncancel';
+        $saved = fsr_etit_office_hours_update_cancellation(
+            $rule_id,
+            $member_id,
+            $date,
+            sanitize_text_field(fsr_etit_scalar_string($post['reason'] ?? '')),
+            $cancel
         );
+        if (!$saved) {
+            return [false, 'Die Änderung konnte nicht gespeichert werden.'];
+        }
+        return [true, $cancel ? 'Teilnahme wurde abgesagt.' : 'Teilnahme wurde wieder aktiviert.'];
+    }
 
-        $additional_member_ids = fsr_office_hours_normalize_member_ids($_POST['member_ids'] ?? []);
-        $all_member_ids = array_values(array_unique(array_merge([$member_id], $additional_member_ids)));
-
-        $rule = [
-            'id' => 'rule_' . strtolower(wp_generate_password(8, false, false)),
-            'type' => $type !== '' ? $type : 'office_hour',
-            'title' => $title !== '' ? $title : 'Office Hour',
-            'recurrence' => in_array($recurrence, ['monthly_nth', 'weekly'], true) ? $recurrence : 'weekly',
-            'weekday' => $weekday,
-            'nth_week' => $nth_week,
-            'week_interval' => $week_interval,
-            'start_time' => $start_time,
-            'end_time' => $end_time,
-            'location' => $location !== '' ? $location : 'FSR Büro',
-            'member_ids' => $all_member_ids,
-            'created_at' => current_time('mysql'),
-            'notes' => $notes,
-            'start_date' => $start_date,
-        ];
-
-        $settings = fsr_office_hours_get_settings();
-        $settings['rules'] = is_array($settings['rules'] ?? null) ? $settings['rules'] : [];
+    if (isset($post['fsr_oh_create_rule_submit'])) {
+        if (!wp_verify_nonce(sanitize_text_field(fsr_etit_scalar_string($post['_fsr_oh_create_nonce'] ?? '')), 'fsr_oh_create_rule_submit')) {
+            return [false, 'Ungültige Anfrage.'];
+        }
+        $member_id = absint(fsr_etit_scalar_string($post['member'] ?? 0));
+        if (!in_array($member_id, $allowed_member_ids, true)) {
+            return [false, 'Mitglied nicht gefunden oder nicht erlaubt.'];
+        }
+        $start_time = fsr_etit_office_hours_sanitize_time($post['start_time'] ?? '', '10:00');
+        $end_time = fsr_etit_office_hours_sanitize_time($post['end_time'] ?? '', '12:00');
+        if ($end_time <= $start_time) {
+            return [false, 'Die Endzeit muss nach der Startzeit liegen.'];
+        }
+        $additional = array_intersect(
+            fsr_etit_office_hours_normalize_member_ids($post['member_ids'] ?? []),
+            $allowed_member_ids
+        );
+        $rule = fsr_etit_office_hours_sanitize_rule([
+            'id'            => fsr_etit_office_hours_new_rule_id(),
+            'type'          => $post['type'] ?? 'office_hour',
+            'title'         => $post['title'] ?? 'Sprechstunde',
+            'recurrence'    => $post['recurrence'] ?? 'weekly',
+            'weekday'       => $post['weekday'] ?? 3,
+            'nth_week'      => $post['nth_week'] ?? 1,
+            'week_interval' => $post['week_interval'] ?? 1,
+            'start_time'    => $start_time,
+            'end_time'      => $end_time,
+            'location'      => $post['location'] ?? 'FSR-Büro',
+            'member_ids'    => array_merge([$member_id], $additional),
+            'created_at'    => current_time('mysql'),
+            'notes'         => $post['notes'] ?? '',
+            'start_date'    => $post['start_date'] ?? current_time('Y-m-d'),
+        ]);
         $settings['rules'][] = $rule;
-
-        update_option('fsr_office_hours_settings', $settings);
-        return [true, 'Neue Sprechstunde gespeichert.'];
+        if (!fsr_etit_office_hours_save_settings($settings)) {
+            return [false, 'Die Sprechstunde konnte nicht gespeichert werden.'];
+        }
+        return [true, 'Neue Sprechstunde wurde gespeichert.'];
     }
 
-    if (isset($_POST['fsr_oh_delete_rule_submit'])) {
-
-        fsr_updates_log('DELETE HANDLER START');
-
-        if (!wp_verify_nonce($_POST['_fsr_oh_delete_nonce'] ?? '', 'fsr_oh_delete_rule_submit')) {
-            fsr_updates_log('DELETE NONCE FAILED');
+    if (isset($post['fsr_oh_delete_rule_submit'])) {
+        if (!wp_verify_nonce(sanitize_text_field(fsr_etit_scalar_string($post['_fsr_oh_delete_nonce'] ?? '')), 'fsr_oh_delete_rule_submit')) {
             return [false, 'Ungültige Anfrage.'];
         }
-
-        $rule_id = sanitize_key($_POST['rule_id'] ?? '');
-
-        fsr_updates_log('DELETE RULE ID: ' . $rule_id);
-
-        $settings = fsr_office_hours_get_settings();
-
-        fsr_updates_log(print_r($settings['rules'], true));
-
-        $rules = is_array($settings['rules'] ?? null) ? $settings['rules'] : [];
-
-        $before = count($rules);
-
-        $rules = array_filter($rules, static function ($rule) use ($rule_id) {
-            return strtolower((string) ($rule['id'] ?? '')) !== strtolower($rule_id);
-        });
-
-        $after = count($rules);
-
-        fsr_updates_log("DELETE COUNT BEFORE: $before AFTER: $after");
-
+        $rule_id = sanitize_key(fsr_etit_scalar_string($post['rule_id'] ?? ''));
+        $index = fsr_etit_office_hours_find_rule_index($rules, $rule_id);
+        if ($index === null) {
+            return [false, 'Sprechstunde wurde nicht gefunden.'];
+        }
+        unset($rules[$index]);
         $settings['rules'] = array_values($rules);
-
-        update_option('fsr_office_hours_settings', $settings);
-
-        fsr_updates_log('DELETE SAVED');
-
-        wp_safe_redirect(remove_query_arg('edit_rule'));
-        exit;
+        $settings['cancellations'] = array_values(array_filter(
+            $settings['cancellations'],
+            static fn($entry): bool => ($entry['rule_id'] ?? '') !== $rule_id
+        ));
+        if (!fsr_etit_office_hours_save_settings($settings)) {
+            return [false, 'Die Sprechstunde konnte nicht gelöscht werden.'];
+        }
+        return [true, 'Sprechstunde wurde gelöscht.'];
     }
 
-    if (isset($_POST['fsr_oh_edit_rule_submit'])) {
-        if (!wp_verify_nonce($_POST['_fsr_oh_edit_nonce'] ?? '', 'fsr_oh_edit_rule_submit')) {
+    if (isset($post['fsr_oh_edit_rule_submit'])) {
+        if (!wp_verify_nonce(sanitize_text_field(fsr_etit_scalar_string($post['_fsr_oh_edit_nonce'] ?? '')), 'fsr_oh_edit_rule_submit')) {
             return [false, 'Ungültige Anfrage.'];
         }
-        $member_id = absint($_POST['member'] ?? 0);
-        $rule_id = sanitize_key($_POST['rule_id'] ?? '');
-        if ($rule_id === '') {
-            return [false, 'Ungültige Regel-ID.'];
+        $rule_id = sanitize_key(fsr_etit_scalar_string($post['rule_id'] ?? ''));
+        $index = fsr_etit_office_hours_find_rule_index($rules, $rule_id);
+        if ($index === null) {
+            return [false, 'Sprechstunde wurde nicht gefunden.'];
         }
-        $settings = fsr_office_hours_get_settings();
-        $rules = is_array($settings['rules'] ?? null) ? $settings['rules'] : [];
-        $found = false;
-        foreach ($rules as &$rule) {
-            if (strtolower((string) ($rule['id'] ?? '')) === strtolower($rule_id)) {
-                if (!in_array($member_id, fsr_office_hours_get_rule_members($rule), true)) {
-                    return [false, 'Keine Berechtigung diese Sprechstunde zu bearbeiten.'];
-                }
-
-                $found = true;
-                $rule = array_merge($rule, [
-                    'title' => sanitize_text_field($_POST['title'] ?? $rule['title']),
-                    'location' => sanitize_text_field($_POST['location'] ?? $rule['location']),
-                    'type' => sanitize_key($_POST['type'] ?? $rule['type']),
-                    'recurrence' => sanitize_key($_POST['recurrence'] ?? $rule['recurrence']),
-                    'weekday' => max(1, min(7, absint($_POST['weekday'] ?? $rule['weekday']))),
-                    'nth_week' => max(1, min(4, absint($_POST['nth_week'] ?? $rule['nth_week']))),
-                    'week_interval' => max(1, min(8, absint($_POST['week_interval'] ?? $rule['week_interval']))),
-                    'start_time' => fsr_office_hours_sanitize_time($_POST['start_time'] ?? $rule['start_time'], '10:00'),
-                    'end_time' => fsr_office_hours_sanitize_time($_POST['end_time'] ?? $rule['end_time'], '12:00'),
-                    'notes' => sanitize_text_field($_POST['notes'] ?? $rule['notes']),
-                    'start_date' => fsr_office_hours_sanitize_date($_POST['start_date'] ?? $rule['start_date']),
-                ]);
-                break;
-            }
+        $start_time = fsr_etit_office_hours_sanitize_time($post['start_time'] ?? '', $rules[$index]['start_time']);
+        $end_time = fsr_etit_office_hours_sanitize_time($post['end_time'] ?? '', $rules[$index]['end_time']);
+        if ($end_time <= $start_time) {
+            return [false, 'Die Endzeit muss nach der Startzeit liegen.'];
         }
-        unset($rule);
-
-        if (!$found) {
-            return [false, 'Regel nicht gefunden.'];
-        }
-
+        $rules[$index] = fsr_etit_office_hours_sanitize_rule(array_merge($rules[$index], [
+            'title'         => $post['title'] ?? $rules[$index]['title'],
+            'location'      => $post['location'] ?? $rules[$index]['location'],
+            'type'          => $post['type'] ?? $rules[$index]['type'],
+            'recurrence'    => $post['recurrence'] ?? $rules[$index]['recurrence'],
+            'weekday'       => $post['weekday'] ?? $rules[$index]['weekday'],
+            'nth_week'      => $post['nth_week'] ?? $rules[$index]['nth_week'],
+            'week_interval' => $post['week_interval'] ?? $rules[$index]['week_interval'],
+            'start_time'    => $start_time,
+            'end_time'      => $end_time,
+            'notes'         => $post['notes'] ?? $rules[$index]['notes'],
+            'start_date'    => $post['start_date'] ?? $rules[$index]['start_date'],
+        ]));
         $settings['rules'] = array_values($rules);
-        update_option('fsr_office_hours_settings', $settings);
-
-        return [true, 'Sprechstunde aktualisiert.'];
+        if (!fsr_etit_office_hours_save_settings($settings)) {
+            return [false, 'Die Sprechstunde konnte nicht gespeichert werden.'];
+        }
+        return [true, 'Sprechstunde wurde aktualisiert.'];
     }
-    return [$ok, $message];
+
+    return [false, 'Unbekannte Aktion.'];
 }
 
-function fsr_office_hours_describe_rule(array $rule): string {
-    $weekday_labels = [
-        1 => 'Montag',
-        2 => 'Dienstag',
-        3 => 'Mittwoch',
-        4 => 'Donnerstag',
-        5 => 'Freitag',
-        6 => 'Samstag',
-        7 => 'Sonntag',
+function fsr_etit_office_hours_describe_rule(array $rule): string {
+    $labels = [
+        1 => 'Montag', 2 => 'Dienstag', 3 => 'Mittwoch', 4 => 'Donnerstag',
+        5 => 'Freitag', 6 => 'Samstag', 7 => 'Sonntag',
     ];
-
-    $weekday = $weekday_labels[(int) ($rule['weekday'] ?? 3)] ?? 'Mittwoch';
+    $weekday = $labels[(int) ($rule['weekday'] ?? 3)] ?? 'Mittwoch';
     if (($rule['recurrence'] ?? '') === 'weekly') {
-        return 'Alle ' . max(1, (int) ($rule['week_interval'] ?? 1)) . ' Wochen, ' . $weekday;
+        $interval = max(1, (int) ($rule['week_interval'] ?? 1));
+        return $interval === 1 ? 'Jeden ' . $weekday : 'Alle ' . $interval . ' Wochen, ' . $weekday;
     }
     return max(1, (int) ($rule['nth_week'] ?? 1)) . '. ' . $weekday . ' im Monat';
 }
 
-function fsr_office_hours_search(string $search): array {
-    $search = trim(wp_strip_all_tags($search));
+function fsr_etit_office_hours_search(string $search): array {
+    $search = trim(fsr_etit_lowercase(wp_strip_all_tags($search)));
     if ($search === '') {
         return [];
     }
-    $settings = fsr_office_hours_get_settings();
-    $rules = is_array($settings['rules'] ?? null)
-        ? $settings['rules']
-        : [];
-    $cancellations = is_array($settings['cancellations'] ?? null)
-        ? $settings['cancellations']
-        : [];
+
+    $settings = fsr_etit_office_hours_get_settings();
+    $member_map = fsr_etit_office_hours_get_members_by_id();
+    $allowed_member_ids = fsr_etit_office_hours_allowed_member_ids();
+    $usage = fsr_etit_get_shortcode_usage('fsr_office_hours');
+    $base_url = $usage['fsr_office_hours'][0]['view'] ?? home_url('/');
     $results = [];
-    foreach ($rules as $rule) {
-        if (!is_array($rule)) {
-            continue;
-        }
-        $rule = fsr_office_hours_sanitize_rule($rule);
-        /*
-         * Mitglieder laden
-         */
-        $members = [];
-        foreach ($rule['member_ids'] ?? [] as $member_id) {
-            $member = fsr_office_hours_get_member_by_id($member_id);
-            if ($member) {
-                $members[] =
-                    ($member['first_name'] ?? '') . ' ' .
-                    ($member['last_name'] ?? '');
+
+    foreach ($settings['rules'] as $rule) {
+        $rule = fsr_etit_office_hours_sanitize_rule($rule);
+        $member_names = [];
+        foreach ($rule['member_ids'] as $member_id) {
+            $member = $member_map[$member_id] ?? null;
+            if ($member && in_array($member_id, $allowed_member_ids, true)) {
+                $member_names[] = trim(($member['first_name'] ?? '') . ' ' . ($member['last_name'] ?? ''));
             }
         }
-        /*
-         * Suchbarer Text
-         */
-        $searchable = implode(' ', [
-            $rule['title'] ?? '',
-            $rule['location'] ?? '',
-            $rule['type'] ?? '',
-            $rule['notes'] ?? '',
-            implode(' ', $members),
-            $rule['start_time'] ?? '',
-            $rule['end_time'] ?? '',
-            $rule['weekday'] ?? '',
-            $rule['recurrence'] ?? '',
-        ]);
-        /*
-         * Termine sammeln
-         */
-        $occurrences = fsr_office_hours_collect_occurrences(
+        $occurrences = fsr_etit_office_hours_collect_occurrences(
             [$rule],
             52,
-            true
+            true,
+            $settings['cancellations'],
+            $allowed_member_ids
         );
+        if (empty($occurrences)) {
+            continue;
+        }
         $matching_occurrence = null;
-        $next_occurrence = null;
         foreach ($occurrences as $occurrence) {
-            if (
-                fsr_office_hours_occurrence_is_cancelled(
-                    $rule,
-                    $occurrence['date'],
-                    $cancellations
-                )
-            ) {
-                continue;
-            }
-            if ($next_occurrence === null) {
-                $next_occurrence = $occurrence;
-            }
-            $date_string = date_i18n(
+            $date_text = wp_date(
                 'd.m.Y',
-                strtotime($occurrence['date'])
+                fsr_etit_office_hours_date_object($occurrence['date'])->getTimestamp(),
+                wp_timezone()
             );
-            if (
-                stripos($date_string, $search) !== false ||
-                stripos($occurrence['date'], $search) !== false
-            ) {
+            if (str_contains(fsr_etit_lowercase($date_text . ' ' . $occurrence['date']), $search)) {
                 $matching_occurrence = $occurrence;
                 break;
             }
         }
-        /*
-         * Kein Treffer in Rule oder Datum
-         */
-        if (
-            stripos($searchable, $search) === false &&
-            $matching_occurrence === null
-        ) {
+        $haystack = fsr_etit_lowercase(implode(' ', [
+            $rule['title'], $rule['location'], $rule['type'], $rule['notes'],
+            implode(' ', $member_names), fsr_etit_office_hours_describe_rule($rule),
+        ]));
+        if (!str_contains($haystack, $search) && !$matching_occurrence) {
             continue;
         }
-        $occurrence = $matching_occurrence ?: $next_occurrence;
-        if ($occurrence) {
-            $next_text =
-                'Nächster Termin: ' .
-                date_i18n(
-                    'd.m.Y',
-                    strtotime($occurrence['date'])
-                )
-                .
-                ' von ' .
-                $occurrence['start_time']
-                .
-                ' bis '
-                .
-                $occurrence['end_time']
-                .
-                ' Uhr';
-        } else {
-            $next_text = 'Keine kommenden Termine';
-        }
+
+        $occurrence = $matching_occurrence ?: ($occurrences[0] ?? null);
         $content = implode("\n", [
             $rule['title'],
-            'Mitglieder: ' . implode(', ', $members),
-            fsr_office_hours_rule_to_text($rule),
-            $next_text,
+            'Mitglieder: ' . implode(', ', $member_names),
+            fsr_etit_office_hours_rule_to_text($rule),
         ]);
-        $results[] = fsr_create_virtual_post(
+        $results[] = fsr_etit_create_virtual_post(
             $rule['title'],
             $content,
             $content,
             add_query_arg(
                 [
-                    'fsr_oh_rule' => strtolower($rule['id']),
+                    'fsr_oh_rule' => $rule['id'],
                     'fsr_oh_date' => $occurrence['date'] ?? '',
-                    'member' => fsr_office_hours_member_param(),
                 ],
-                fsr_get_shortcode_usage('fsr_office_hours')['fsr_office_hours'][0]['view'] ?? home_url()
+                $base_url
             ),
             $occurrence['date'] ?? '',
             'page'
         );
     }
-    return $results;
-}   
 
-function fsr_office_hours_rule_to_text(array $rule): string {
-    $description = fsr_office_hours_describe_rule($rule);
-    return $description . ', ' . $rule['start_time'] . ' - ' . $rule['end_time'] . ' Uhr, Ort: ' . $rule['location'];
+    return $results;
+}
+
+function fsr_etit_office_hours_rule_to_text(array $rule): string {
+    return sprintf(
+        '%s, %s–%s Uhr, Ort: %s',
+        fsr_etit_office_hours_describe_rule($rule),
+        $rule['start_time'],
+        $rule['end_time'],
+        $rule['location']
+    );
 }

@@ -1,32 +1,29 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
-add_action('init', 'fsr_register_member_post_type');
-add_action('admin_init', 'fsr_maybe_migrate_legacy_members');
-add_action('admin_init', 'fsr_register_membercards_layout_settings');
-add_action('admin_enqueue_scripts', 'fsr_members_admin_assets');
-add_shortcode('fsr_members', 'fsr_members_shortcode_renderer');
-add_action('wp_ajax_fsr_save_member_order', 'fsr_ajax_save_member_order_handler');
-add_action('wp_ajax_fsr_import_members', 'fsr_ajax_import_members_handler');
-add_action('wp_enqueue_scripts', 'fsr_members_frontend_assets');
+add_action('init', 'fsr_etit_register_member_post_type');
+add_action('admin_init', 'fsr_etit_maybe_migrate_legacy_members');
+add_action('admin_init', 'fsr_etit_register_membercards_layout_settings');
+add_action('admin_enqueue_scripts', 'fsr_etit_members_admin_assets');
+add_shortcode('fsr_members', 'fsr_etit_members_shortcode_renderer');
+add_action('wp_ajax_fsr_save_member_order', 'fsr_etit_ajax_save_member_order_handler');
+add_action('wp_ajax_fsr_import_members', 'fsr_etit_ajax_import_members_handler');
 
-function fsr_members_frontend_assets() {
+function fsr_etit_members_admin_assets($hook): void {
+    if (!str_contains((string) $hook, 'fsr-etit-settings-membercards')) {
+        return;
+    }
+
+    wp_enqueue_script('jquery-ui-sortable');
     wp_enqueue_style(
-        'fsr-members-css',
-        plugin_dir_url(__FILE__) . 'members.css',
+        'fsr-members-admin',
+        plugin_dir_url(__FILE__) . 'assets/admin-style.css',
         [],
-        '1.0.0'
+        FSR_ETIT_VERSION
     );
 }
 
-function fsr_members_admin_assets($hook) {
-    if (strpos($hook, 'fsr-etit-settings') !== false) {
-        wp_enqueue_script('jquery-ui-sortable');
-        wp_enqueue_style('fsr-members-admin-css', plugin_dir_url(__FILE__) . 'assets/admin-style.css', [], '1.1.0');
-    }
-}
-
-function fsr_register_member_post_type() {
+function fsr_etit_register_member_post_type() {
     register_post_type('fsr_member', [
         'labels' => [
             'name' => 'Mitglieder',
@@ -43,7 +40,7 @@ function fsr_register_member_post_type() {
     ]);
 }
 
-function fsr_member_default_record() {
+function fsr_etit_member_default_record() {
     return [
         'id' => 0,
         'sort_order' => 0,
@@ -58,20 +55,24 @@ function fsr_member_default_record() {
         'erstes_jahr' => '',
         'semester_anzahl' => '',
         'abgang_jahr' => '',
-        'team' => FSR_TEAM1,
+        'team' => FSR_ETIT_TEAM_ELECTED,
     ];
 }
 
-function fsr_member_normalize_team($team) {
-    $team = sanitize_key((string) $team);
-    return in_array($team, [FSR_TEAM1, FSR_TEAM2, FSR_TEAM3], true) ? $team : FSR_TEAM1;
+function fsr_etit_member_normalize_team($team) {
+    $team = sanitize_key(fsr_etit_scalar_string($team));
+    return in_array(
+        $team,
+        [FSR_ETIT_TEAM_ELECTED, FSR_ETIT_TEAM_HELPERS, FSR_ETIT_TEAM_FORMER],
+        true
+    ) ? $team : FSR_ETIT_TEAM_ELECTED;
 }
 
-function fsr_member_clean_text($value) {
-    return trim(sanitize_text_field(wp_unslash((string) $value)));
+function fsr_etit_member_clean_text($value) {
+    return trim(sanitize_text_field(wp_unslash(fsr_etit_scalar_string($value))));
 }
 
-function fsr_member_is_empty($member) {
+function fsr_etit_member_is_empty($member) {
     foreach (['first_name', 'last_name', 'image', 'studiengang', 'abschluss', 'pronomen', 'email_prefix', 'amt', 'erstes_jahr', 'semester_anzahl', 'abgang_jahr'] as $key) {
         if (!empty($member[$key])) {
             return false;
@@ -80,37 +81,39 @@ function fsr_member_is_empty($member) {
     return true;
 }
 
-function fsr_sanitize_member_record($member) {
-    $member = wp_parse_args(is_array($member) ? $member : [], fsr_member_default_record());
-    $member['id'] = absint($member['id']);
-    $member['sort_order'] = absint($member['sort_order']);
-    $member['first_name'] = fsr_member_clean_text($member['first_name']);
-    $member['last_name'] = fsr_member_clean_text($member['last_name']);
-    $member['image'] = esc_url_raw(trim((string) $member['image']));
-    $member['studiengang'] = fsr_member_clean_text($member['studiengang']);
+function fsr_etit_sanitize_member_record($member) {
+    $member = wp_parse_args(is_array($member) ? $member : [], fsr_etit_member_default_record());
+    $member['id'] = absint(fsr_etit_scalar_string($member['id']));
+    $member['sort_order'] = absint(fsr_etit_scalar_string($member['sort_order']));
+    $member['first_name'] = fsr_etit_member_clean_text($member['first_name']);
+    $member['last_name'] = fsr_etit_member_clean_text($member['last_name']);
+    $member['image'] = esc_url_raw(trim(fsr_etit_scalar_string($member['image'])), ['http', 'https']);
+    $member['studiengang'] = fsr_etit_member_clean_text($member['studiengang']);
     $member['abschluss'] = in_array($member['abschluss'], ['B.Sc.', 'M.Sc.','Abgeschlossen'], true) ? $member['abschluss'] : '';
-    $member['pronomen'] = fsr_member_clean_text($member['pronomen']);
-    $member['email_prefix'] = fsr_member_clean_text($member['email_prefix']);
-    $member['amt'] = fsr_member_clean_text($member['amt']);
-    $member['erstes_jahr'] = fsr_member_clean_text($member['erstes_jahr']);
-    $member['semester_anzahl'] = $member['semester_anzahl'] === '' ? '' : absint($member['semester_anzahl']);
-    $member['abgang_jahr'] = fsr_member_clean_text($member['abgang_jahr']);
-    $member['team'] = fsr_member_normalize_team($member['team']);
+    $member['pronomen'] = fsr_etit_member_clean_text($member['pronomen']);
+    $member['email_prefix'] = fsr_etit_member_clean_text($member['email_prefix']);
+    $member['amt'] = fsr_etit_member_clean_text($member['amt']);
+    $member['erstes_jahr'] = fsr_etit_member_clean_text($member['erstes_jahr']);
+    $semester = fsr_etit_scalar_string($member['semester_anzahl']);
+    $member['semester_anzahl'] = $semester === '' ? '' : absint($semester);
+    $member['abgang_jahr'] = fsr_etit_member_clean_text($member['abgang_jahr']);
+    $member['team'] = fsr_etit_member_normalize_team($member['team']);
     $tags = array_filter(array_map('trim', explode(',', $member['amt'])));
-    $amt_order = get_option('fsr_membercards_amt_order', FSR_DEFAULT_AMT_ORDER);
-    $tags = fsr_sort_tags($tags, $amt_order);
+    $amt_order = get_option(FSR_ETIT_OPTION_MEMBER_ROLE_ORDER, FSR_ETIT_DEFAULT_ROLE_ORDER);
+    $amt_order = is_array($amt_order) ? $amt_order : FSR_ETIT_DEFAULT_ROLE_ORDER;
+    $tags = fsr_etit_sort_tags($tags, $amt_order);
     $member['amt'] = implode(', ', $tags);
     return $member;
 }
 
-function fsr_sanitize_members_payload($input) {
+function fsr_etit_sanitize_members_payload($input) {
     $clean = ['members' => []];
     if (!is_array($input) || empty($input['members']) || !is_array($input['members'])) {
         return $clean;
     }
     foreach ($input['members'] as $member) {
-        $member = fsr_sanitize_member_record($member);
-        if (fsr_member_is_empty($member) && empty($member['id'])) {
+        $member = fsr_etit_sanitize_member_record($member);
+        if (fsr_etit_member_is_empty($member) && empty($member['id'])) {
             continue;
         }
         $clean['members'][] = $member;
@@ -118,7 +121,7 @@ function fsr_sanitize_members_payload($input) {
     return $clean;
 }
 
-function fsr_get_members_posts($team = 'all') {
+function fsr_etit_get_members_posts($team = 'all') {
     $query_args = [
         'post_type' => 'fsr_member',
         'post_status' => 'publish',
@@ -129,38 +132,38 @@ function fsr_get_members_posts($team = 'all') {
     if ($team !== 'all') {
         $query_args['meta_query'] = [[
             'key' => 'team',
-            'value' => fsr_member_normalize_team($team),
+            'value' => fsr_etit_member_normalize_team($team),
         ]];
     }
     $posts = get_posts($query_args);
     $members = [];
     foreach ($posts as $post) {
-        $members[] = fsr_member_post_to_record($post);
+        $members[] = fsr_etit_member_post_to_record($post);
     }
     return $members;
 }
 
-function fsr_member_post_to_record($post) {
-    $record = fsr_member_default_record();
+function fsr_etit_member_post_to_record($post) {
+    $record = fsr_etit_member_default_record();
     $record['id'] = $post->ID;
     $record['sort_order'] = (int) $post->menu_order;
-    $record['first_name'] = (string) get_post_meta($post->ID, 'first_name', true);
-    $record['last_name'] = (string) get_post_meta($post->ID, 'last_name', true);
-    $record['image'] = (string) get_post_meta($post->ID, 'image', true);
-    $record['studiengang'] = (string) get_post_meta($post->ID, 'studiengang', true);
-    $record['abschluss'] = (string) get_post_meta($post->ID, 'abschluss', true);
-    $record['pronomen'] = (string) get_post_meta($post->ID, 'pronomen', true);
-    $record['email_prefix'] = (string) get_post_meta($post->ID, 'email_prefix', true);
-    $record['amt'] = (string) get_post_meta($post->ID, 'amt', true);
-    $record['erstes_jahr'] = (string) get_post_meta($post->ID, 'erstes_jahr', true);
-    $record['semester_anzahl'] = (string) get_post_meta($post->ID, 'semester_anzahl', true);
-    $record['abgang_jahr'] = (string) get_post_meta($post->ID, 'abgang_jahr', true);
-    $record['team'] = fsr_member_normalize_team(get_post_meta($post->ID, 'team', true));
+    $record['first_name'] = fsr_etit_scalar_string(get_post_meta($post->ID, 'first_name', true));
+    $record['last_name'] = fsr_etit_scalar_string(get_post_meta($post->ID, 'last_name', true));
+    $record['image'] = fsr_etit_scalar_string(get_post_meta($post->ID, 'image', true));
+    $record['studiengang'] = fsr_etit_scalar_string(get_post_meta($post->ID, 'studiengang', true));
+    $record['abschluss'] = fsr_etit_scalar_string(get_post_meta($post->ID, 'abschluss', true));
+    $record['pronomen'] = fsr_etit_scalar_string(get_post_meta($post->ID, 'pronomen', true));
+    $record['email_prefix'] = fsr_etit_scalar_string(get_post_meta($post->ID, 'email_prefix', true));
+    $record['amt'] = fsr_etit_scalar_string(get_post_meta($post->ID, 'amt', true));
+    $record['erstes_jahr'] = fsr_etit_scalar_string(get_post_meta($post->ID, 'erstes_jahr', true));
+    $record['semester_anzahl'] = fsr_etit_scalar_string(get_post_meta($post->ID, 'semester_anzahl', true));
+    $record['abgang_jahr'] = fsr_etit_scalar_string(get_post_meta($post->ID, 'abgang_jahr', true));
+    $record['team'] = fsr_etit_member_normalize_team(get_post_meta($post->ID, 'team', true));
     return $record;
 }
 
-function fsr_get_members_data($team = 'all') {
-    $members = fsr_get_members_posts($team);
+function fsr_etit_get_members_data($team = 'all') {
+    $members = fsr_etit_get_members_posts($team);
     if (!empty($members)) {
         return ['members' => $members];
     }
@@ -169,14 +172,11 @@ function fsr_get_members_data($team = 'all') {
         $legacy_members = [];
         foreach ($legacy['members'] as $index => $member) {
             $member['sort_order'] = $index;
-            $member = fsr_sanitize_member_record($member);
-            if ($team === 'ehemalige') {
+            $member = fsr_etit_sanitize_member_record($member);
+            if ($team !== 'all' && $member['team'] !== fsr_etit_member_normalize_team($team)) {
                 continue;
             }
-            if ($team !== 'all' && $team !== 'ehemalige' && $member['team'] !== fsr_member_normalize_team($team)) {
-                continue;
-            }
-            if (fsr_member_is_empty($member)) {
+            if (fsr_etit_member_is_empty($member)) {
                 continue;
             }
             $legacy_members[] = $member;
@@ -186,7 +186,7 @@ function fsr_get_members_data($team = 'all') {
     return ['members' => []];
 }
 
-function fsr_member_post_title($member) {
+function fsr_etit_member_post_title($member) {
     $name = trim(($member['first_name'] ?? '') . ' ' . ($member['last_name'] ?? ''));
     if ($name !== '') {
         return $name;
@@ -199,7 +199,7 @@ function fsr_member_post_title($member) {
     return 'Mitglied';
 }
 
-function fsr_upsert_member_records($members, $delete_missing = true) {
+function fsr_etit_upsert_member_records($members, $delete_missing = true) {
     $members = array_values($members);
     $existing_posts = get_posts([
         'post_type' => 'fsr_member',
@@ -209,14 +209,15 @@ function fsr_upsert_member_records($members, $delete_missing = true) {
     ]);
     $existing_ids = array_map('absint', $existing_posts);
     $saved_ids = [];
+    $errors = [];
 
     foreach ($members as $index => $member) {
-        $member = fsr_sanitize_member_record($member);
-        if (fsr_member_is_empty($member) && empty($member['id'])) {
+        $member = fsr_etit_sanitize_member_record($member);
+        if (fsr_etit_member_is_empty($member) && empty($member['id'])) {
             continue;
         }
 
-        $post_title = fsr_member_post_title($member);
+        $post_title = fsr_etit_member_post_title($member);
         $post_data = [
             'post_type' => 'fsr_member',
             'post_status' => 'publish',
@@ -232,6 +233,7 @@ function fsr_upsert_member_records($members, $delete_missing = true) {
         }
 
         if (is_wp_error($saved_id)) {
+            $errors[] = $saved_id->get_error_message();
             continue;
         }
 
@@ -252,17 +254,29 @@ function fsr_upsert_member_records($members, $delete_missing = true) {
         update_post_meta($saved_id, 'team', $member['team']);
     }
 
-    if ($delete_missing) {
+    if ($delete_missing && empty($errors)) {
         foreach ($existing_ids as $existing_id) {
             if (!in_array($existing_id, $saved_ids, true)) {
-                wp_delete_post($existing_id, true);
+                $trashed = wp_trash_post($existing_id);
+                if (!$trashed || is_wp_error($trashed)) {
+                    $errors[] = 'Mitglied ' . $existing_id . ' konnte nicht in den Papierkorb verschoben werden.';
+                }
             }
         }
     }
+
+    if (!empty($errors)) {
+        return new WP_Error(
+            'fsr_etit_member_save_failed',
+            'Mindestens ein Mitglied konnte nicht gespeichert oder in den Papierkorb verschoben werden. Bitte prüfe die Liste und versuche es erneut.',
+            ['member_ids' => $saved_ids, 'errors' => $errors]
+        );
+    }
+
     return $saved_ids;
 }
 
-function fsr_sort_tags(array $tags, array $amt_order) {
+function fsr_etit_sort_tags(array $tags, array $amt_order) {
     usort($tags, function($a, $b) use ($amt_order) {
         $posA = array_search($a, $amt_order, true);
         $posB = array_search($b, $amt_order, true);
@@ -276,10 +290,13 @@ function fsr_sort_tags(array $tags, array $amt_order) {
     return $tags;
 }
 
-function fsr_parse_member_import_payload($raw_payload) {
-    $raw_payload = trim((string) wp_unslash($raw_payload));
+function fsr_etit_parse_member_import_payload($raw_payload) {
+    $raw_payload = trim(fsr_etit_scalar_string(wp_unslash($raw_payload)));
     if ($raw_payload === '') {
         return new WP_Error('empty_import', 'Bitte füge JSON oder CSV-Daten ein.');
+    }
+    if (strlen($raw_payload) > MB_IN_BYTES) {
+        return new WP_Error('import_too_large', 'Die Importdatei darf höchstens 1 MB groß sein.');
     }
 
     $parsed = null;
@@ -306,12 +323,22 @@ function fsr_parse_member_import_payload($raw_payload) {
 
         $header_line = array_shift($lines);
         $delimiter = (substr_count($header_line, ';') >= substr_count($header_line, ',')) ? ';' : ',';
-        $headers = array_map('trim', str_getcsv($header_line, $delimiter));
+        $headers = array_slice(
+            array_map(
+                static fn($header): string => fsr_etit_lowercase(trim($header)),
+                str_getcsv($header_line, $delimiter, '"', '')
+            ),
+            0,
+            100
+        );
+        if (empty(array_filter($headers))) {
+            return new WP_Error('invalid_import_header', 'Die CSV-Kopfzeile ist ungültig.');
+        }
         $parsed = [];
 
         foreach ($lines as $line) {
-            $values = str_getcsv($line, $delimiter);
-            $values = array_pad($values, count($headers), '');
+            $values = str_getcsv($line, $delimiter, '"', '');
+            $values = array_slice(array_pad($values, count($headers), ''), 0, count($headers));
             $row = array_combine($headers, $values);
             if (!is_array($row)) {
                 continue;
@@ -320,7 +347,7 @@ function fsr_parse_member_import_payload($raw_payload) {
         }
     }
     $members = [];
-    foreach ($parsed as $row) {
+    foreach (array_slice($parsed, 0, 500) as $row) {
         if (!is_array($row)) {
             continue;
         }
@@ -337,14 +364,14 @@ function fsr_parse_member_import_payload($raw_payload) {
             'erstes_jahr' => $row['erstes_jahr'] ?? $row['start_year'] ?? '',
             'semester_anzahl' => $row['semester_anzahl'] ?? $row['semester'] ?? '',
             'abgang_jahr' => $row['abgang_jahr'] ?? $row['abgang'] ?? $row['departure_year'] ?? '',
-            'team' => $row['team'] ?? $row['team_id'] ?? FSR_TEAM1,
+            'team' => $row['team'] ?? $row['team_id'] ?? FSR_ETIT_TEAM_ELECTED,
         ];
     }
 
     return $members;
 }
 
-function fsr_maybe_migrate_legacy_members() {
+function fsr_etit_maybe_migrate_legacy_members() {
     $existing_posts = get_posts([
         'post_type' => 'fsr_member',
         'post_status' => 'any',
@@ -363,8 +390,8 @@ function fsr_maybe_migrate_legacy_members() {
 
     $members = [];
     foreach ($legacy['members'] as $member) {
-        $member = fsr_sanitize_member_record($member);
-        if (fsr_member_is_empty($member)) {
+        $member = fsr_etit_sanitize_member_record($member);
+        if (fsr_etit_member_is_empty($member)) {
             continue;
         }
         $members[] = $member;
@@ -374,36 +401,65 @@ function fsr_maybe_migrate_legacy_members() {
         return;
     }
 
-    fsr_upsert_member_records($members, false);
+    $result = fsr_etit_upsert_member_records($members, false);
+    if (is_wp_error($result)) {
+        $error_data = $result->get_error_data();
+        $created_ids = is_array($error_data) ? ($error_data['member_ids'] ?? []) : [];
+        foreach ((array) $created_ids as $created_id) {
+            wp_delete_post(absint($created_id), true);
+        }
+        return;
+    }
     delete_option('fsr_members_settings');
 }
 
-function fsr_ajax_save_member_order_handler() {
+function fsr_etit_ajax_save_member_order_handler() {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error('Keine Berechtigung.', 403);
+    }
     check_ajax_referer('fsr-member-admin-nonce', 'nonce');
 
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error('Keine Berechtigung.');
+    if (!isset($_POST['member_count']) || !is_scalar($_POST['member_count'])) {
+        wp_send_json_error('Die Anzahl der Mitglieder fehlt.', 400);
+    }
+    $expected_count = absint(wp_unslash($_POST['member_count']));
+    if ($expected_count > 500) {
+        wp_send_json_error('Es können höchstens 500 Mitglieder gespeichert werden.', 413);
     }
 
     $payload = isset($_POST['order']) ? wp_unslash($_POST['order']) : '';
+    if (!is_string($payload) || strlen($payload) > 2 * MB_IN_BYTES) {
+        wp_send_json_error('Die übermittelten Daten sind zu groß.', 413);
+    }
     parse_str($payload, $form_data);
-
-    if (!isset($form_data['fsr_members_settings']['members'])) {
-        wp_send_json_error('Fehler beim Verarbeiten.');
+    $raw_members = $form_data['fsr_members_settings']['members'] ?? [];
+    if (!is_array($raw_members) || count($raw_members) !== $expected_count) {
+        wp_send_json_error('Die Mitgliederdaten wurden unvollständig übertragen. Bitte lade die Seite neu.', 400);
+    }
+    $member_payload = ['members' => $raw_members];
+    $clean_data = fsr_etit_sanitize_members_payload($member_payload);
+    if (count($clean_data['members']) !== $expected_count) {
+        wp_send_json_error('Bitte entferne leere Mitgliederzeilen oder fülle sie aus.', 400);
+    }
+    $saved_ids = fsr_etit_upsert_member_records($clean_data['members'], true);
+    if (is_wp_error($saved_ids)) {
+        wp_send_json_error($saved_ids->get_error_message(), 500);
     }
 
-    $clean_data = fsr_sanitize_members_payload($form_data['fsr_members_settings']);
-    $saved_ids = fsr_upsert_member_records($clean_data['members'], true);
     if (!empty($_POST['amt_order']) && is_array($_POST['amt_order'])) {
-        update_option(
-            'fsr_membercards_amt_order',
-            array_values(
-                array_map('sanitize_text_field', $_POST['amt_order'])
-            )
+        $role_order = array_map(
+            static fn($value): string => sanitize_text_field(
+                fsr_etit_scalar_string(wp_unslash($value))
+            ),
+            array_slice($_POST['amt_order'], 0, 200)
         );
-        fsr_updates_log('AJAX - Amt Order: ' . print_r(get_option('fsr_membercards_amt_order'), true));
+        $role_order = array_values(array_unique(array_filter($role_order)));
+        update_option(
+            FSR_ETIT_OPTION_MEMBER_ROLE_ORDER,
+            $role_order,
+            false
+        );
     }
-    fsr_updates_log('AJAX');
 
     wp_send_json_success([
         'message' => 'Mitglieder gespeichert.',
@@ -411,33 +467,37 @@ function fsr_ajax_save_member_order_handler() {
     ]);
 }
 
-function fsr_ajax_import_members_handler() {
+function fsr_etit_ajax_import_members_handler() {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error('Keine Berechtigung.', 403);
+    }
     check_ajax_referer('fsr-member-admin-nonce', 'nonce');
 
-    if (!current_user_can('manage_options')) {
-        wp_send_json_error('Keine Berechtigung.');
-    }
-
     $replace_existing = !empty($_POST['replace_existing']);
-    $parsed_members = fsr_parse_member_import_payload($_POST['import_data'] ?? '');
+    $parsed_members = fsr_etit_parse_member_import_payload(
+        $_POST['import_data'] ?? ''
+    );
     if (is_wp_error($parsed_members)) {
-        wp_send_json_error($parsed_members->get_error_message());
+        wp_send_json_error($parsed_members->get_error_message(), 400);
     }
 
     $clean_members = [];
     foreach ($parsed_members as $member) {
-        $member = fsr_sanitize_member_record($member);
-        if (fsr_member_is_empty($member)) {
+        $member = fsr_etit_sanitize_member_record($member);
+        if (fsr_etit_member_is_empty($member)) {
             continue;
         }
         $clean_members[] = $member;
     }
 
     if (empty($clean_members)) {
-        wp_send_json_error('Keine gültigen Mitglieder gefunden.');
+        wp_send_json_error('Keine gültigen Mitglieder gefunden.', 400);
     }
 
-    $saved_ids = fsr_upsert_member_records($clean_members, $replace_existing);
+    $saved_ids = fsr_etit_upsert_member_records($clean_members, $replace_existing);
+    if (is_wp_error($saved_ids)) {
+        wp_send_json_error($saved_ids->get_error_message(), 500);
+    }
 
     wp_send_json_success([
         'message' => sprintf('%d Mitglieder importiert.', count($saved_ids)),
@@ -445,68 +505,65 @@ function fsr_ajax_import_members_handler() {
     ]);
 }
 
-function fsr_members_render_admin_interface() {
-    $data = fsr_get_members_data('all');
+function fsr_etit_members_render_admin_interface() {
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+
+    $data = fsr_etit_get_members_data('all');
     $members = $data['members'] ?? [];
-    $layout_settings = fsr_get_membercards_layout_settings();
+    $layout_settings = fsr_etit_get_membercards_layout_settings();
     
     include plugin_dir_path(__FILE__) . 'templates/admin-interface.php';
 }
 
-function fsr_members_shortcode_renderer($atts) {
+function fsr_etit_members_shortcode_renderer($atts) {
     $a = shortcode_atts([
-        'team'  => '',
+        'team'  => 'all',
         'amt'   => '',
         'name'  => '',
         'email' => ''
     ], $atts);
     $team = sanitize_key((string) ($a['team'] ?? 'all'));
-    fsr_updates_log('SHORTCODE: Team: ' . $team . ' | Amt: ' . $a['amt'] . ' | Name: ' . $a['name'] . ' | Email: ' . $a['email'] . ' | Infos: ' . $a['infos']);
     if (!in_array($team, ['all', 'gewaehlte', 'helfer', 'ehemalige'], true)) {
         $team = 'all';
-        fsr_updates_log('SHORTCODE: Invalid team specified. Defaulting to "all".');
     }
-    fsr_updates_log('SHORTCODE: Fetching members for team: ' . $team);
-    $data = fsr_get_members_data($team);
+    $data = fsr_etit_get_members_data($team);
     $members = $data['members'] ?? [];
     // Filter nach Amt
     if (!empty($a['amt'])) {
-        $filter_amt = strtolower(trim($a['amt']));
+        $filter_amt = fsr_etit_lowercase(trim(wp_strip_all_tags($a['amt'])));
         $members = array_filter($members, function($member) use ($filter_amt) {
             $aemter = array_map(
                 'trim',
-                explode(',', strtolower($member['amt'] ?? ''))
+                explode(',', fsr_etit_lowercase($member['amt'] ?? ''))
             );
             return in_array($filter_amt, $aemter, true);
         });
-        fsr_updates_log('AMT FILTER: ' . $filter_amt . ' | Remaining members: ' . count($members));
     }
     // Filter nach Name
     if (!empty($a['name'])) {
-        $filter_name = strtolower(trim($a['name']));
+        $filter_name = fsr_etit_lowercase(trim(wp_strip_all_tags($a['name'])));
         $members = array_filter($members, function($member) use ($filter_name) {
-            $name = strtolower(
+            $name = fsr_etit_lowercase(
                 ($member['first_name'] ?? '') . ' ' .
                 ($member['last_name'] ?? '')
             );
             return str_contains($name, $filter_name);
         });
-        fsr_updates_log('NAME FILTER: ' . $filter_name . ' | Remaining members: ' . count($members));
     }
     // Filter nach Email-Präfix
     if (!empty($a['email'])) {
-        $filter_email = strtolower(trim($a['email']));
+        $filter_email = fsr_etit_lowercase(trim(wp_strip_all_tags($a['email'])));
         $members = array_filter($members, function($member) use ($filter_email) {
             return str_contains(
-                strtolower($member['email_prefix'] ?? ''),
+                fsr_etit_lowercase($member['email_prefix'] ?? ''),
                 $filter_email
             );
         });
-        fsr_updates_log('EMAIL FILTER: ' . $filter_email . ' | Remaining members: ' . count($members));
     }
-    $layout_settings = fsr_get_membercards_layout_settings();
+    $layout_settings = fsr_etit_get_membercards_layout_settings();
     if (empty($members)) {
-        fsr_updates_log('NO MATCHING MEMBERS FOUND');
         return '<div class="fsr-members-empty">Keine passenden Mitglieder gefunden.</div>';
     }
     ob_start();
@@ -514,7 +571,7 @@ function fsr_members_shortcode_renderer($atts) {
     return ob_get_clean();
 }
 
-function fsr_membercards_layout_defaults() {
+function fsr_etit_membercards_layout_defaults() {
     return [
         'desktop_cols' => 4,
         'tablet_cols' => 2,
@@ -522,13 +579,19 @@ function fsr_membercards_layout_defaults() {
     ];
 }
 
-function fsr_sanitize_membercards_layout_settings($input) {
-    $defaults = fsr_membercards_layout_defaults();
+function fsr_etit_sanitize_membercards_layout_settings($input) {
+    $defaults = fsr_etit_membercards_layout_defaults();
     $input = is_array($input) ? $input : [];
 
-    $desktop = isset($input['desktop_cols']) ? absint($input['desktop_cols']) : $defaults['desktop_cols'];
-    $tablet = isset($input['tablet_cols']) ? absint($input['tablet_cols']) : $defaults['tablet_cols'];
-    $mobile = isset($input['mobile_cols']) ? absint($input['mobile_cols']) : $defaults['mobile_cols'];
+    $desktop = isset($input['desktop_cols'])
+        ? absint(fsr_etit_scalar_string($input['desktop_cols']))
+        : $defaults['desktop_cols'];
+    $tablet = isset($input['tablet_cols'])
+        ? absint(fsr_etit_scalar_string($input['tablet_cols']))
+        : $defaults['tablet_cols'];
+    $mobile = isset($input['mobile_cols'])
+        ? absint(fsr_etit_scalar_string($input['mobile_cols']))
+        : $defaults['mobile_cols'];
 
     $desktop = max(1, min(6, $desktop));
     $tablet = max(1, min($desktop, $tablet));
@@ -540,66 +603,28 @@ function fsr_sanitize_membercards_layout_settings($input) {
         'mobile_cols' => $mobile,
     ];
 }
-/*
-    function fsr_render_member_infos($member, $infos) {
-        if (empty($infos)) {
-            return;
-        }
-        $available = [
-            'email'       => 'email_prefix',
-            'vorname'     => 'first_name',
-            'nachname'    => 'last_name',
-            'amt'         => 'amt',
-            'studiengang' => 'studiengang',
-            'abschluss'   => 'abschluss',
-            'pronomen'    => 'pronomen',
-            'start'       => 'erstes_jahr',
-            'semester'    => 'semester_anzahl',
-            'abgang'      => 'abgang_jahr',
-        ];
-        echo '<div class="fsr-extra-infos">';
-        foreach ($infos as $label) {
-            if (!isset($available[$label])) {
-                continue;
-            }
-            $field = $available[$label];
-            if (empty($member[$field])) {
-                continue;
-            }
-            $value = $member[$field];
-            if ($label === 'email') {
-                $value .= FSR_EMAIL_SUFFIX;
-            }
-            echo '<div class="fsr-extra-info-item">';
-            echo '<strong>' . esc_html(ucfirst($label)) . ':</strong> ';
-            echo esc_html($value);
-            echo '</div>';
-        }
-        echo '</div>';
-    }
-*/
 
-function fsr_register_membercards_layout_settings() {
+function fsr_etit_register_membercards_layout_settings() {
     register_setting(
         'fsr_membercards_layout_settings',
-        'fsr_membercards_layout',
+        FSR_ETIT_OPTION_MEMBER_LAYOUT,
         [
             'type' => 'array',
-            'sanitize_callback' => 'fsr_sanitize_membercards_layout_settings',
-            'default' => fsr_membercards_layout_defaults(),
+            'sanitize_callback' => 'fsr_etit_sanitize_membercards_layout_settings',
+            'default' => fsr_etit_membercards_layout_defaults(),
         ]
     );
 }
 
-function fsr_get_membercards_layout_settings() {
-    $settings = get_option('fsr_membercards_layout', []);
-    return wp_parse_args(is_array($settings) ? $settings : [], fsr_membercards_layout_defaults());
+function fsr_etit_get_membercards_layout_settings() {
+    $settings = get_option(FSR_ETIT_OPTION_MEMBER_LAYOUT, []);
+    return fsr_etit_sanitize_membercards_layout_settings($settings);
 }
 
-function fsr_membercards_search($search_term) {
+function fsr_etit_membercards_search($search_term) {
     $search_term = trim(wp_strip_all_tags($search_term));
     if ($search_term === '') {
-        return '';
+        return [];
     }
     $query = new WP_Query([
         'post_type'      => 'fsr_member',
@@ -609,12 +634,12 @@ function fsr_membercards_search($search_term) {
         'order'          => 'ASC',
     ]);
     if (!$query->have_posts()) {
-        return '';
+        return [];
     }
     $virtual_posts = [];
-    $url_overview = fsr_get_shortcode_usage('fsr_members');
+    $url_overview = fsr_etit_get_shortcode_usage('fsr_members');
     foreach ($query->posts as $post) {
-        $member = fsr_member_post_to_record($post);
+        $member = fsr_etit_member_post_to_record($post);
         $searchable = implode(' ', [
             $member['first_name'] ?? '',
             $member['last_name'] ?? '',
@@ -624,17 +649,17 @@ function fsr_membercards_search($search_term) {
             $member['studiengang'] ?? '',
             $member['abschluss'] ?? '',
         ]);
-        if (stripos($searchable, $search_term) === false) {
+        if (!str_contains(fsr_etit_lowercase($searchable), fsr_etit_lowercase($search_term))) {
             continue;
         }
         $content = $member['first_name'] . ' ' . $member['last_name'] . ' ' . $member['amt'];
-        $virtual_posts[] = fsr_create_virtual_post(
-            $title = fsr_member_post_title($member),
-            $excerpt = $content,
-            $content = $content,
-            $url = $url_overview['fsr_members'][0]['view'] ?? '',
-            $date = '',
-            $type = 'page'
+        $virtual_posts[] = fsr_etit_create_virtual_post(
+            fsr_etit_member_post_title($member),
+            $content,
+            $content,
+            $url_overview['fsr_members'][0]['view'] ?? home_url('/'),
+            $post->post_modified ?: $post->post_date,
+            'page'
         );
     }
     wp_reset_postdata();
@@ -642,8 +667,8 @@ function fsr_membercards_search($search_term) {
 }
 
 
-add_shortcode('fsr_member_info', 'fsr_member_info_shortcode_renderer');
-function fsr_member_info_shortcode_renderer($atts) {
+add_shortcode('fsr_member_info', 'fsr_etit_member_info_shortcode_renderer');
+function fsr_etit_member_info_shortcode_renderer($atts) {
     $a = shortcode_atts([
         'team'   => 'all',
         'amt'    => '',
@@ -651,21 +676,23 @@ function fsr_member_info_shortcode_renderer($atts) {
         'fields' => 'email',
         'sep'    => '<br>',
     ], $atts);
-    $members = fsr_get_members_data($a['team'])['members'] ?? [];
+    $team = sanitize_key((string) $a['team']);
+    $team = in_array($team, ['all', 'gewaehlte', 'helfer', 'ehemalige'], true) ? $team : 'all';
+    $members = fsr_etit_get_members_data($team)['members'] ?? [];
     // Nach Amt filtern
     if (!empty($a['amt'])) {
-        $amt = strtolower(trim($a['amt']));
+        $amt = fsr_etit_lowercase(trim(wp_strip_all_tags($a['amt'])));
         $members = array_filter($members, function($m) use ($amt) {
-            $aemter = array_map('trim', explode(',', strtolower($m['amt'] ?? '')));
+            $aemter = array_map('trim', explode(',', fsr_etit_lowercase($m['amt'] ?? '')));
             return in_array($amt, $aemter, true);
         });
     }
     // Nach Namen filtern
     if (!empty($a['name'])) {
-        $name = strtolower(trim($a['name']));
+        $name = fsr_etit_lowercase(trim(wp_strip_all_tags($a['name'])));
         $members = array_filter($members, function($m) use ($name) {
             return str_contains(
-                strtolower(($m['first_name'] ?? '') . ' ' . ($m['last_name'] ?? '')),
+                fsr_etit_lowercase(($m['first_name'] ?? '') . ' ' . ($m['last_name'] ?? '')),
                 $name
             );
         });
@@ -684,14 +711,15 @@ function fsr_member_info_shortcode_renderer($atts) {
         'start'       => 'erstes_jahr',
         'abgang'      => 'abgang_jahr',
     ];
-    $fields = array_map('trim', explode(',', strtolower($a['fields'])));
+    $fields = array_map('trim', explode(',', fsr_etit_lowercase(wp_strip_all_tags($a['fields']))));
+    $separator = wp_kses((string) $a['sep'], ['br' => []]);
     $output = [];
     foreach ($members as $m) {
         $line = [];
         foreach ($fields as $field) {
             if ($field === 'email') {
                 if (!empty($m['email_prefix'])) {
-                    $line[] = esc_html($m['email_prefix'] . FSR_EMAIL_SUFFIX);
+                    $line[] = esc_html($m['email_prefix'] . FSR_ETIT_EMAIL_SUFFIX);
                 }
                 continue;
             }
@@ -705,5 +733,5 @@ function fsr_member_info_shortcode_renderer($atts) {
         }
         $output[] = implode(' ', $line);
     }
-    return implode($a['sep'], $output);
+    return implode($separator, $output);
 }

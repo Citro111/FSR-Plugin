@@ -10,7 +10,7 @@
     padding:1.2rem;
 }
 
-.fsr-event-card h5 {
+.fsr-event-card h3 {
     margin:0 0 .5rem;
     font-size:1.1rem;
 }
@@ -21,5 +21,5 @@
 }
 
 .fsr-event-title {
-    margin-bottom: 0em;
+    margin-bottom: 0;
 }

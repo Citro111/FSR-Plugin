@@ -1,195 +1,146 @@
 <?php
-/**
- * FSR Calendar Settings Template
- */
+
 if (!defined('ABSPATH')) {
     exit;
 }
-function fsr_calendar_render_admin_interface() {
+
+function fsr_etit_calendar_render_admin_interface(): void {
+    if (!current_user_can('manage_options')) {
+        return;
+    }
+
+    $categories = fsr_etit_calendar_sanitize_categories(
+        get_option(FSR_ETIT_OPTION_CALENDAR_CATEGORIES, [])
+    );
+    $pages = get_pages([
+        'post_type'   => 'page',
+        'post_status' => 'publish',
+        'sort_column' => 'post_title',
+        'sort_order'  => 'ASC',
+        'number'      => 0,
+    ]);
+    $page_data = array_map(
+        static fn($page): array => ['id' => (int) $page->ID, 'title' => (string) $page->post_title],
+        $pages
+    );
     ?>
     <div class="wrap">
-        <h1>Kalender Einstellungen</h1>
-        <p>
-            Hier wird der öffentliche Google Kalender hinterlegt.
-            Die Webseite liest daraus automatisch kommende Veranstaltungen.
-        </p>
+        <h2>Kalender-Einstellungen</h2>
+        <p>Hier wird der öffentliche iCal-Kalender für kommende Veranstaltungen hinterlegt.</p>
+        <?php settings_errors(FSR_ETIT_OPTION_CALENDAR_URL); ?>
         <form method="post" action="options.php">
-            <?php
-            settings_fields('fsr_settings');
-            ?>
+            <?php settings_fields('fsr_etit_calendar_settings'); ?>
             <table class="form-table">
                 <tr>
-                    <th scope="row">
-                        Google Kalender iCal URL
-                    </th>
+                    <th scope="row"><label for="fsr-etit-calendar-url">Öffentliche iCal-URL</label></th>
                     <td>
                         <input
+                            id="fsr-etit-calendar-url"
                             type="url"
-                            name="<?php echo esc_attr(FSR_CALENDAR_URL); ?>"
-                            value="<?php echo esc_attr(
-                                get_option(FSR_CALENDAR_URL)
-                            ); ?>"
-                            style="width:600px;"
+                            class="large-text"
+                            name="<?php echo esc_attr(FSR_ETIT_OPTION_CALENDAR_URL); ?>"
+                            value="<?php echo esc_attr(fsr_etit_calendar_normalize_url(get_option(FSR_ETIT_OPTION_CALENDAR_URL, ''))); ?>"
                             placeholder="https://calendar.google.com/calendar/ical/..."
                         >
-                        <p class="description">
-                            Diese URL findest du in Google Kalender unter:
-                            <br>
-                            Kalender → Einstellungen → Kalender integrieren →
-                            Öffentliche Adresse im iCal-Format
-                        </p>
+                        <p class="description">Aus Sicherheitsgründen ist ausschließlich eine öffentliche HTTPS-URL zulässig.</p>
                     </td>
                 </tr>
             </table>
+
             <h2>Kategorien</h2>
-            <p>
-                Hier können Links zu den verschiedenen Veranstaltungskategorien hinterlegt werden.
-                Die Webseite zeigt dann automatisch die passende Kategorie an.
-            </p>
-            <button 
-                type="button"
-                class="button button-primary"
-                id="add-category-btn">
-                <span class="dashicons dashicons-plus" style="font-size:16px; vertical-align:middle; margin-top:-2px;"></span>
+            <p>Kategorien ordnen Veranstaltungstitel einer veröffentlichten WordPress-Seite zu.</p>
+            <button type="button" class="button button-primary" id="fsr-etit-add-category">
                 Kategorie hinzufügen
             </button>
-            <table class="form-table" id="category-table">
+            <table class="form-table" id="fsr-etit-category-table">
                 <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Weitere Namen (optional)</th>
-                        <th>URL</th>
-                        <th>Aktion</th>
-                    </tr>
+                    <tr><th>Name</th><th>Weitere Namen</th><th>Zielseite</th><th>Aktion</th></tr>
                 </thead>
-                <tbody id="category-table-body">
-                    <?php
-                    $categories = get_option(
-                        'fsr_calendar_categories',
-                        []
-                    );
-                    if (!is_array($categories)) {
-                        $categories = [];
-                    }
-                    foreach ($categories as $index => $category): ?>
+                <tbody>
+                <?php foreach ($categories as $index => $category) :
+                    $additional = $category['additionalNames'] ?? [];
+                    $additional = is_array($additional) ? implode(', ', $additional) : (string) $additional;
+                    ?>
                     <tr>
                         <td>
-                            <input 
-                                type="text"
-                                name="fsr_calendar_categories[<?php echo $index; ?>][name]"
-                                value="<?php echo esc_attr($category['name']); ?>"
-                            >
+                            <input type="text" name="<?php echo esc_attr(FSR_ETIT_OPTION_CALENDAR_CATEGORIES); ?>[<?php echo esc_attr($index); ?>][name]" value="<?php echo esc_attr($category['name'] ?? ''); ?>">
                         </td>
                         <td>
-                            <input 
-                                type="text"
-                                name="fsr_calendar_categories[<?php echo $index; ?>][additionalNames]"
-                                value="<?php echo esc_attr(
-                                implode(',', $category['additionalNames'] ?? [])
-                                ); ?>"
-                            >
+                            <input type="text" name="<?php echo esc_attr(FSR_ETIT_OPTION_CALENDAR_CATEGORIES); ?>[<?php echo esc_attr($index); ?>][additionalNames]" value="<?php echo esc_attr($additional); ?>">
                         </td>
-                       <td>
-                            <select
-                                class="fsr-category-page-select"
-                                name="fsr_calendar_categories[<?php echo $index; ?>][page_id]"
-                                style="width:300px;"
-                            >
-                                <option value="">-- Seite auswählen --</option>
-                                <?php
-                                $pages = get_pages([
-                                    'post_type'      => 'page',
-                                    'post_status'    => 'publish',
-                                    'sort_column'    => 'post_title',
-                                    'sort_order'     => 'ASC',
-                                    'number'         => 0,
-                                ]);
-
-                                foreach ($pages as $page) {
-                                    printf(
-                                        '<option value="%d"%s>%s</option>',
-                                        $page->ID,
-                                        selected(($category['page_id'] ?? 0), $page->ID, false),
-                                        esc_html($page->post_title)
-                                    );
-                                }
-                                ?>
+                        <td>
+                            <select class="fsr-etit-category-page" name="<?php echo esc_attr(FSR_ETIT_OPTION_CALENDAR_CATEGORIES); ?>[<?php echo esc_attr($index); ?>][page_id]" style="width:300px;">
+                                <option value="">– Seite auswählen –</option>
+                                <?php foreach ($pages as $page) : ?>
+                                    <option value="<?php echo esc_attr($page->ID); ?>" <?php selected((int) ($category['page_id'] ?? 0), (int) $page->ID); ?>>
+                                        <?php echo esc_html($page->post_title); ?>
+                                    </option>
+                                <?php endforeach; ?>
                             </select>
                         </td>
-                        <td>
-                            <button class="button remove-category">
-                                Entfernen
-                            </button>
-                        </td>
+                        <td><button type="button" class="button fsr-etit-remove-category">Entfernen</button></td>
                     </tr>
-                    <?php endforeach; ?>
+                <?php endforeach; ?>
                 </tbody>
-            </table>  
-            <?php submit_button('Speichern'); ?>
+            </table>
+            <?php submit_button('Kalender speichern'); ?>
         </form>
     </div>
-    
+
     <script>
-        jQuery(document).ready(function($) {
-            let categoryIndex = $('#category-table-body tr').length;
-            // Add a new category row
-            $('#add-category-btn').click(function(e) {
-                e.preventDefault();
-                let newRow = `
-                <tr>
-                    <td><input type="text" name="fsr_calendar_categories[${categoryIndex}][name]" placeholder="Kategorie Name"></td>
-                    <td><input type="text" name="fsr_calendar_categories[${categoryIndex}][additionalNames]" placeholder="Weitere Namen (optional)"></td>
-                    <td><select class="fsr-category-page-select" name="fsr_calendar_categories[${categoryIndex}][page_id]" style="width:300px;">
-                            <option value="">-- Seite auswählen --</option>
-                            <?php
-                            $pages = get_pages([
-                                'post_type'   => 'page',
-                                'post_status' => 'publish',
-                                'sort_column' => 'post_title',
-                                'sort_order'  => 'ASC',
-                                'number'      => 0,
-                            ]);
-                            foreach ($pages as $page) {
-                                echo '<option value="' . esc_attr($page->ID) . '">' . esc_html($page->post_title) . '</option>';
-                            }
-                            ?>
-                        </select>
-                    </td>
-                    <td><button class="button remove-category">Entfernen</button></td>
-                </tr>
-            `;
-                $('#category-table tbody').append(newRow);
-                $('.fsr-category-page-select').select2({
+    jQuery(function($) {
+        const pages = <?php echo wp_json_encode($page_data, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+        const optionName = <?php echo wp_json_encode(FSR_ETIT_OPTION_CALENDAR_CATEGORIES); ?>;
+        let categoryIndex = $('#fsr-etit-category-table tbody tr').length;
+
+        function enhanceSelects(scope) {
+            if ($.fn.select2) {
+                scope.find('.fsr-etit-category-page').select2({
                     width: '300px',
                     placeholder: 'Seite suchen...',
                     allowClear: true
                 });
+            }
+        }
+
+        $('#fsr-etit-add-category').on('click', function() {
+            const index = categoryIndex++;
+            const row = $('<tr>');
+            $('<td>').append($('<input>', {
+                type: 'text',
+                name: optionName + '[' + index + '][name]',
+                placeholder: 'Kategorie'
+            })).appendTo(row);
+            $('<td>').append($('<input>', {
+                type: 'text',
+                name: optionName + '[' + index + '][additionalNames]',
+                placeholder: 'Kommagetrennt'
+            })).appendTo(row);
+
+            const select = $('<select>', {
+                class: 'fsr-etit-category-page',
+                name: optionName + '[' + index + '][page_id]'
+            }).css('width', '300px').append($('<option>', { value: '', text: '– Seite auswählen –' }));
+            pages.forEach(function(page) {
+                select.append($('<option>', { value: page.id, text: page.title }));
             });
-            // Remove a category row
-            $(document).on('click', '.remove-category', function(e) {
-                e.preventDefault();
-                $(this).closest('tr').remove();
-            });
-            $('.fsr-category-page-select').select2({
-                width: '300px',
-                placeholder: 'Seite suchen...',
-                minimumInputLength: 2,
-                ajax: {
-                    url: ajaxurl,
-                    dataType: 'json',
-                    delay: 250,
-                    data: function(params) {
-                        return {
-                            action: 'fsr_search_pages',
-                            q: params.term
-                        };
-                    },
-                    processResults: function(data) {
-                        return data;
-                    }
-                }
-            });
+            $('<td>').append(select).appendTo(row);
+            $('<td>').append($('<button>', {
+                type: 'button',
+                class: 'button fsr-etit-remove-category',
+                text: 'Entfernen'
+            })).appendTo(row);
+
+            $('#fsr-etit-category-table tbody').append(row);
+            enhanceSelects(row);
         });
+
+        $(document).on('click', '.fsr-etit-remove-category', function() {
+            $(this).closest('tr').remove();
+        });
+
+        enhanceSelects($(document));
+    });
     </script>
     <?php
 }

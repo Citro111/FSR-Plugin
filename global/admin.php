@@ -1,150 +1,146 @@
 <?php
-if (!defined('ABSPATH')) exit;
 
-add_action('admin_menu', 'fsr_custom_admin_menu');
-function fsr_custom_admin_menu() {
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+add_action('admin_menu', 'fsr_etit_admin_menu');
+add_action('admin_init', 'fsr_etit_register_settings');
+
+function fsr_etit_admin_menu(): void {
     add_menu_page(
-        'FSR ET/IT Einstellungen',
+        'FSR ET/IT Website Tools',
         'FSR ET/IT',
         'manage_options',
         'fsr-etit-settings',
-        'fsr_custom_settings_page',
+        'fsr_etit_settings_page',
         'dashicons-admin-generic',
         65
     );
 
-    add_submenu_page(
-        'fsr-etit-settings',
-        'Updates',
-        'Updates',
-        'manage_options',
-        'fsr-etit-settings',
-        'fsr_custom_settings_page'
-    );
-
-    add_submenu_page(
-        'fsr-etit-settings',
-        'DokuWiki Connector',
-        'DokuWiki Connector',
-        'manage_options',
-        'fsr-etit-settings-dokuwiki',
-        'fsr_custom_settings_page'
-    );
-
-    add_submenu_page(
-        'fsr-etit-settings',
-        'Mitgliedskarten',
-        'Mitgliedskarten',
-        'manage_options',
-        'fsr-etit-settings-membercards',
-        'fsr_custom_settings_page'
-    );
-
-    add_submenu_page(
-        'fsr-etit-settings',
-        'Kalender',
-        'Kalender',
-        'manage_options',
-        'fsr-etit-settings-calendar',
-        'fsr_custom_settings_page'
-    );
-
-    add_submenu_page(
-        'fsr-etit-settings',
-        'Shortcodes',
-        'Shortcodes',
-        'manage_options',
-        'fsr-etit-settings-shortcodes',
-        'fsr_render_shortcode_admin_page',
-    );
-}
-
-add_action('admin_init', 'fsr_custom_register_global_settings');
-function fsr_custom_register_global_settings() {
-    register_setting('dw_bridge_settings', 'dw_bridge_settings');
-}
-
-function fsr_custom_settings_page() {
-    $page_slug = isset($_GET['page']) ? sanitize_text_field($_GET['page']) : 'fsr-etit-settings';
-
-    $page_to_tab = [
-        'fsr-etit-settings' => 'updates',
-        'fsr-etit-settings-dokuwiki' => 'dokuwiki',
-        'fsr-etit-settings-membercards' => 'membercards',
-        'fsr-etit-settings-shortcodes' => 'shortcodes',
-        'fsr-etit-settings-calendar' => 'calendar',
+    $pages = [
+        ['Updates', 'fsr-etit-settings', 'fsr_etit_settings_page'],
+        ['DokuWiki', 'fsr-etit-settings-dokuwiki', 'fsr_etit_settings_page'],
+        ['Mitgliedskarten', 'fsr-etit-settings-membercards', 'fsr_etit_settings_page'],
+        ['Kalender', 'fsr-etit-settings-calendar', 'fsr_etit_settings_page'],
+        ['Shortcodes', 'fsr-etit-settings-shortcodes', 'fsr_etit_render_shortcode_admin_page'],
     ];
 
-    // Rueckwaertskompatibel: alte Links mit ?tab=... weiterhin unterstuetzen.
+    foreach ($pages as [$title, $slug, $callback]) {
+        add_submenu_page(
+            'fsr-etit-settings',
+            $title . ' – FSR ET/IT',
+            $title,
+            'manage_options',
+            $slug,
+            $callback
+        );
+    }
+}
+
+function fsr_etit_register_settings(): void {
+    register_setting(
+        'fsr_etit_dokuwiki_settings',
+        FSR_ETIT_OPTION_DOKUWIKI_SETTINGS,
+        [
+            'type'              => 'array',
+            'sanitize_callback' => 'fsr_etit_dokuwiki_sanitize_settings',
+            'default'           => [],
+        ]
+    );
+}
+
+function fsr_etit_settings_page(): void {
+    if (!current_user_can('manage_options')) {
+        wp_die(esc_html__('Du hast keine Berechtigung, diese Seite aufzurufen.', 'fsr-etit-website-tools'));
+    }
+
+    $page_slug = isset($_GET['page'])
+        ? sanitize_key(fsr_etit_scalar_string(wp_unslash($_GET['page'])))
+        : 'fsr-etit-settings';
+
+    $page_to_tab = [
+        'fsr-etit-settings'             => 'updates',
+        'fsr-etit-settings-dokuwiki'    => 'dokuwiki',
+        'fsr-etit-settings-membercards' => 'membercards',
+        'fsr-etit-settings-shortcodes'  => 'shortcodes',
+        'fsr-etit-settings-calendar'    => 'calendar',
+    ];
+
+    $active_tab = $page_to_tab[$page_slug] ?? 'updates';
     if (isset($_GET['tab'])) {
-        $active_tab = sanitize_text_field($_GET['tab']);
-    } else {
-        $active_tab = isset($page_to_tab[$page_slug]) ? $page_to_tab[$page_slug] : 'dokuwiki';
+        $legacy_tab = sanitize_key(fsr_etit_scalar_string(wp_unslash($_GET['tab'])));
+        if (in_array($legacy_tab, $page_to_tab, true)) {
+            $active_tab = $legacy_tab;
+        }
     }
 
     $tab_links = [
-        'updates' => admin_url('admin.php?page=fsr-etit-settings'),
-        'dokuwiki' => admin_url('admin.php?page=fsr-etit-settings-dokuwiki'),
+        'updates'     => admin_url('admin.php?page=fsr-etit-settings'),
+        'dokuwiki'    => admin_url('admin.php?page=fsr-etit-settings-dokuwiki'),
         'membercards' => admin_url('admin.php?page=fsr-etit-settings-membercards'),
-        'shortcodes' => admin_url('admin.php?page=fsr-etit-settings-shortcodes'),
-        'calendar' => admin_url('admin.php?page=fsr-etit-settings-calendar'),
+        'shortcodes'  => admin_url('admin.php?page=fsr-etit-settings-shortcodes'),
+        'calendar'    => admin_url('admin.php?page=fsr-etit-settings-calendar'),
     ];
-
     ?>
     <div class="wrap">
-        <h1>Configuration</h1>
-        <h2 class="nav-tab-wrapper">
-            <a href="<?php echo esc_url($tab_links['updates']); ?>" class="nav-tab <?php echo $active_tab == 'updates' ? 'nav-tab-active' : ''; ?>">Updates</a>
-            <a href="<?php echo esc_url($tab_links['dokuwiki']); ?>" class="nav-tab <?php echo $active_tab == 'dokuwiki' ? 'nav-tab-active' : ''; ?>">DokuWiki Connector</a>
-            <a href="<?php echo esc_url($tab_links['membercards']); ?>" class="nav-tab <?php echo $active_tab == 'membercards' ? 'nav-tab-active' : ''; ?>">Mitgliedskarten</a>
-            <a href="<?php echo esc_url($tab_links['shortcodes']); ?>" class="nav-tab <?php echo $active_tab == 'shortcodes' ? 'nav-tab-active' : ''; ?>">Shortcodes</a>
-            <a href="<?php echo esc_url($tab_links['calendar']); ?>" class="nav-tab <?php echo $active_tab == 'calendar' ? 'nav-tab-active' : ''; ?>">Kalender</a>
-        </h2>
-        <?php if ($active_tab == 'dokuwiki') : ?>
-            <form method="post" action="options.php" style="margin-top: 20px;">
+        <h1>FSR ET/IT Website Tools</h1>
+        <nav class="nav-tab-wrapper" aria-label="Plugin-Bereiche">
+            <?php
+            $labels = [
+                'updates'     => 'Updates',
+                'dokuwiki'    => 'DokuWiki',
+                'membercards' => 'Mitgliedskarten',
+                'shortcodes'  => 'Shortcodes',
+                'calendar'    => 'Kalender',
+            ];
+            foreach ($labels as $tab => $label) :
+                $class = 'nav-tab' . ($active_tab === $tab ? ' nav-tab-active' : '');
+                ?>
+                <a href="<?php echo esc_url($tab_links[$tab]); ?>" class="<?php echo esc_attr($class); ?>">
+                    <?php echo esc_html($label); ?>
+                </a>
+            <?php endforeach; ?>
+        </nav>
+
+        <?php if ($active_tab === 'dokuwiki') : ?>
+            <form method="post" action="options.php" style="margin-top:20px;">
                 <?php
-                settings_fields('dw_bridge_settings');
-                fsr_dw_render_admin_fields();
+                settings_fields('fsr_etit_dokuwiki_settings');
+                fsr_etit_dokuwiki_render_admin_fields();
                 submit_button();
                 ?>
             </form>
-        <?php elseif ($active_tab == 'membercards') : ?>
-            <div style="margin-top: 20px;">
-                <?php fsr_members_render_admin_interface(); ?>
+        <?php elseif ($active_tab === 'membercards') : ?>
+            <div style="margin-top:20px;">
+                <?php fsr_etit_members_render_admin_interface(); ?>
             </div>
-        <?php elseif ($active_tab == 'shortcodes') : ?>
-            <form method="post" action="options.php" style="margin-top: 20px;">
-                <?php
-                fsr_shortcodes_render_admin_interface();
-                ?>
-            </form>
-        <?php elseif ($active_tab == 'updates') : ?>
-            <div style="margin-top: 20px;">
-                <?php
-                fsr_updates_render_admin_interface();
-                ?>
+        <?php elseif ($active_tab === 'updates') : ?>
+            <div style="margin-top:20px;">
+                <?php fsr_etit_updates_render_admin_interface(); ?>
             </div>
-        <?php elseif ($active_tab == 'calendar') : ?>
-            <div style="margin-top: 20px;">
-                <?php
-                fsr_calendar_render_admin_interface();
-                ?>
+        <?php elseif ($active_tab === 'calendar') : ?>
+            <div style="margin-top:20px;">
+                <?php fsr_etit_calendar_render_admin_interface(); ?>
             </div>
         <?php else : ?>
-            <p>Ungültiger Tab ausgewählt.</p>
+            <p>Dieser Bereich besitzt eine eigene Unterseite.</p>
         <?php endif; ?>
     </div>
     <?php
 }
 
-add_filter('plugin_action_links_' . plugin_basename(FSR_PLUGIN_FILE), function ($links) {
-    $settings_link = sprintf(
-        '<a href="%s">Settings</a>',
-        admin_url('admin.php?page=fsr-etit-settings')
-    );
-    array_unshift(
-        $links,
-        $settings_link
-    );
-    return $links;
-});
+add_filter(
+    'plugin_action_links_' . plugin_basename(FSR_ETIT_FILE),
+    static function (array $links): array {
+        array_unshift(
+            $links,
+            sprintf(
+                '<a href="%s">%s</a>',
+                esc_url(admin_url('admin.php?page=fsr-etit-settings')),
+                esc_html__('Einstellungen', 'fsr-etit-website-tools')
+            )
+        );
+        return $links;
+    }
+);

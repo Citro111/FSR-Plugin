@@ -1,219 +1,165 @@
 <?php
 
-function fsr_office_hours_nth_weekday_date($year, $month, $weekday, $nth) {
-    $first_day = sprintf('%04d-%02d-01', (int) $year, (int) $month);
-    $first_ts = strtotime($first_day);
-    if ($first_ts === false) {
-        return null;
-    }
-
-    $first_weekday = (int) date('N', $first_ts);
-    $delta = ($weekday - $first_weekday + 7) % 7;
-    $day = 1 + $delta + (($nth - 1) * 7);
-
-    $candidate = sprintf('%04d-%02d-%02d', (int) $year, (int) $month, (int) $day);
-    $candidate_ts = strtotime($candidate);
-    if ($candidate_ts === false || (int) date('n', $candidate_ts) !== (int) $month) {
-        return null;
-    }
-
-    return $candidate;
+if (!defined('ABSPATH')) {
+    exit;
 }
 
-function fsr_office_hours_shortcode($atts) {
-    $atts = shortcode_atts(['limit' => 50], $atts);
-    
-    $members_raw = fsr_get_members_data('all')['members'];
-    $members_map = [];
-    $highlight_rule = sanitize_key($_GET['fsr_oh_rule'] ?? '');
-    $highlight_date = sanitize_text_field($_GET['fsr_oh_date'] ?? '');
-    foreach ($members_raw as $m) {
-        $members_map[$m['id']] = [
-            'id' => $m['id'],
-            'first_name' => $m['first_name'] ?? '',
-            'last_name' => $m['last_name'] ?? '',
-            'email' => !empty($m['email_prefix']) ? $m['email_prefix'] . FSR_EMAIL_SUFFIX : '',
-            'study' => trim(($m['studiengang'] ?? '') . ' ' . ($m['abschluss'] ?? '')),
-            'roles' => !empty($m['amt']) ? [$m['amt']] : [],
+function fsr_etit_office_hours_shortcode($atts): string {
+    $atts = shortcode_atts(['limit' => 50], $atts, 'fsr_office_hours');
+    $limit = max(1, min(100, absint($atts['limit'])));
+    $member_map = [];
+    foreach (fsr_etit_office_hours_get_all_members() as $member) {
+        $member_id = absint($member['id'] ?? 0);
+        if ($member_id === 0 || !fsr_etit_office_hours_is_allowed_member($member)) {
+            continue;
+        }
+        $member_map[$member_id] = [
+            'first_name' => (string) ($member['first_name'] ?? ''),
+            'last_name'  => (string) ($member['last_name'] ?? ''),
+            'email'      => !empty($member['email_prefix'])
+                ? $member['email_prefix'] . FSR_ETIT_EMAIL_SUFFIX
+                : '',
+            'study'      => trim((string) ($member['studiengang'] ?? '') . ' ' . (string) ($member['abschluss'] ?? '')),
+            'roles'      => array_filter(array_map('trim', explode(',', (string) ($member['amt'] ?? '')))),
         ];
     }
-    $settings = fsr_office_hours_get_settings();
-    $occurrences = fsr_office_hours_collect_occurrences(
+
+    $highlight_rule = isset($_GET['fsr_oh_rule'])
+        ? sanitize_key(fsr_etit_scalar_string(wp_unslash($_GET['fsr_oh_rule'])))
+        : '';
+    $highlight_date = isset($_GET['fsr_oh_date'])
+        ? sanitize_text_field(fsr_etit_scalar_string(wp_unslash($_GET['fsr_oh_date'])))
+        : '';
+    if (!fsr_etit_office_hours_is_valid_date($highlight_date)) {
+        $highlight_date = '';
+    }
+
+    $settings = fsr_etit_office_hours_get_settings();
+    $occurrences = fsr_etit_office_hours_collect_occurrences(
         $settings['rules'],
-        absint($atts['limit']),
-        true // hide fully cancelled occurrences
+        $limit,
+        true,
+        $settings['cancellations'],
+        array_keys($member_map)
     );
     if (empty($occurrences)) {
-        return '<div class="fsr-office-hours-empty">Wir haben für diese Woche keine Sprechstunden.</div>';
+        return '<div class="fsr-office-hours-empty">Keine kommenden Sprechstunden gefunden.</div>';
     }
-    $now = current_time('H:i');
-    $todayDate = current_time('Y-m-d');
-    $today = strtotime(current_time('Y-m-d'));
-    $weekEnd = strtotime('+7 days', $today);
-    $filtered = [];
+
+    $today = new DateTimeImmutable('today', wp_timezone());
+    $week_end = $today->modify('+6 days');
+    $now = wp_date('H:i', time(), wp_timezone());
+    $today_string = $today->format('Y-m-d');
+    $grouped = [];
     $highlighted = [];
-    foreach ($occurrences as $o) {
-        $ts = strtotime($o['date']);
-        if (
+
+    foreach ($occurrences as $occurrence) {
+        $date = fsr_etit_office_hours_date_object($occurrence['date']);
+        if (!$date) {
+            continue;
+        }
+        $is_highlighted =
             $highlight_rule !== '' &&
             $highlight_date !== '' &&
-            strtolower($o['rule_id']) === strtolower($highlight_rule) &&
-            $o['date'] === $highlight_date
-        ) {
-            $o['ts'] = $ts;
-            $highlighted[] = $o;
+            $occurrence['rule_id'] === $highlight_rule &&
+            $occurrence['date'] === $highlight_date;
+
+        if ($date >= $today && $date <= $week_end && (int) $date->format('N') <= 5) {
+            $occurrence['is_highlighted'] = $is_highlighted;
+            $grouped[(int) $date->format('N')][] = $occurrence;
+        } elseif ($is_highlighted) {
+            $occurrence['is_highlighted'] = true;
+            $highlighted[] = $occurrence;
         }
-        if ($ts < $today || $ts > $weekEnd) {
-            continue;
-        }
-        if ((int) date('N', $ts) > 5) {
-            continue;
-        }
-        $o['ts'] = $ts;
-        $filtered[] = $o;
     }
-    // Gruppieren nach Wochentag
-    $grouped = [];
-    foreach ($filtered as $item) {
-        $weekday = (int) date('N', $item['ts']);
-        $grouped[$weekday][] = $item;
-    }
-    if (!empty($highlighted)) {
+
+    if ($highlighted) {
         $grouped[0] = $highlighted;
     }
+    if (!$grouped) {
+        return '<div class="fsr-office-hours-empty">Für die nächsten sieben Tage sind keine Sprechstunden geplant.</div>';
+    }
+
     ksort($grouped);
     $weekday_labels = [
         0 => 'Gefundene Sprechstunde',
-        1 => 'Montag',
-        2 => 'Dienstag',
-        3 => 'Mittwoch',
-        4 => 'Donnerstag',
-        5 => 'Freitag'
+        1 => 'Montag', 2 => 'Dienstag', 3 => 'Mittwoch', 4 => 'Donnerstag', 5 => 'Freitag',
     ];
 
     ob_start();
-    echo '<div id="fsr-office-hours" class="fsr-oh-weekplan">';
-    foreach ($weekday_labels as $day => $label) {
-        if (empty($grouped[$day])) continue;
-        $section_class = 'fsr-oh-day';
-        if ($day === 0) {
-            $section_class .= ' fsr-oh-highlighted-day';
-        }
-        echo '<section class="' . esc_attr($section_class) . '">';
-        echo '<h3>';
-        echo esc_html($label);
-        if ($day === 0 && !empty($grouped[$day][0]['date'])) {
-            echo ' – ';
-            echo esc_html(
-                date_i18n(
-                    'l, d.m.Y',
-                    strtotime($grouped[$day][0]['date'])
-                )
-            );
-        }
-        echo '</h3>';
-        usort($grouped[$day], function ($a, $b) {
-            return strcmp($a['start_time'], $b['start_time']);
-        });
-
-        foreach ($grouped[$day] as $item) {
-
-            $is_active =
-                $item['date'] === $todayDate &&
-                $item['start_time'] <= $now &&
-                $item['end_time'] >= $now;
-            $members = [];
-            $is_highlighted_date =
-                $highlight_rule !== '' &&
-                $highlight_date !== '' &&
-                strtolower($item['rule_id']) === strtolower($highlight_rule) &&
-                $item['date'] === $highlight_date;
-
-            foreach ($item['member_ids'] as $id) {
-                if (!isset($members_map[$id])) continue;
-                if (fsr_office_hours_member_is_cancelled(
-                    $settings['cancellations'],
-                    $item['rule_id'],
-                    $item['date'],
-                    $id
-                )) {
-                    continue;
-                }
-                $members[] = $members_map[$id];
+    ?>
+    <div id="fsr-office-hours" class="fsr-oh-weekplan">
+        <?php foreach ($weekday_labels as $day => $label) :
+            if (empty($grouped[$day])) {
+                continue;
             }
-            $first_names = array_map(fn($m) => $m['first_name'], $members);
-            $timeLabel = $item['start_time'] . '–' . $item['end_time'];
-            $classes = ['fsr-oh-card'];
-            if ($day === 0) {
-                $classes[] = 'is-search-result';
-            }
-            if ($is_highlighted_date) {
-                $classes[] = 'is-selected-date';
-            }
-            echo '<details class="' . esc_attr(implode(' ', $classes)) . '">';
-            // CLOSED VIEW
-            echo '<summary class="fsr-oh-summary">';
-            if ($is_active) {
-                echo '<span class="fsr-oh-live">🟢 Jetzt besetzt</span>';
-            }
-            echo '<span class="fsr-oh-time">' . esc_html($timeLabel) . '</span>';
-            echo '<span class="fsr-oh-names">' . esc_html(implode(', ', $first_names)) . '</span>';
-            echo '</summary>';
-            // OPEN VIEW
-            echo '<div class="fsr-oh-body">';
-            echo '<p><strong>Mitglieder:</strong></p>';
-            echo '<ul>';
-            foreach ($members as $m) {
-                $full = trim($m['first_name'] . ' ' . $m['last_name']);
-                echo '<li>';
-                echo esc_html($full);
-                if (!empty($m['email'])) {
-                    echo ' – ' . esc_html($m['email']);
-                }
-                if (!empty($m['study'])) {
-                    echo ' – ' . esc_html($m['study']);
-                }
-                if (!empty($m['roles'])) {
-                    echo ' – ' . esc_html(implode(', ', (array)$m['roles']));
-                }
-                echo '</li>';
-            }
+            usort($grouped[$day], static fn($left, $right): int => strcmp($left['start_time'], $right['start_time']));
+            ?>
+            <section class="fsr-oh-day<?php echo $day === 0 ? ' fsr-oh-highlighted-day' : ''; ?>">
+                <h3>
+                    <?php echo esc_html($label); ?>
+                    <?php if ($day === 0 && !empty($grouped[$day][0]['date'])) :
+                        $date = fsr_etit_office_hours_date_object($grouped[$day][0]['date']);
+                        ?>
+                        – <?php echo esc_html(wp_date('l, d.m.Y', $date->getTimestamp(), wp_timezone())); ?>
+                    <?php endif; ?>
+                </h3>
 
-            echo '</ul>';
-
-            if (!empty($item['location'])) {
-                echo '<p><strong>Raum:</strong> ' . esc_html($item['location']) . '</p>';
-            }
-
-            if (!empty($item['notes'])) {
-                echo '<p><strong>Notiz:</strong> ' . esc_html($item['notes']) . '</p>';
-            }
-
-            echo '</div>';
-            echo '</details>';
-        }
-
-        echo '</section>';
-    }
-
-    echo '</div>';
-
-    return ob_get_clean();
-}
-
-function fsr_office_hours_occurrence_is_cancelled($rule, $date, $cancellations) {
-
-    foreach ($rule['member_ids'] as $member_id) {
-
-        if (!fsr_office_hours_member_is_cancelled(
-            $cancellations,
-            $rule['id'],
-            $date,
-            $member_id
-        )) {
-            return false;
-        }
-    }
-
-    return true;
+                <?php foreach ($grouped[$day] as $item) :
+                    $members = [];
+                    foreach ($item['member_ids'] as $member_id) {
+                        if (
+                            !isset($member_map[$member_id]) ||
+                            fsr_etit_office_hours_member_is_cancelled(
+                                $settings['cancellations'],
+                                $item['rule_id'],
+                                $item['date'],
+                                (int) $member_id
+                            )
+                        ) {
+                            continue;
+                        }
+                        $members[] = $member_map[$member_id];
+                    }
+                    $first_names = array_column($members, 'first_name');
+                    $is_active =
+                        $item['date'] === $today_string &&
+                        $item['start_time'] <= $now &&
+                        $item['end_time'] >= $now;
+                    $classes = ['fsr-oh-card'];
+                    if (!empty($item['is_highlighted'])) {
+                        $classes[] = 'is-selected-date';
+                    }
+                    ?>
+                    <details class="<?php echo esc_attr(implode(' ', $classes)); ?>" <?php echo !empty($item['is_highlighted']) ? 'open' : ''; ?>>
+                        <summary class="fsr-oh-summary">
+                            <?php if ($is_active) : ?><span class="fsr-oh-live">🟢 Jetzt besetzt</span><?php endif; ?>
+                            <span class="fsr-oh-time"><?php echo esc_html($item['start_time'] . '–' . $item['end_time']); ?></span>
+                            <span class="fsr-oh-names"><?php echo esc_html(implode(', ', array_filter($first_names))); ?></span>
+                            <span class="fsr-oh-title"><?php echo esc_html($item['title']); ?></span>
+                        </summary>
+                        <div class="fsr-oh-body">
+                            <p><strong>Mitglieder:</strong></p>
+                            <ul>
+                                <?php foreach ($members as $member) :
+                                    $details = array_filter([
+                                        trim($member['first_name'] . ' ' . $member['last_name']),
+                                        $member['email'],
+                                        $member['study'],
+                                        implode(', ', $member['roles']),
+                                    ]);
+                                    ?>
+                                    <li><?php echo esc_html(implode(' – ', $details)); ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                            <?php if (!empty($item['location'])) : ?><p><strong>Raum:</strong> <?php echo esc_html($item['location']); ?></p><?php endif; ?>
+                            <?php if (!empty($item['notes'])) : ?><p><strong>Notiz:</strong> <?php echo esc_html($item['notes']); ?></p><?php endif; ?>
+                        </div>
+                    </details>
+                <?php endforeach; ?>
+            </section>
+        <?php endforeach; ?>
+    </div>
+    <?php
+    return (string) ob_get_clean();
 }

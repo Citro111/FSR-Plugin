@@ -1,12 +1,12 @@
 <?php
 if (!defined('ABSPATH')) exit;
 
-function fsr_shortcode_admin_value($value) {
+function fsr_etit_shortcode_admin_value($value) {
     if (is_array($value)) {
         $output = [];
         foreach ($value as $key => $item) {
             if (is_array($item)) {
-                $output[] = $key . ': ' . fsr_shortcode_admin_value($item);
+                $output[] = $key . ': ' . fsr_etit_shortcode_admin_value($item);
             } else {
                 $output[] = (string) $item;
             }
@@ -21,9 +21,9 @@ function fsr_shortcode_admin_value($value) {
 ?>
 
 <div class="wrap">
-    <h1>Shortcodes Übersicht</h1>
+    <h1>Shortcode-Übersicht</h1>
     <?php foreach ($shortcodes as $code => $data): ?>
-    <h5>
+    <div style="margin-bottom:12px;">
         <details class="fsr-shortcode-accordion">
             <summary>
                 <strong><?php echo esc_html($data['title']); ?></strong>
@@ -63,13 +63,13 @@ function fsr_shortcode_admin_value($value) {
                                 <code><?php echo esc_html($name); ?></code>
                             </td>
                             <td>
-                                <?php echo esc_html(fsr_shortcode_admin_value($attr['description'] ?? '')); ?>
+                                <?php echo esc_html(fsr_etit_shortcode_admin_value($attr['description'] ?? '')); ?>
                             </td>
                             <td>
-                                <?php echo esc_html(fsr_shortcode_admin_value($attr['values'] ?? '')); ?>
+                                <?php echo esc_html(fsr_etit_shortcode_admin_value($attr['values'] ?? '')); ?>
                             </td>
                             <td>
-                                <?php echo esc_html(fsr_shortcode_admin_value($attr['default'] ?? '')); ?>
+                                <?php echo esc_html(fsr_etit_shortcode_admin_value($attr['default'] ?? '')); ?>
                             </td>
                         </tr>
                     <?php endforeach; ?>
@@ -81,9 +81,11 @@ function fsr_shortcode_admin_value($value) {
                     <ul>
                     <?php foreach ($usage[$code] as $place): ?>
                         <li>
-                            <a href="<?php echo esc_url($place['edit']); ?>">
+                            <?php if (!empty($place['edit'])) : ?>
+                                <a href="<?php echo esc_url($place['edit']); ?>"><?php echo esc_html($place['title']); ?></a>
+                            <?php else : ?>
                                 <?php echo esc_html($place['title']); ?>
-                            </a>
+                            <?php endif; ?>
                             <small>
                                 (<?php echo esc_html($place['type']); ?>,
                                 <?php echo esc_html($place['status']); ?>)
@@ -98,6 +100,6 @@ function fsr_shortcode_admin_value($value) {
                 <?php endif; ?>
             </div>
         </details>
-    </h5>
+    </div>
     <?php endforeach; ?>
 </div>

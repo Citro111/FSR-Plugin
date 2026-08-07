@@ -1,137 +1,85 @@
 <?php
+
 if (!defined('ABSPATH')) {
     exit;
 }
-add_shortcode('fsr_events', 'fsr_render_events');
-function fsr_render_events($atts) {
+
+add_shortcode('fsr_events', 'fsr_etit_calendar_shortcode');
+
+function fsr_etit_calendar_shortcode($atts): string {
     $atts = shortcode_atts(
-        [
-            'count' => 5,
-            'category' => ''
-        ],
-        $atts
+        ['count' => 5, 'category' => ''],
+        $atts,
+        'fsr_events'
     );
-    global $wp;
-    $count = intval($atts['count']);
+    $count = max(1, min(50, absint($atts['count'])));
     $category = sanitize_title($atts['category']);
-    $calendar_url = get_option(FSR_CALENDAR_URL);
+    $calendar_url = get_option(FSR_ETIT_OPTION_CALENDAR_URL, '');
     if (!$calendar_url) {
         return '<p>Kein Kalender hinterlegt.</p>';
     }
-    $events = fsr_get_calendar_events($calendar_url);
-    fsr_updates_log('CALENDAR: Total events fetched: ' . count($events));
+
     $events = array_filter(
-        $events,
-        function($event){
-            fsr_updates_log('CALENDAR: Checking event: ' . $event['title'] . ' | ID: ' . ($event['id'] ?? 'none'));
-            fsr_updates_log('CALENDAR: Recurrence ID: ' . ($event['recurrence_id'] ?? 'none'));
-            return $event['timestamp'] >= current_time('timestamp');
-        }
+        fsr_etit_calendar_get_events($calendar_url),
+        static fn($event): bool => (int) ($event['timestamp'] ?? 0) >= time()
     );
-    fsr_updates_log('CALENDAR: Active events: ' . count($events));
-    $events = array_values($events);
-    fsr_updates_log('CALENDAR: Active events after reindexing: ' . count($events));
-    foreach($events as $event){
-        fsr_updates_log(
-            $event['title'] . ' | ' .
-            date('d.m.Y H:i', $event['timestamp']) . ' | ' .
-            $event['type']
-        );
-    }
-    if ($category) {
+    if ($category !== '') {
         $events = array_filter(
             $events,
-            function($event) use ($category) {
-                return $event['type'] === $category;
-            }
+            static fn($event): bool => ($event['type'] ?? '') === $category
         );
     }
-    fsr_updates_log('CALENDAR: Nach Kategorie gefiltert: ' . count($events));
     if (!$events) {
         return '<p>Keine Veranstaltungen gefunden.</p>';
     }
-    /*
-     * Sortieren
-     */
-    usort(
-        $events,
-        function($a,$b){
-            return $a['timestamp'] <=> $b['timestamp'];
-        }
-    );
-    /*
-     * NerdBar reduzieren:
-     * nur den ersten Termin anzeigen
-     */
+
+    usort($events, static fn($a, $b): int => (int) $a['timestamp'] <=> (int) $b['timestamp']);
     $result = [];
     $nerdbar_found = false;
-    fsr_updates_log("Vor NerdBar Filter: " . count($events));
-    foreach($events as $event) {
-        if(!$category && $event['type'] === 'nerdbar') {
-            if($nerdbar_found) {
-                fsr_updates_log('CALENDAR: Skipping nerdbar event: ' . print_r($event, true));
+    foreach ($events as $event) {
+        if ($category === '' && ($event['type'] ?? '') === 'nerdbar') {
+            if ($nerdbar_found) {
                 continue;
             }
             $nerdbar_found = true;
         }
         $result[] = $event;
-        if(count($result) >= $count){
-            fsr_updates_log('CALENDAR: Reached count limit of ' . $count . ', stopping event processing.');
+        if (count($result) >= $count) {
             break;
         }
     }
-    fsr_updates_log("Nach NerdBar Filter: " . count($result));
+
     ob_start();
     ?>
     <div class="fsr-events">
-    <?php foreach($result as $event): ?>
-        <article class="fsr-event-card">
-            <h5 class="fsr-event-title">
-                <?php
-                $current_page_id = get_queried_object_id();
-                $event_page_id = url_to_postid($event['url']);
-                if ($event['url'] !== '' && $event_page_id !== $current_page_id ) : ?>
-                    <a href="<?php echo esc_url($event['url']); ?>">
+        <?php foreach ($result as $event) : ?>
+            <article class="fsr-event-card">
+                <h3 class="fsr-event-title">
+                    <?php
+                    $event_url = (string) ($event['url'] ?? '');
+                    $event_page_id = $event_url !== '' ? url_to_postid($event_url) : 0;
+                    if ($event_url !== '' && $event_page_id !== get_queried_object_id()) :
+                        ?>
+                        <a href="<?php echo esc_url($event_url); ?>"><?php echo esc_html($event['title']); ?></a>
+                    <?php else : ?>
                         <?php echo esc_html($event['title']); ?>
-                    </a>
-                <?php else : ?>
-                    <?php echo esc_html($event['title']); ?>
+                    <?php endif; ?>
+                </h3>
+                <?php if (preg_match('/(?:^|;)INTERVAL=2(?:;|$)/', (string) ($event['rrule'] ?? ''))) : ?>
+                    <small>Alle zwei Wochen</small>
                 <?php endif; ?>
-            </h5>
-            <?php
-            if($event['type'] === 'nerdbar') {
-                echo '<small>Alle zwei Wochen</small>';
-            }
-            fsr_updates_log('CALENDAR: Rendering event: ' . print_r($event, true));
-            ?>
-            <div class="fsr-event-date">
-                <?php echo esc_html(
-                    date_i18n(
-                        'd.m.Y H:i',
-                        $event['timestamp']
-                    )
-                ); ?>
-                Uhr
-            </div>
-            <?php if($event['location']): ?>
-            <div>
-                📍
-                <?php echo esc_html($event['location']); ?>
-            </div>
-            <?php endif; ?>
-            <p>
-                <?php if($event['description']): ?>
-                    <?php echo esc_html(
-                        wp_trim_words(
-                            $event['description'],
-                            20
-                        )
-                    ); ?>
+                <div class="fsr-event-date">
+                    <?php echo esc_html(wp_date('d.m.Y H:i', (int) $event['timestamp'], wp_timezone())); ?> Uhr
+                </div>
+                <?php if (!empty($event['location'])) : ?>
+                    <div>📍 <?php echo esc_html($event['location']); ?></div>
                 <?php endif; ?>
-            </p>
-        </article>
-    <?php endforeach; ?>
+                <?php if (!empty($event['description'])) : ?>
+                    <p><?php echo esc_html(wp_trim_words($event['description'], 20)); ?></p>
+                <?php endif; ?>
+            </article>
+        <?php endforeach; ?>
     </div>
     <?php
-    return ob_get_clean();
+    return (string) ob_get_clean();
 }
