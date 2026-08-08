@@ -16,6 +16,7 @@ add_action('admin_init', 'fsr_etit_dokuwiki_handle_cache_clear');
 add_filter('posts_pre_query', 'fsr_etit_dokuwiki_create_virtual_post', 10, 2);
 add_action('pre_get_posts', 'fsr_etit_dokuwiki_force_virtual_page_query');
 add_filter('pre_get_shortlink', 'fsr_etit_dokuwiki_disable_shortlink', 10, 4);
+add_filter('redirect_canonical', 'fsr_etit_dokuwiki_disable_canonical_redirect', 10, 2);
 
 function fsr_etit_dokuwiki_defaults(): array {
     return [
@@ -132,6 +133,28 @@ function fsr_etit_dokuwiki_is_request(): bool {
     return 1 === (int) get_query_var('dw_virtual');
 }
 
+/**
+ * Builds the public WordPress URL for a DokuWiki page while preserving
+ * DokuWiki namespace separators. The previous working bridge used
+ * /wiki/protokolle:sitzungsprotokolle instead of converting ':' to '/'.
+ */
+function fsr_etit_dokuwiki_page_url($page): string {
+    $page = fsr_etit_dokuwiki_normalize_page_id($page);
+    if ($page === '') {
+        return home_url('/wiki/');
+    }
+
+    return home_url('/wiki/' . ltrim($page, '/'));
+}
+
+/**
+ * Virtual DokuWiki pages do not have a real WordPress post permalink.
+ * Prevent redirect_canonical() from guessing a different destination.
+ */
+function fsr_etit_dokuwiki_disable_canonical_redirect($redirect_url, $requested_url) {
+    return fsr_etit_dokuwiki_is_request() ? false : $redirect_url;
+}
+
 function fsr_etit_dokuwiki_create_virtual_post($posts, $query) {
     if (is_admin() || !$query->is_main_query() || !fsr_etit_dokuwiki_is_request()) {
         return null;
@@ -223,7 +246,7 @@ function fsr_etit_dokuwiki_fetch($page) {
     $page = fsr_etit_dokuwiki_normalize_page_id($page) ?: $settings['start_page'];
     $cache_version = absint(get_option(FSR_ETIT_OPTION_DOKUWIKI_CACHE_VERSION, 1));
     $cache_key = 'fsr_etit_dokuwiki_' . md5(
-        $cache_version . '|' . $settings['base_url'] . '|' . $settings['cache_time'] . '|' . $page
+        'routing-v2|' . $cache_version . '|' . $settings['base_url'] . '|' . $settings['cache_time'] . '|' . $page
     );
 
     if ($settings['cache_time'] > 0) {
@@ -301,7 +324,7 @@ function fsr_etit_dokuwiki_search($search_term): array {
     $settings = fsr_etit_dokuwiki_get_settings();
     $cache_version = absint(get_option(FSR_ETIT_OPTION_DOKUWIKI_CACHE_VERSION, 1));
     $cache_key = 'fsr_etit_dokuwiki_search_' . md5(
-        $cache_version . '|' . $settings['base_url'] . '|' . fsr_etit_lowercase($search_term)
+        'routing-v2|' . $cache_version . '|' . $settings['base_url'] . '|' . fsr_etit_lowercase($search_term)
     );
     $items = get_transient($cache_key);
 
@@ -411,7 +434,7 @@ function fsr_etit_dokuwiki_parse_search_results(string $html): array {
         $items[] = [
             'title'   => sanitize_text_field($title),
             'excerpt' => sanitize_textarea_field((string) $excerpt),
-            'url'     => home_url('/wiki/' . str_replace(':', '/', $page)),
+            'url'     => fsr_etit_dokuwiki_page_url($page),
             'date'    => $time ? sanitize_text_field($time->getAttribute('datetime')) : '',
         ];
     }
@@ -492,28 +515,46 @@ function fsr_etit_dokuwiki_transform(string $html) {
             continue;
         }
 
+        $clean_href = strtok($href, '?');
+        $clean_href = is_string($clean_href) ? $clean_href : $href;
+
+        // Classic DokuWiki links such as /doku.php?id=protokolle:...
         $query = wp_parse_url($href, PHP_URL_QUERY);
         if (str_contains($href, 'doku.php') && is_string($query)) {
             parse_str($query, $params);
             $page = fsr_etit_dokuwiki_normalize_page_id($params['id'] ?? '');
             if ($page !== '') {
-                $link->setAttribute('href', home_url('/wiki/' . str_replace(':', '/', $page)));
+                $link->setAttribute('href', fsr_etit_dokuwiki_page_url($page));
                 fsr_etit_dokuwiki_maybe_mark_private_link($link, $page);
             }
             continue;
         }
 
+        // Links already routed through the WordPress wiki bridge.
         if (str_starts_with($href, '/wiki/')) {
-            $page = fsr_etit_dokuwiki_normalize_page_id(substr(strtok($href, '?'), strlen('/wiki/')));
+            $page = fsr_etit_dokuwiki_normalize_page_id(substr($clean_href, strlen('/wiki/')));
             fsr_etit_dokuwiki_maybe_mark_private_link($link, $page);
             continue;
         }
 
-        $scheme = wp_parse_url($href, PHP_URL_SCHEME);
-        if ($scheme === null && !str_starts_with($href, '/')) {
-            $page = fsr_etit_dokuwiki_normalize_page_id(strtok($href, '?'));
+        /*
+         * Restore the routing behavior of the previously working bridge:
+         * - page                  -> /wiki/page
+         * - protokolle:page       -> /wiki/protokolle:page
+         * - /protokolle:page      -> /wiki/protokolle:page
+         *
+         * In particular, exported DokuWiki protocol overviews contain
+         * root-relative namespace links (/protokolle:...). The refactored
+         * connector skipped those because they start with '/'.
+         */
+        $is_http_url = (bool) preg_match('#^https?://#i', $href);
+        $is_protocol_relative = str_starts_with($href, '//');
+        $looks_like_wiki_page = !str_contains($href, '/') || str_contains($href, ':');
+
+        if (!$is_http_url && !$is_protocol_relative && $looks_like_wiki_page) {
+            $page = fsr_etit_dokuwiki_normalize_page_id($clean_href);
             if ($page !== '') {
-                $link->setAttribute('href', home_url('/wiki/' . str_replace(':', '/', $page)));
+                $link->setAttribute('href', fsr_etit_dokuwiki_page_url($page));
                 fsr_etit_dokuwiki_maybe_mark_private_link($link, $page);
             }
         }
