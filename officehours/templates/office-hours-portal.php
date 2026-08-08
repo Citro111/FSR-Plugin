@@ -35,6 +35,7 @@ function fsr_etit_office_hours_portal_shortcode($atts): string {
         1 => 'Montag', 2 => 'Dienstag', 3 => 'Mittwoch', 4 => 'Donnerstag',
         5 => 'Freitag', 6 => 'Samstag', 7 => 'Sonntag',
     ];
+    $portal_return_path = fsr_etit_office_hours_current_request_path();
 
     ob_start();
     ?>
@@ -70,19 +71,12 @@ function fsr_etit_office_hours_portal_shortcode($atts): string {
 
         <details style="margin-bottom:16px;padding:12px;border:1px solid #ddd;background:#fff;">
             <summary><strong>Neue Sprechstunde anlegen</strong></summary>
-            <form method="post" style="margin-top:16px;">
+            <form method="post" action="<?php echo esc_url($portal_return_path); ?>" style="margin-top:16px;">
                 <?php wp_nonce_field('fsr_oh_create_rule_submit', '_fsr_oh_create_nonce'); ?>
+                <input type="hidden" name="_fsr_oh_return_path" value="<?php echo esc_attr($portal_return_path); ?>">
                 <input type="hidden" name="fsr_oh_create_rule_submit" value="1">
                 <input type="hidden" name="member" value="<?php echo esc_attr($selected_member_id); ?>">
                 <p><label><strong>Titel</strong><br><input type="text" name="title" class="regular-text" value="Sprechstunde" required></label></p>
-                <p>
-                    <label><strong>Wiederholung</strong><br>
-                        <select name="recurrence">
-                            <option value="weekly">Wöchentlich</option>
-                            <option value="monthly_nth">Monatlich</option>
-                        </select>
-                    </label>
-                </p>
                 <p>
                     <label><strong>Wochentag</strong><br>
                         <select name="weekday">
@@ -92,7 +86,6 @@ function fsr_etit_office_hours_portal_shortcode($atts): string {
                         </select>
                     </label>
                     <label>Alle <input type="number" name="week_interval" min="1" max="8" value="1" style="width:70px;"> Wochen</label>
-                    <label><input type="number" name="nth_week" min="1" max="4" value="1" style="width:70px;">. Wochentag im Monat</label>
                 </p>
                 <p><label><strong>Erster Termin</strong><br><input type="date" name="start_date" value="<?php echo esc_attr(wp_date('Y-m-d', time(), wp_timezone())); ?>" required></label></p>
                 <p><label><strong>Zeit</strong><br><input type="time" name="start_time" value="10:00" required> bis <input type="time" name="end_time" value="12:00" required></label></p>
@@ -104,8 +97,9 @@ function fsr_etit_office_hours_portal_shortcode($atts): string {
 
         <details style="margin-bottom:16px;padding:12px;border:1px solid #ddd;background:#fff;">
             <summary><strong>Einer vorhandenen Sprechstunde beitreten</strong></summary>
-            <form method="post" style="margin-top:16px;">
+            <form method="post" action="<?php echo esc_url($portal_return_path); ?>" style="margin-top:16px;">
                 <?php wp_nonce_field('fsr_oh_join_submit', '_fsr_oh_join_nonce'); ?>
+                <input type="hidden" name="_fsr_oh_return_path" value="<?php echo esc_attr($portal_return_path); ?>">
                 <input type="hidden" name="fsr_oh_join_submit" value="1">
                 <input type="hidden" name="member" value="<?php echo esc_attr($selected_member_id); ?>">
                 <select name="rule_id" required>
@@ -125,20 +119,15 @@ function fsr_etit_office_hours_portal_shortcode($atts): string {
             <?php foreach ($selected_rules as $rule) : ?>
                 <details style="margin-bottom:12px;padding:12px;border:1px solid #ddd;background:#fff;">
                     <summary><strong><?php echo esc_html($rule['title']); ?></strong> · <?php echo esc_html(fsr_etit_office_hours_describe_rule($rule)); ?></summary>
-                    <form method="post" style="margin-top:16px;">
+                    <form method="post" action="<?php echo esc_url($portal_return_path); ?>" style="margin-top:16px;">
                         <?php wp_nonce_field('fsr_oh_edit_rule_submit', '_fsr_oh_edit_nonce'); ?>
+                        <input type="hidden" name="_fsr_oh_return_path" value="<?php echo esc_attr($portal_return_path); ?>">
                         <input type="hidden" name="fsr_oh_edit_rule_submit" value="1">
                         <input type="hidden" name="member" value="<?php echo esc_attr($selected_member_id); ?>">
                         <input type="hidden" name="rule_id" value="<?php echo esc_attr($rule['id']); ?>">
                         <p><label>Titel<br><input type="text" name="title" class="regular-text" value="<?php echo esc_attr($rule['title']); ?>" required></label></p>
                         <p><label>Ort<br><input type="text" name="location" class="regular-text" value="<?php echo esc_attr($rule['location']); ?>"></label></p>
                         <p>
-                            <label>Wiederholung<br>
-                                <select name="recurrence">
-                                    <option value="weekly" <?php selected($rule['recurrence'], 'weekly'); ?>>Wöchentlich</option>
-                                    <option value="monthly_nth" <?php selected($rule['recurrence'], 'monthly_nth'); ?>>Monatlich</option>
-                                </select>
-                            </label>
                             <label>Wochentag<br>
                                 <select name="weekday">
                                     <?php foreach ($weekdays as $number => $label) : ?>
@@ -149,7 +138,6 @@ function fsr_etit_office_hours_portal_shortcode($atts): string {
                         </p>
                         <p>
                             <label>Wochenintervall <input type="number" name="week_interval" min="1" max="8" value="<?php echo esc_attr($rule['week_interval']); ?>"></label>
-                            <label>Woche im Monat <input type="number" name="nth_week" min="1" max="4" value="<?php echo esc_attr($rule['nth_week']); ?>"></label>
                         </p>
                         <p><label>Erster Termin<br><input type="date" name="start_date" value="<?php echo esc_attr($rule['start_date']); ?>" required></label></p>
                         <p><label>Zeit<br><input type="time" name="start_time" value="<?php echo esc_attr($rule['start_time']); ?>" required> bis <input type="time" name="end_time" value="<?php echo esc_attr($rule['end_time']); ?>" required></label></p>
@@ -157,13 +145,26 @@ function fsr_etit_office_hours_portal_shortcode($atts): string {
                         <p><strong>Teilnehmende:</strong> <?php echo esc_html(implode(', ', fsr_etit_office_hours_get_rule_members($rule))); ?></p>
                         <button type="submit" class="button button-primary">Änderungen speichern</button>
                     </form>
-                    <form method="post" style="margin-top:12px;">
-                        <?php wp_nonce_field('fsr_oh_delete_rule_submit', '_fsr_oh_delete_nonce'); ?>
-                        <input type="hidden" name="fsr_oh_delete_rule_submit" value="1">
-                        <input type="hidden" name="member" value="<?php echo esc_attr($selected_member_id); ?>">
-                        <input type="hidden" name="rule_id" value="<?php echo esc_attr($rule['id']); ?>">
-                        <button type="submit" class="button button-link-delete" onclick="return confirm('Diese Sprechstunde wirklich löschen?');">Sprechstunde löschen</button>
-                    </form>
+                    <div class="fsr-oh-rule-actions" style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                        <form method="post" action="<?php echo esc_url($portal_return_path); ?>" style="margin:0;">
+                            <?php wp_nonce_field('fsr_oh_delete_rule_submit', '_fsr_oh_delete_nonce'); ?>
+                            <input type="hidden" name="_fsr_oh_return_path" value="<?php echo esc_attr($portal_return_path); ?>">
+                            <input type="hidden" name="fsr_oh_delete_rule_submit" value="1">
+                            <input type="hidden" name="member" value="<?php echo esc_attr($selected_member_id); ?>">
+                            <input type="hidden" name="rule_id" value="<?php echo esc_attr($rule['id']); ?>">
+                            <button type="submit" class="button button-link-delete" onclick="return confirm('Diese Sprechstunde wirklich löschen?');">Sprechstunde löschen</button>
+                        </form>
+                        <?php if (count(fsr_etit_office_hours_normalize_member_ids($rule['member_ids'] ?? [])) > 1) : ?>
+                            <form method="post" action="<?php echo esc_url($portal_return_path); ?>" style="margin:0;">
+                                <?php wp_nonce_field('fsr_oh_leave_rule_submit', '_fsr_oh_leave_nonce'); ?>
+                                <input type="hidden" name="_fsr_oh_return_path" value="<?php echo esc_attr($portal_return_path); ?>">
+                                <input type="hidden" name="fsr_oh_leave_rule_submit" value="1">
+                                <input type="hidden" name="member" value="<?php echo esc_attr($selected_member_id); ?>">
+                                <input type="hidden" name="rule_id" value="<?php echo esc_attr($rule['id']); ?>">
+                                <button type="submit" class="button" onclick="return confirm('Diese Sprechstunde wirklich verlassen?');">Sprechstunde verlassen</button>
+                            </form>
+                        <?php endif; ?>
+                    </div>
                 </details>
             <?php endforeach; ?>
         <?php endif; ?>
@@ -190,8 +191,9 @@ function fsr_etit_office_hours_portal_shortcode($atts): string {
                 <div style="margin-bottom:12px;padding:12px;border:1px solid #ddd;background:#fff;">
                     <strong><?php echo esc_html(wp_date('d.m.Y', $date->getTimestamp(), wp_timezone()) . ' · ' . $occurrence['title']); ?></strong><br>
                     <?php echo esc_html($occurrence['start_time'] . '–' . $occurrence['end_time'] . ' · ' . $occurrence['location']); ?>
-                    <form method="post" style="margin-top:10px;">
+                    <form method="post" action="<?php echo esc_url($portal_return_path); ?>" style="margin-top:10px;">
                         <?php wp_nonce_field('fsr_oh_cancellation_submit', '_fsr_oh_cancel_nonce'); ?>
+                        <input type="hidden" name="_fsr_oh_return_path" value="<?php echo esc_attr($portal_return_path); ?>">
                         <input type="hidden" name="fsr_oh_cancellation_submit" value="1">
                         <input type="hidden" name="member" value="<?php echo esc_attr($selected_member_id); ?>">
                         <input type="hidden" name="rule_id" value="<?php echo esc_attr($occurrence['rule_id']); ?>">

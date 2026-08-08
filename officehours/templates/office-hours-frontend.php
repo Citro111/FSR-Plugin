@@ -142,14 +142,23 @@ function fsr_etit_office_hours_shortcode($atts): string {
                             <p><strong>Mitglieder:</strong></p>
                             <ul>
                                 <?php foreach ($members as $member) :
-                                    $details = array_filter([
-                                        trim($member['first_name'] . ' ' . $member['last_name']),
-                                        $member['email'],
-                                        $member['study'],
-                                        implode(', ', $member['roles']),
-                                    ]);
+                                    $name = trim($member['first_name'] . ' ' . $member['last_name']);
+                                    $roles = implode(', ', $member['roles']);
+                                    $parts = [];
+                                    if ($name !== '') {
+                                        $parts[] = esc_html($name);
+                                    }
+                                    if ($member['email'] !== '') {
+                                        $parts[] = esc_html($member['email']);
+                                    }
+                                    if ($member['study'] !== '') {
+                                        $parts[] = '<strong class="fsr-oh-study">' . esc_html($member['study']) . '</strong>';
+                                    }
+                                    if ($roles !== '') {
+                                        $parts[] = esc_html($roles);
+                                    }
                                     ?>
-                                    <li><?php echo esc_html(implode(' – ', $details)); ?></li>
+                                    <li><?php echo wp_kses_post(implode(' – ', $parts)); ?></li>
                                 <?php endforeach; ?>
                             </ul>
                             <?php if (!empty($item['location'])) : ?><p><strong>Raum:</strong> <?php echo esc_html($item['location']); ?></p><?php endif; ?>

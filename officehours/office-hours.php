@@ -495,6 +495,7 @@ function fsr_etit_office_hours_is_portal_submission(): bool {
         'fsr_oh_cancellation_submit',
         'fsr_oh_create_rule_submit',
         'fsr_oh_delete_rule_submit',
+        'fsr_oh_leave_rule_submit',
         'fsr_oh_edit_rule_submit',
     ] as $action) {
         if (isset($_POST[$action])) {
@@ -502,6 +503,31 @@ function fsr_etit_office_hours_is_portal_submission(): bool {
         }
     }
     return false;
+}
+
+/**
+ * Returns the current portal request URI as a local redirect target.
+ * Keeping this relative avoids losing the portal page when no HTTP referrer is
+ * available (for example because of browser privacy settings).
+ */
+function fsr_etit_office_hours_current_request_path(): string {
+    $request_uri = isset($_SERVER['REQUEST_URI'])
+        ? wp_sanitize_redirect(fsr_etit_scalar_string(wp_unslash($_SERVER['REQUEST_URI'])))
+        : '';
+
+    if ($request_uri === '' || $request_uri[0] !== '/' || str_starts_with($request_uri, '//')) {
+        return '/';
+    }
+
+    return $request_uri;
+}
+
+function fsr_etit_office_hours_sanitize_return_path($value): string {
+    $path = wp_sanitize_redirect(fsr_etit_scalar_string($value));
+    if ($path === '' || $path[0] !== '/' || str_starts_with($path, '//')) {
+        return '';
+    }
+    return $path;
 }
 
 /**
@@ -523,18 +549,26 @@ function fsr_etit_office_hours_process_portal_request(): void {
         MINUTE_IN_SECONDS
     );
 
-    $redirect = wp_get_referer();
-    $redirect = $redirect ? $redirect : home_url('/');
+    $redirect = isset($_POST['_fsr_oh_return_path'])
+        ? fsr_etit_office_hours_sanitize_return_path(wp_unslash($_POST['_fsr_oh_return_path']))
+        : '';
+    if ($redirect === '') {
+        $referer = wp_get_referer();
+        $redirect = $referer ? $referer : fsr_etit_office_hours_current_request_path();
+    }
+
     $member_id = isset($_POST['member'])
         ? absint(fsr_etit_scalar_string(wp_unslash($_POST['member'])))
         : 0;
     if ($member_id > 0) {
+        $redirect = remove_query_arg('member', $redirect);
         $redirect = add_query_arg('member', $member_id, $redirect);
     }
 
-    if (!wp_safe_redirect($redirect, 303, 'FSR ET/IT Website Tools')) {
-        wp_safe_redirect(home_url('/'), 303, 'FSR ET/IT Website Tools');
-    }
+    // The fallback is the current portal request itself, never the homepage.
+    $fallback = fsr_etit_office_hours_current_request_path();
+    $redirect = wp_validate_redirect($redirect, $fallback);
+    wp_safe_redirect($redirect, 303, 'FSR ET/IT Website Tools');
     exit;
 }
 
@@ -635,7 +669,7 @@ function fsr_etit_office_hours_handle_portal_actions(): array {
             'id'            => fsr_etit_office_hours_new_rule_id(),
             'type'          => $post['type'] ?? 'office_hour',
             'title'         => $post['title'] ?? 'Sprechstunde',
-            'recurrence'    => $post['recurrence'] ?? 'weekly',
+            'recurrence'    => 'weekly',
             'weekday'       => $post['weekday'] ?? 3,
             'nth_week'      => $post['nth_week'] ?? 1,
             'week_interval' => $post['week_interval'] ?? 1,
@@ -675,6 +709,43 @@ function fsr_etit_office_hours_handle_portal_actions(): array {
         return [true, 'Sprechstunde wurde gelöscht.'];
     }
 
+    if (isset($post['fsr_oh_leave_rule_submit'])) {
+        if (!wp_verify_nonce(sanitize_text_field(fsr_etit_scalar_string($post['_fsr_oh_leave_nonce'] ?? '')), 'fsr_oh_leave_rule_submit')) {
+            return [false, 'Ungültige Anfrage.'];
+        }
+        $member_id = absint(fsr_etit_scalar_string($post['member'] ?? 0));
+        $rule_id = sanitize_key(fsr_etit_scalar_string($post['rule_id'] ?? ''));
+        $index = fsr_etit_office_hours_find_rule_index($rules, $rule_id);
+        if ($index === null) {
+            return [false, 'Sprechstunde wurde nicht gefunden.'];
+        }
+
+        $member_ids = fsr_etit_office_hours_normalize_member_ids($rules[$index]['member_ids'] ?? []);
+        if (!in_array($member_id, $member_ids, true)) {
+            return [false, 'Das Mitglied nimmt nicht an dieser Sprechstunde teil.'];
+        }
+        if (count($member_ids) <= 1) {
+            return [false, 'Die Sprechstunde hat keine weiteren Teilnehmenden und kann daher nur gelöscht werden.'];
+        }
+
+        $rules[$index]['member_ids'] = array_values(array_filter(
+            $member_ids,
+            static fn(int $id): bool => $id !== $member_id
+        ));
+        $settings['rules'] = array_values($rules);
+        $settings['cancellations'] = array_values(array_filter(
+            $settings['cancellations'],
+            static fn($entry): bool => !(
+                ($entry['rule_id'] ?? '') === $rule_id &&
+                (int) ($entry['member_id'] ?? 0) === $member_id
+            )
+        ));
+        if (!fsr_etit_office_hours_save_settings($settings)) {
+            return [false, 'Die Sprechstunde konnte nicht verlassen werden.'];
+        }
+        return [true, 'Sprechstunde wurde verlassen.'];
+    }
+
     if (isset($post['fsr_oh_edit_rule_submit'])) {
         if (!wp_verify_nonce(sanitize_text_field(fsr_etit_scalar_string($post['_fsr_oh_edit_nonce'] ?? '')), 'fsr_oh_edit_rule_submit')) {
             return [false, 'Ungültige Anfrage.'];
@@ -693,7 +764,7 @@ function fsr_etit_office_hours_handle_portal_actions(): array {
             'title'         => $post['title'] ?? $rules[$index]['title'],
             'location'      => $post['location'] ?? $rules[$index]['location'],
             'type'          => $post['type'] ?? $rules[$index]['type'],
-            'recurrence'    => $post['recurrence'] ?? $rules[$index]['recurrence'],
+            'recurrence'    => 'weekly',
             'weekday'       => $post['weekday'] ?? $rules[$index]['weekday'],
             'nth_week'      => $post['nth_week'] ?? $rules[$index]['nth_week'],
             'week_interval' => $post['week_interval'] ?? $rules[$index]['week_interval'],
