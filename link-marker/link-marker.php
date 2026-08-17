@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('FSR_ETIT_LINK_MARKER_VERSION', '1.1.0');
+define('FSR_ETIT_LINK_MARKER_VERSION', '1.2.0');
 define(
     'FSR_ETIT_LINK_MARKER_DIR',
     plugin_dir_path(__FILE__)
@@ -273,65 +273,19 @@ function fsr_etit_link_marker_classify_url(string $url): array {
 
     /*
      * url_to_postid() does not cover every valid WordPress URL
-     * (archives, taxonomy pages, custom routes, etc.). For unresolved internal
-     * URLs, use a short server-side request and cache the result.
+     * (archives, taxonomy pages, custom routes, etc.). Do not perform a
+     * server-side HTTP request back into the same WordPress installation:
+     * that can deadlock or time out in Local and on some hosting setups.
+     *
+     * The frontend and the admin report can verify these unresolved internal
+     * URLs from the browser instead, where the site is already reachable.
      */
-    $cache_key = 'fsr_lm_' . md5($url . '|' . implode('|', fsr_etit_link_marker_get_old_urls()));
-    $cached = get_transient($cache_key);
+    return [
+        'status' => 'unknown',
+        'url'    => $url,
+        'reason' => 'unresolved-internal',
+    ];
 
-    if (is_array($cached) && isset($cached['status'])) {
-        return $cached;
-    }
-
-    // The host was validated above as this WordPress site's own host.
-    // wp_remote_get() is intentional here: wp_safe_remote_get() rejects local/private
-    // development hosts, which made 404 detection fail in environments such as Local.
-    $response = wp_remote_get(
-        $url,
-        [
-            'timeout'             => 4,
-            'redirection'         => 3,
-            'limit_response_size' => 16 * 1024,
-            'headers'             => [
-                'Accept' => 'text/html,application/xhtml+xml;q=0.9,*/*;q=0.1',
-            ],
-            'user-agent'          => 'FSR-ETIT-Link-Marker/' . FSR_ETIT_LINK_MARKER_VERSION,
-        ]
-    );
-
-    if (is_wp_error($response)) {
-        // Network errors are not automatically treated as 404s.
-        $result = [
-            'status' => 'unknown',
-            'url'    => $url,
-        ];
-    } else {
-        $code = (int) wp_remote_retrieve_response_code($response);
-
-        if ($code === 404) {
-            $result = [
-                'status' => 'missing',
-                'url'    => $url,
-                'http'   => 404,
-            ];
-        } elseif ($code >= 200 && $code < 400) {
-            $result = [
-                'status' => 'ok',
-                'url'    => $url,
-                'http'   => $code,
-            ];
-        } else {
-            $result = [
-                'status' => 'unknown',
-                'url'    => $url,
-                'http'   => $code,
-            ];
-        }
-    }
-
-    set_transient($cache_key, $result, HOUR_IN_SECONDS);
-
-    return $result;
 }
 
 /**

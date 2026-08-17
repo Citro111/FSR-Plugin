@@ -3,7 +3,7 @@
  * Plugin Name:       FSR ET/IT Website Tools
  * Plugin URI:        https://github.com/Citro111/FSR-Plugin
  * Description:       Website-Funktionen für DokuWiki, Mitglieder, Sprechstunden, Kalender und Updates.
- * Version:           5.0.1
+ * Version:           5.0.2
  * Requires at least: 6.4
  * Requires PHP:      8.0
  * Author:            Enric, FSR ET/IT
@@ -18,7 +18,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('FSR_ETIT_VERSION', '5.0.1');
+define('FSR_ETIT_VERSION', '5.0.2');
 define('FSR_ETIT_DIR', plugin_dir_path(__FILE__));
 define('FSR_ETIT_URL', plugin_dir_url(__FILE__));
 define('FSR_ETIT_FILE', __FILE__);

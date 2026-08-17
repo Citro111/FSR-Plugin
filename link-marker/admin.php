@@ -7,6 +7,8 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
+add_action('wp_ajax_fsr_etit_link_marker_save_browser_results', 'fsr_etit_link_marker_save_browser_results');
+
 /**
  * Normalizes one legacy base URL.
  * A bare host such as "fsr-etit.de" is accepted and stored as HTTPS URL.
@@ -200,7 +202,7 @@ function fsr_etit_link_marker_render_admin_page(): void {
         <hr>
 
         <h3>Link-Bericht</h3>
-        <p>Der Scan durchsucht die gespeicherten Inhalte aller veröffentlichten öffentlichen Beitragstypen. Gleiche Ziel-URLs werden nur einmal geprüft und anschließend allen Fundstellen zugeordnet.</p>
+        <p>Der Scan durchsucht die gespeicherten Inhalte aller veröffentlichten öffentlichen Beitragstypen. WordPress-Ziele werden direkt aus der Datenbank geprüft. Interne URLs, die WordPress nicht eindeutig auflösen kann, werden ohne blockierenden Server-Loopback gesammelt und können anschließend direkt im Browser geprüft werden.</p>
         <p class="description">Hinweis: Links, die ausschließlich zur Laufzeit durch ein Theme, JavaScript oder ein dynamisches Plugin erzeugt werden, können in diesem Inhalts-Scan fehlen.</p>
 
         <form method="post" style="margin:16px 0 20px;">
@@ -397,6 +399,7 @@ function fsr_etit_link_marker_scan_site(): array {
         'missing' => [],
         'empty' => [],
         'old' => [],
+        'unknown' => [],
     ];
     $classification_cache = [];
     $seen_hits = [];
@@ -451,6 +454,7 @@ function fsr_etit_link_marker_scan_site(): array {
                 'target_post_id' => $target_post_id,
                 'target_edit_url' => $target_post_id ? (get_edit_post_link($target_post_id, 'raw') ?: '') : '',
                 'http' => isset($status['http']) ? (int) $status['http'] : null,
+                'reason' => sanitize_key((string) ($status['reason'] ?? '')),
             ];
         }
     }
@@ -496,29 +500,237 @@ function fsr_etit_link_marker_render_report(array $report): void {
         'missing' => [],
         'empty' => [],
         'old' => [],
+        'unknown' => [],
     ]);
 
     $missing = is_array($groups['missing']) ? $groups['missing'] : [];
     $empty = is_array($groups['empty']) ? $groups['empty'] : [];
     $old = is_array($groups['old']) ? $groups['old'] : [];
+    $unknown = is_array($groups['unknown']) ? $groups['unknown'] : [];
     ?>
     <p>
         <strong>Letzter Scan:</strong> <?php echo esc_html((string) $report['generated_at']); ?> ·
         <?php echo esc_html(number_format_i18n(absint($report['pages_scanned'] ?? 0))); ?> Inhalte ·
         <?php echo esc_html(number_format_i18n(absint($report['links_found'] ?? 0))); ?> Links ·
-        <?php echo esc_html(number_format_i18n(absint($report['unique_targets_checked'] ?? 0))); ?> eindeutige Ziele geprüft
+        <?php echo esc_html(number_format_i18n(absint($report['unique_targets_checked'] ?? 0))); ?> eindeutige Ziele analysiert
     </p>
 
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;max-width:900px;margin:16px 0 24px;">
         <?php fsr_etit_link_marker_render_summary_card('404-Links', $missing); ?>
         <?php fsr_etit_link_marker_render_summary_card('Leere Zielseiten', $empty); ?>
         <?php fsr_etit_link_marker_render_summary_card('Alte Links', $old); ?>
+        <?php if (!empty($unknown)) { fsr_etit_link_marker_render_summary_card('Im Browser prüfen', $unknown); } ?>
     </div>
 
     <?php
     fsr_etit_link_marker_render_report_group('404 / fehlende Ziele', $missing, 'Keine 404-Links gefunden.');
     fsr_etit_link_marker_render_report_group('Links auf leere Seiten', $empty, 'Keine Links auf leere Seiten gefunden.');
     fsr_etit_link_marker_render_report_group('Links auf alte Website-URLs', $old, 'Keine alten Links gefunden.');
+
+    if (!empty($unknown)) {
+        fsr_etit_link_marker_render_browser_verifier($unknown);
+        fsr_etit_link_marker_render_report_group(
+            'Noch nicht serverseitig prüfbare interne Links',
+            $unknown,
+            'Keine ungeprüften internen Links vorhanden.'
+        );
+    }
+}
+
+
+
+/**
+ * Saves HTTP results gathered by the administrator's browser and merges them
+ * into the stored report. This avoids server-side loopback requests.
+ */
+function fsr_etit_link_marker_save_browser_results(): void {
+    if (!current_user_can('manage_options')) {
+        wp_send_json_error(['message' => 'Keine Berechtigung.'], 403);
+    }
+
+    check_ajax_referer('fsr_etit_link_marker_browser_verify', 'nonce');
+
+    $raw = isset($_POST['results'])
+        ? fsr_etit_scalar_string(wp_unslash($_POST['results']))
+        : '';
+    $decoded = json_decode($raw, true);
+
+    if (!is_array($decoded)) {
+        wp_send_json_error(['message' => 'Ungültige Prüfergebnisse.'], 400);
+    }
+
+    $verified = [];
+    foreach (array_slice($decoded, 0, 500) as $item) {
+        if (!is_array($item)) {
+            continue;
+        }
+
+        $url = esc_url_raw((string) ($item['url'] ?? ''), ['http', 'https']);
+        $http = absint($item['http'] ?? 0);
+        if ($url === '' || $http < 100 || $http > 599) {
+            continue;
+        }
+        $verified[fsr_etit_link_marker_strip_fragment($url)] = $http;
+    }
+
+    $report = get_option('fsr_etit_link_marker_report', []);
+    if (!is_array($report) || empty($report['groups']) || !is_array($report['groups'])) {
+        wp_send_json_error(['message' => 'Kein gespeicherter Bericht vorhanden.'], 409);
+    }
+
+    $groups = wp_parse_args($report['groups'], [
+        'missing' => [],
+        'empty' => [],
+        'old' => [],
+        'unknown' => [],
+    ]);
+
+    $remaining_unknown = [];
+    $known_missing_keys = [];
+    foreach ((array) $groups['missing'] as $item) {
+        $known_missing_keys[(int) ($item['source_id'] ?? 0) . '|' . (string) ($item['target_url'] ?? '') . '|' . (string) ($item['link_text'] ?? '')] = true;
+    }
+
+    foreach ((array) $groups['unknown'] as $item) {
+        $target = fsr_etit_link_marker_strip_fragment((string) ($item['target_url'] ?? ''));
+        $http = $verified[$target] ?? 0;
+
+        if ($http === 404) {
+            $item['http'] = 404;
+            $item['reason'] = 'browser-verified';
+            $key = (int) ($item['source_id'] ?? 0) . '|' . (string) ($item['target_url'] ?? '') . '|' . (string) ($item['link_text'] ?? '');
+            if (!isset($known_missing_keys[$key])) {
+                $groups['missing'][] = $item;
+                $known_missing_keys[$key] = true;
+            }
+            continue;
+        }
+
+        if ($http >= 200 && $http < 400) {
+            // A valid browser response needs no entry in the problem report.
+            continue;
+        }
+
+        if ($http > 0) {
+            $item['http'] = $http;
+            $item['reason'] = 'browser-http-' . $http;
+        }
+        $remaining_unknown[] = $item;
+    }
+
+    $groups['unknown'] = $remaining_unknown;
+    $report['groups'] = $groups;
+    $report['browser_verified_at'] = current_time('mysql');
+    update_option('fsr_etit_link_marker_report', $report, false);
+
+    wp_send_json_success([
+        'message' => 'Browser-Prüfung gespeichert.',
+        'remaining_unknown' => count($remaining_unknown),
+    ]);
+}
+
+function fsr_etit_link_marker_render_browser_verifier(array $unknown): void {
+    $urls = [];
+    foreach ($unknown as $item) {
+        $url = esc_url_raw((string) ($item['target_url'] ?? ''), ['http', 'https']);
+        if ($url !== '') {
+            $urls[$url] = true;
+        }
+    }
+
+    $urls = array_keys($urls);
+    if (empty($urls)) {
+        return;
+    }
+
+    $ajax_url = admin_url('admin-ajax.php');
+    $nonce = wp_create_nonce('fsr_etit_link_marker_browser_verify');
+    ?>
+    <div class="notice notice-info inline" style="margin:20px 0;padding:12px 16px;">
+        <p><strong><?php echo esc_html(number_format_i18n(count($urls))); ?> interne Ziele konnten ohne Loopback-HTTP nicht abschließend geprüft werden.</strong></p>
+        <p>Das ist besonders in Local-Entwicklungsumgebungen normal. Du kannst diese Ziele direkt aus deinem Browser prüfen; bestätigte 404s werden anschließend in die 404-Gruppe verschoben.</p>
+        <p>
+            <button type="button" class="button button-secondary" id="fsr-etit-browser-link-check">Ungeprüfte URLs im Browser prüfen</button>
+            <span id="fsr-etit-browser-link-check-status" style="margin-left:8px;"></span>
+        </p>
+    </div>
+    <script>
+    (() => {
+        const button = document.getElementById('fsr-etit-browser-link-check');
+        const status = document.getElementById('fsr-etit-browser-link-check-status');
+        if (!button || !status) return;
+
+        const urls = <?php echo wp_json_encode($urls); ?>;
+        const ajaxUrl = <?php echo wp_json_encode($ajax_url); ?>;
+        const nonce = <?php echo wp_json_encode($nonce); ?>;
+
+        const checkOne = async (url) => {
+            try {
+                let response = await fetch(url, {
+                    method: 'HEAD',
+                    credentials: 'same-origin',
+                    redirect: 'follow',
+                    cache: 'no-store'
+                });
+                if (response.status === 405 || response.status === 501) {
+                    response = await fetch(url, {
+                        method: 'GET',
+                        credentials: 'same-origin',
+                        redirect: 'follow',
+                        cache: 'no-store'
+                    });
+                }
+                return { url, http: response.status };
+            } catch (error) {
+                return { url, http: 0 };
+            }
+        };
+
+        const runPool = async (items, concurrency = 4) => {
+            const results = [];
+            let index = 0;
+            const worker = async () => {
+                while (index < items.length) {
+                    const current = items[index++];
+                    const result = await checkOne(current);
+                    results.push(result);
+                    status.textContent = `${results.length}/${items.length} geprüft …`;
+                }
+            };
+            await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, worker));
+            return results;
+        };
+
+        button.addEventListener('click', async () => {
+            button.disabled = true;
+            status.textContent = `0/${urls.length} geprüft …`;
+
+            const results = await runPool(urls);
+            const form = new FormData();
+            form.append('action', 'fsr_etit_link_marker_save_browser_results');
+            form.append('nonce', nonce);
+            form.append('results', JSON.stringify(results));
+
+            try {
+                const response = await fetch(ajaxUrl, {
+                    method: 'POST',
+                    credentials: 'same-origin',
+                    body: form
+                });
+                const data = await response.json();
+                if (!response.ok || !data || !data.success) {
+                    throw new Error('Speichern fehlgeschlagen');
+                }
+                status.textContent = 'Fertig – Bericht wird aktualisiert …';
+                window.location.reload();
+            } catch (error) {
+                status.textContent = 'Prüfung abgeschlossen, Ergebnisse konnten aber nicht gespeichert werden.';
+                button.disabled = false;
+            }
+        });
+    })();
+    </script>
+    <?php
 }
 
 function fsr_etit_link_marker_render_summary_card(string $title, array $items): void {

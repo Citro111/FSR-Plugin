@@ -52,6 +52,59 @@
         }
     };
 
+    const isCurrentSiteUrl = (url) => {
+        try {
+            const target = new URL(url);
+            return target.hostname.toLowerCase() === String(config.siteHost || '').toLowerCase();
+        } catch (error) {
+            return false;
+        }
+    };
+
+    const browserProbeCache = new Map();
+
+    const probeInternalUrlInBrowser = (url) => {
+        if (!isCurrentSiteUrl(url)) {
+            return Promise.resolve({ status: 'unknown', url });
+        }
+
+        if (browserProbeCache.has(url)) {
+            return browserProbeCache.get(url);
+        }
+
+        const probe = (async () => {
+            try {
+                let response = await fetch(url, {
+                    method: 'HEAD',
+                    credentials: 'same-origin',
+                    redirect: 'follow',
+                    cache: 'no-store'
+                });
+
+                // A few routes/servers do not support HEAD. Fall back to GET.
+                if (response.status === 405 || response.status === 501) {
+                    response = await fetch(url, {
+                        method: 'GET',
+                        credentials: 'same-origin',
+                        redirect: 'follow',
+                        cache: 'no-store'
+                    });
+                }
+
+                if (response.status === 404) {
+                    return { status: 'missing', url, http: 404 };
+                }
+
+                return { status: 'ok', url, http: response.status };
+            } catch (error) {
+                return { status: 'unknown', url };
+            }
+        })();
+
+        browserProbeCache.set(url, probe);
+        return probe;
+    };
+
     const isSkippable = (anchor, url) => {
         if (!anchor || !url) {
             return true;
@@ -165,9 +218,15 @@
                 const data = await requestBatch(batch);
                 const statuses = data && data.statuses ? data.statuses : {};
 
-                for (const item of batch) {
-                    markAnchor(item.anchor, statuses[item.url]);
-                }
+                await Promise.all(batch.map(async (item) => {
+                    let status = statuses[item.url];
+
+                    if (status && status.status === 'unknown' && isCurrentSiteUrl(item.url)) {
+                        status = await probeInternalUrlInBrowser(item.url);
+                    }
+
+                    markAnchor(item.anchor, status);
+                }));
             } catch (error) {
                 /*
                  * A failed diagnostic request must never interfere with normal

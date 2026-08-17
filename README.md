@@ -117,6 +117,14 @@ WordPress-Papierkorb verschoben, nicht dauerhaft gelöscht.
 - interne 404-Prüfung für Local-/private Entwicklungsumgebungen kompatibler gemacht
 - Link-Marker prüft nun auch Links mit `target="_blank"`
 
+## Änderungen in 5.0.2
+
+- Admin-Fehler bei den Mitgliedskarten durch den falschen Funktionsnamen `fsr_etit_members_render_admin_interface()` behoben
+- drei weitere inkonsistente interne Funktionsaufrufe in Sprechstunden- und Mitgliedersuche korrigiert
+- blockierende serverseitige Self-Requests des Link-Markers entfernt
+- nicht direkt auflösbare interne Links werden im Frontend vom Browser auf 404 geprüft
+- der Link-Bericht sammelt solche Ziele zunächst separat und kann sie per Browser-Prüfung nachträglich verifizieren und bestätigte 404s einsortieren
+
 ## Daten und Deinstallation
 
 Das Deaktivieren oder Entfernen des Plugins löscht keine Mitglieder,

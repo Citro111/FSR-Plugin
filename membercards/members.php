@@ -612,7 +612,7 @@ function fsr_membercards_search($search_term) {
         return '';
     }
     $virtual_posts = [];
-    $url_overview = fsr_get_shortcode_usage('fsr_members');
+    $url_overview = fsr_etit_get_shortcode_usage('fsr_members');
     foreach ($query->posts as $post) {
         $member = fsr_member_post_to_record($post);
         $searchable = implode(' ', [
@@ -628,7 +628,7 @@ function fsr_membercards_search($search_term) {
             continue;
         }
         $content = $member['first_name'] . ' ' . $member['last_name'] . ' ' . $member['amt'];
-        $virtual_posts[] = fsr_create_virtual_post(
+        $virtual_posts[] = fsr_etit_create_virtual_post(
             $title = fsr_member_post_title($member),
             $excerpt = $content,
             $content = $content,

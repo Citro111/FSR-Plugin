@@ -170,7 +170,7 @@ function fsr_etit_office_hours_save_settings(array $settings): bool {
 }
 
 function fsr_etit_office_hours_get_all_members(): array {
-    $data = fsr_etit_get_members_data('all');
+    $data = fsr_get_members_data('all');
     return is_array($data['members'] ?? null) ? $data['members'] : [];
 }
 

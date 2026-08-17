@@ -117,7 +117,7 @@ function fsr_etit_settings_page(): void {
             </form>
         <?php elseif ($active_tab === 'membercards') : ?>
             <div style="margin-top:20px;">
-                <?php fsr_etit_members_render_admin_interface(); ?>
+                <?php fsr_members_render_admin_interface(); ?>
             </div>
         <?php elseif ($active_tab === 'updates') : ?>
             <div style="margin-top:20px;">

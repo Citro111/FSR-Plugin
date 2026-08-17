@@ -44,4 +44,4 @@ Der Inhalts-Scan wertet gespeichertes `post_content` aus. Links, die ausschließ
 
 ## Entwicklungsumgebungen
 
-Unaufgelöste interne URLs werden erst nach einer exakten Host-Prüfung per `wp_remote_get()` geprüft. Dadurch funktioniert die 404-Erkennung auch auf Local-/localhost-artigen Entwicklungsseiten, die von `wp_safe_remote_get()` wegen privater IP-Adressen blockiert werden können.
+Unaufgelöste interne URLs werden nicht mehr per serverseitigem Loopback-Request geprüft. Solche Self-Requests können besonders in Local nach einigen Sekunden hängen. Im Frontend prüft stattdessen der Browser unresolved interne URLs direkt. Im Admin-Bericht landen sie zunächst unter „Noch nicht serverseitig prüfbare interne Links“ und können per Button im Browser geprüft werden; bestätigte 404s werden anschließend in die 404-Gruppe verschoben.
