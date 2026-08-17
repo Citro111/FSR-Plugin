@@ -1,55 +1,44 @@
+/*
+ * Membercards admin layout.
+ *
+ * Keep this intentionally close to WordPress core admin styling. The previous
+ * version used frontend theme variables (--theme-palette-color-*), which are
+ * not part of wp-admin and can resolve differently depending on the theme.
+ */
+
 .wrap:has(#fsr-sortable-members) {
     max-width: none;
 }
 
 .fsr-settings-card-wrapper {
     max-width: 100%;
-    color: var(--theme-palette-color-3);
 }
 
 .fsr-card-title {
     display: flex;
     align-items: center;
     gap: 10px;
-    color: var(--theme-palette-color-4);
     margin-bottom: 12px;
-}
-
-.fsr-card-title .dashicons {
-    color: var(--theme-palette-color-7);
 }
 
 .fsr-shortcode-info,
 .fsr-import-panel {
     margin: 18px 0;
-    padding: 18px;
-    background: var(--theme-palette-color-13);
-    border: 1px solid var(--theme-palette-color-5);
-    border-radius: 12px;
-    box-shadow: 0 10px 24px var(--theme-palette-color-11);
+    padding: 16px;
+    background: #fff;
+    border: 1px solid #c3c4c7;
 }
 
-.fsr-shortcode-info p,
-.fsr-import-panel p,
-.fsr-import-hint {
-    color: var(--theme-palette-color-3);
-}
-
-.fsr-shortcode-info code,
-.fsr-import-hint code {
-    color: var(--theme-palette-color-7);
-}
-
-.fsr-layout-settings-form {
+.fsr-layout-settings-form,
+.fsr-shortcode-usage {
     margin-top: 14px;
     padding-top: 12px;
-    border-top: 1px dashed var(--theme-palette-color-5);
+    border-top: 1px solid #dcdcde;
 }
 
 .fsr-layout-settings-form h4,
 .fsr-shortcode-usage h4 {
     margin: 0 0 10px;
-    color: var(--theme-palette-color-4);
 }
 
 .fsr-layout-grid {
@@ -62,12 +51,6 @@
 .fsr-layout-grid input {
     width: 100%;
     margin-top: 4px;
-}
-
-.fsr-shortcode-usage {
-    margin-top: 14px;
-    padding-top: 12px;
-    border-top: 1px dashed var(--theme-palette-color-5);
 }
 
 .fsr-shortcode-usage ul {
@@ -88,11 +71,7 @@
     width: 100%;
     min-height: 160px;
     resize: vertical;
-    background: var(--theme-palette-color-9);
-    color: var(--theme-palette-color-3);
-    border: 1px solid var(--theme-palette-color-5);
-    border-radius: 10px;
-    padding: 14px;
+    padding: 8px;
 }
 
 .fsr-import-tools {
@@ -105,7 +84,6 @@
 .fsr-import-file {
     display: grid;
     gap: 6px;
-    color: var(--theme-palette-color-3);
     font-weight: 600;
 }
 
@@ -114,7 +92,6 @@
     align-items: center;
     gap: 8px;
     font-weight: 600;
-    color: var(--theme-palette-color-3);
 }
 
 #fsr-import-status {
@@ -122,16 +99,12 @@
     font-weight: 600;
 }
 
-#fsr-import-status.is-loading {
-    color: var(--theme-palette-color-6);
-}
-
 #fsr-import-status.is-success {
-    color: #0f766e;
+    color: #008a20;
 }
 
 #fsr-import-status.is-error {
-    color: #b91c1c;
+    color: #d63638;
 }
 
 .fsr-admin-top-bar {
@@ -142,22 +115,27 @@
 }
 
 #fsr-save-indicator {
-    font-weight: 600;
     display: none;
-    background: var(--theme-palette-color-13);
-    color: var(--theme-palette-color-6);
-    padding: 6px 14px;
-    border-radius: 999px;
-    border: 1px solid var(--theme-palette-color-5);
+    padding: 4px 10px;
+    border: 1px solid #c3c4c7;
+    background: #f6f7f7;
     font-size: 13px;
+    font-weight: 600;
+}
+
+#fsr-save-indicator.is-success {
+    color: #008a20;
+}
+
+#fsr-save-indicator.is-error {
+    color: #d63638;
 }
 
 .fsr-filter-wrapper {
     margin: 15px 0 !important;
-    background: var(--theme-palette-color-10);
-    padding: 12px 15px;
-    border: 1px solid var(--theme-palette-color-5);
-    border-radius: 12px;
+    padding: 10px 12px;
+    background: #fff;
+    border: 1px solid #c3c4c7;
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -173,18 +151,15 @@
 }
 
 .fsr-filter-label {
-    font-weight: 700;
-    color: var(--theme-palette-color-4);
+    font-weight: 600;
 }
 
 #fsr-sortable-members .fsr-member-row {
-    background: var(--theme-palette-color-9) !important;
-    border: 1px solid var(--theme-palette-color-5) !important;
-    margin-bottom: 12px !important;
-    border-radius: 12px !important;
+    background: #fff !important;
+    border: 1px solid #c3c4c7 !important;
+    margin-bottom: 10px !important;
     overflow: hidden !important;
     display: block !important;
-    box-shadow: 0 12px 24px var(--theme-palette-color-11) !important;
 }
 
 #fsr-sortable-members .fsr-member-row.fsr-is-filter-hidden {
@@ -192,14 +167,14 @@
 }
 
 .fsr-row-header {
-    background: linear-gradient(180deg, var(--theme-palette-color-10), var(--theme-palette-color-13)) !important;
-    padding: 12px 15px !important;
+    background: #f6f7f7 !important;
+    padding: 10px 12px !important;
     border-bottom: 1px solid transparent;
     cursor: move;
 }
 
 .fsr-member-row.is-expanded .fsr-row-header {
-    border-bottom-color: var(--theme-palette-color-5) !important;
+    border-bottom-color: #c3c4c7 !important;
 }
 
 .fsr-toggle-trigger {
@@ -213,7 +188,6 @@
     display: inline-block;
     transition: transform 0.2s ease-in-out;
     font-size: 9px;
-    color: var(--theme-palette-color-3);
 }
 
 .fsr-member-row.is-expanded .fsr-arrow {
@@ -222,23 +196,21 @@
 
 .fsr-drag-handle {
     font-size: 15px;
-    color: var(--theme-palette-color-7);
+    color: #646970;
 }
 
 .member-display-name {
     font-size: 14px;
     font-weight: 600;
-    color: var(--theme-palette-color-4);
 }
 
 .badge-team-name {
-    font-size: 11px;
-    font-weight: 700;
-    background: var(--theme-palette-color-1);
-    color: var(--theme-palette-color-8);
-    padding: 4px 10px;
-    border-radius: 999px;
     margin-left: auto;
+    padding: 2px 8px;
+    border: 1px solid #c3c4c7;
+    background: #fff;
+    font-size: 11px;
+    font-weight: 600;
 }
 
 .fsr-grid-inputs {
@@ -246,12 +218,11 @@
     grid-template-columns: repeat(12, 1fr) !important;
     gap: 14px 12px !important;
     padding: 15px !important;
-    background: var(--theme-palette-color-9);
+    background: #fff;
 }
 
 .fsr-grid-inputs label {
     font-weight: 600;
-    color: var(--theme-palette-color-6);
     font-size: 12px;
     display: block;
     min-width: 0;
@@ -262,11 +233,6 @@
 .fsr-grid-inputs select {
     width: 100% !important;
     margin-top: 4px !important;
-    min-height: 36px;
-    background: var(--theme-palette-color-9);
-    color: var(--theme-palette-color-3);
-    border: 1px solid var(--theme-palette-color-5);
-    border-radius: 8px;
     box-sizing: border-box;
     max-width: 100%;
 }
@@ -278,16 +244,11 @@
     margin-top: 8px;
 }
 
-.fsr-amt-tag-btn {
-    border-color: var(--theme-palette-color-5) !important;
-    background: var(--theme-palette-color-13) !important;
-    color: var(--theme-palette-color-3) !important;
-}
-
+/* Keep normal WordPress button colors; only indicate an active tag. */
 .fsr-amt-tag-btn.is-selected {
-    background: var(--theme-palette-color-1) !important;
-    color: var(--theme-palette-color-8) !important;
-    border-color: var(--theme-palette-color-1) !important;
+    background: var(--wp-admin-theme-color, #2271b1) !important;
+    border-color: var(--wp-admin-theme-color, #2271b1) !important;
+    color: #fff !important;
 }
 
 .fsr-known-tags {
@@ -304,11 +265,9 @@
 .fsr-known-tag {
     display: inline-flex;
     align-items: center;
-    padding: 4px 10px;
-    border-radius: 999px;
-    border: 1px solid var(--theme-palette-color-5);
-    background: var(--theme-palette-color-9);
-    color: var(--theme-palette-color-3);
+    padding: 2px 8px;
+    border: 1px solid #c3c4c7;
+    background: #f6f7f7;
     font-size: 12px;
     font-weight: 600;
 }
@@ -318,16 +277,16 @@
 
 .fsr-row-footer-actions {
     padding: 0 15px 15px 15px;
-    background: var(--theme-palette-color-9);
+    background: #fff;
     display: flex;
     justify-content: flex-end;
 }
 
 .ui-state-highlight {
-    background: var(--theme-palette-color-1) !important;
-    border: 1px dashed var(--theme-palette-color-5) !important;
-    margin-bottom: 12px;
-    border-radius: 12px;
+    min-height: 46px;
+    margin-bottom: 10px;
+    border: 1px dashed #8c8f94 !important;
+    background: #f6f7f7 !important;
 }
 
 @media (max-width: 900px) {

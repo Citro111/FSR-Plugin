@@ -267,7 +267,7 @@ jQuery(document).ready(function($) {
 
     function triggerAutoSave() {
         reindexMemberRows();
-        $('#fsr-save-indicator').text('Speichert...').css({'color':'var(--theme-palette-color-6)', 'background':'var(--theme-palette-color-13)', 'border-color':'var(--theme-palette-color-5)'}).fadeIn();
+        $('#fsr-save-indicator').text('Speichert...').removeClass('is-success is-error').fadeIn();
         const formData = $('#fsr-sortable-members :input').serialize();
         const amtOrder = $('#fsr-sortable-amter').data('order') || [];
         $.ajax({
@@ -283,9 +283,9 @@ jQuery(document).ready(function($) {
                             $(this).attr('data-member-id', memberId);
                         });
                     }
-                    $('#fsr-save-indicator').text('✓ Gespeichert').css({'color':'var(--theme-palette-color-6)', 'background':'var(--theme-palette-color-13)', 'border-color':'var(--theme-palette-color-5)'}).delay(1500).fadeOut();
+                    $('#fsr-save-indicator').text('✓ Gespeichert').removeClass('is-error').addClass('is-success').delay(1500).fadeOut();
                 } else {
-                    $('#fsr-save-indicator').text('❌ Fehler').css({'color':'#dc2626', 'background':'#fef2f2', 'border-color':'#fecaca'}).fadeIn();
+                    $('#fsr-save-indicator').text('❌ Fehler').removeClass('is-success').addClass('is-error').fadeIn();
                 }
             }
         });

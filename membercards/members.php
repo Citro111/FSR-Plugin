@@ -20,10 +20,24 @@ function fsr_members_frontend_assets() {
 }
 
 function fsr_members_admin_assets($hook) {
-    if (strpos($hook, 'fsr-etit-settings') !== false) {
-        wp_enqueue_script('jquery-ui-sortable');
-        wp_enqueue_style('fsr-members-admin-css', plugin_dir_url(__FILE__) . 'assets/admin-style.css', [], '1.1.0');
+    $page = isset($_GET['page'])
+        ? sanitize_key(wp_unslash((string) $_GET['page']))
+        : '';
+
+    // Membercards assets are intentionally scoped to their own admin page.
+    // Loading them on every FSR ET/IT settings tab caused styling bleed into
+    // unrelated tools such as the link marker.
+    if ($page !== 'fsr-etit-settings-membercards') {
+        return;
     }
+
+    wp_enqueue_script('jquery-ui-sortable');
+    wp_enqueue_style(
+        'fsr-members-admin-css',
+        plugin_dir_url(__FILE__) . 'assets/admin-style.css',
+        [],
+        '1.2.0'
+    );
 }
 
 function fsr_register_member_post_type() {

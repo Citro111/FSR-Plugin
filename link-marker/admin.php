@@ -643,7 +643,7 @@ function fsr_etit_link_marker_render_browser_verifier(array $unknown): void {
         return;
     }
 
-    $ajax_url = admin_url('admin-ajax.php');
+    $ajax_url = admin_url('admin-ajax.php', 'relative');
     $nonce = wp_create_nonce('fsr_etit_link_marker_browser_verify');
     ?>
     <div class="notice notice-info inline" style="margin:20px 0;padding:12px 16px;">

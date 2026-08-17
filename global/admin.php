@@ -78,12 +78,15 @@ function fsr_etit_settings_page(): void {
     }
 
     $tab_links = [
-        'updates'     => admin_url('admin.php?page=fsr-etit-settings'),
-        'dokuwiki'    => admin_url('admin.php?page=fsr-etit-settings-dokuwiki'),
-        'membercards' => admin_url('admin.php?page=fsr-etit-settings-membercards'),
-        'shortcodes'  => admin_url('admin.php?page=fsr-etit-settings-shortcodes'),
-        'calendar'    => admin_url('admin.php?page=fsr-etit-settings-calendar'),
-        'links'       => admin_url('admin.php?page=fsr-etit-settings-links')
+        // Use relative admin URLs so Local/proxy setups keep the exact current
+        // host, port and scheme. Absolute admin_url() values can otherwise jump
+        // to a canonical URL whose authentication cookie does not match.
+        'updates'     => 'admin.php?page=fsr-etit-settings',
+        'dokuwiki'    => 'admin.php?page=fsr-etit-settings-dokuwiki',
+        'membercards' => 'admin.php?page=fsr-etit-settings-membercards',
+        'shortcodes'  => 'admin.php?page=fsr-etit-settings-shortcodes',
+        'calendar'    => 'admin.php?page=fsr-etit-settings-calendar',
+        'links'       => 'admin.php?page=fsr-etit-settings-links'
     ];
     ?>
     <div class="wrap">
