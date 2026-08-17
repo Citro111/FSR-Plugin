@@ -45,3 +45,11 @@ Der Inhalts-Scan wertet gespeichertes `post_content` aus. Links, die ausschließ
 ## Entwicklungsumgebungen
 
 Unaufgelöste interne URLs werden nicht mehr per serverseitigem Loopback-Request geprüft. Solche Self-Requests können besonders in Local nach einigen Sekunden hängen. Im Frontend prüft stattdessen der Browser unresolved interne URLs direkt. Im Admin-Bericht landen sie zunächst unter „Noch nicht serverseitig prüfbare interne Links“ und können per Button im Browser geprüft werden; bestätigte 404s werden anschließend in die 404-Gruppe verschoben.
+
+## Sicherheitsregel für Browser-Prüfungen (1.2.1)
+
+Der Link-Marker verändert niemals das `href` eines Links. Automatische Browser-Prüfungen
+werden nur noch für query-freie Frontend-URLs derselben Origin per `HEAD` ausgeführt.
+WordPress-Adminleiste, `wp-login.php`, `wp-admin`, REST-, Cron- und XML-RPC-URLs werden
+nicht geprüft. Redirects werden nicht verfolgt und es gibt keinen GET-Fallback. Damit können
+Aktionslinks (insbesondere der WordPress-Abmelde-Link) nicht versehentlich ausgeführt werden.

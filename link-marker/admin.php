@@ -664,22 +664,47 @@ function fsr_etit_link_marker_render_browser_verifier(array $unknown): void {
         const ajaxUrl = <?php echo wp_json_encode($ajax_url); ?>;
         const nonce = <?php echo wp_json_encode($nonce); ?>;
 
-        const checkOne = async (url) => {
+        const isSafeBrowserProbeUrl = (url) => {
             try {
-                let response = await fetch(url, {
+                const target = new URL(url, window.location.href);
+                if (target.origin !== window.location.origin || target.search !== '') {
+                    return false;
+                }
+
+                const path = target.pathname.toLowerCase();
+                return !(
+                    /\/wp-admin(?:\/|$)/.test(path)
+                    || /\/wp-login\.php$/.test(path)
+                    || /\/wp-json(?:\/|$)/.test(path)
+                    || /\/wp-cron\.php$/.test(path)
+                    || /\/xmlrpc\.php$/.test(path)
+                );
+            } catch (error) {
+                return false;
+            }
+        };
+
+        const checkOne = async (url) => {
+            if (!isSafeBrowserProbeUrl(url)) {
+                return { url, http: 0, skipped: true };
+            }
+
+            try {
+                const response = await fetch(url, {
                     method: 'HEAD',
                     credentials: 'same-origin',
-                    redirect: 'follow',
+                    redirect: 'manual',
                     cache: 'no-store'
                 });
+
                 if (response.status === 405 || response.status === 501) {
-                    response = await fetch(url, {
-                        method: 'GET',
-                        credentials: 'same-origin',
-                        redirect: 'follow',
-                        cache: 'no-store'
-                    });
+                    return { url, http: 0, skipped: true };
                 }
+
+                if (response.type === 'opaqueredirect' || response.status === 0) {
+                    return { url, http: 302 };
+                }
+
                 return { url, http: response.status };
             } catch (error) {
                 return { url, http: 0 };

@@ -63,9 +63,46 @@
 
     const browserProbeCache = new Map();
 
+    /*
+     * Browser probes must be side-effect free. In particular, never probe
+     * wp-login.php?action=logout&_wpnonce=... or other action URLs from the
+     * WordPress admin bar. Even a HEAD request reaches PHP and can execute
+     * those actions.
+     */
+    const isSafeBrowserProbeUrl = (url) => {
+        try {
+            const target = new URL(url, window.location.href);
+
+            // Only the exact origin currently displayed in the browser.
+            if (target.origin !== window.location.origin) {
+                return false;
+            }
+
+            // Query strings commonly carry actions/nonces. Do not execute them.
+            if (target.search !== '') {
+                return false;
+            }
+
+            const path = target.pathname.toLowerCase();
+            if (
+                /\/wp-admin(?:\/|$)/.test(path)
+                || /\/wp-login\.php$/.test(path)
+                || /\/wp-json(?:\/|$)/.test(path)
+                || /\/wp-cron\.php$/.test(path)
+                || /\/xmlrpc\.php$/.test(path)
+            ) {
+                return false;
+            }
+
+            return true;
+        } catch (error) {
+            return false;
+        }
+    };
+
     const probeInternalUrlInBrowser = (url) => {
-        if (!isCurrentSiteUrl(url)) {
-            return Promise.resolve({ status: 'unknown', url });
+        if (!isCurrentSiteUrl(url) || !isSafeBrowserProbeUrl(url)) {
+            return Promise.resolve({ status: 'unknown', url, reason: 'unsafe-to-probe' });
         }
 
         if (browserProbeCache.has(url)) {
@@ -74,25 +111,26 @@
 
         const probe = (async () => {
             try {
-                let response = await fetch(url, {
+                const response = await fetch(url, {
                     method: 'HEAD',
                     credentials: 'same-origin',
-                    redirect: 'follow',
+                    // Never follow a redirect into a login/action endpoint.
+                    redirect: 'manual',
                     cache: 'no-store'
                 });
 
-                // A few routes/servers do not support HEAD. Fall back to GET.
-                if (response.status === 405 || response.status === 501) {
-                    response = await fetch(url, {
-                        method: 'GET',
-                        credentials: 'same-origin',
-                        redirect: 'follow',
-                        cache: 'no-store'
-                    });
-                }
-
                 if (response.status === 404) {
                     return { status: 'missing', url, http: 404 };
+                }
+
+                // No GET fallback: GET may execute application actions.
+                if (response.status === 405 || response.status === 501) {
+                    return { status: 'unknown', url, http: response.status, reason: 'head-not-supported' };
+                }
+
+                // Manual redirects may be exposed as an opaque redirect (status 0).
+                if (response.type === 'opaqueredirect' || response.status === 0) {
+                    return { status: 'ok', url, reason: 'redirect' };
                 }
 
                 return { status: 'ok', url, http: response.status };
@@ -117,6 +155,8 @@
         if (
             anchor.hasAttribute('download')
             || anchor.matches('[contenteditable="true"]')
+            || anchor.closest('#wpadminbar')
+            || anchor.closest('[data-fsr-link-marker-ignore]')
         ) {
             return true;
         }

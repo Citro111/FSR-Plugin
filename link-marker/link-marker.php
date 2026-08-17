@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('FSR_ETIT_LINK_MARKER_VERSION', '1.2.0');
+define('FSR_ETIT_LINK_MARKER_VERSION', '1.2.1');
 define(
     'FSR_ETIT_LINK_MARKER_DIR',
     plugin_dir_path(__FILE__)
