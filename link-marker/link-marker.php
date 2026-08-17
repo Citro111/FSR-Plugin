@@ -26,7 +26,6 @@ define(
 );
 
 require_once FSR_ETIT_LINK_MARKER_DIR . 'admin.php';
-add_action('admin_menu', 'fsr_etit_link_marker_register_admin_menu');
 
 /**
  * Enqueue frontend assets.
