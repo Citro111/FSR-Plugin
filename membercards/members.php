@@ -401,9 +401,9 @@ function fsr_ajax_save_member_order_handler() {
                 array_map('sanitize_text_field', $_POST['amt_order'])
             )
         );
-        fsr_updates_log('AJAX - Amt Order: ' . print_r(get_option('fsr_membercards_amt_order'), true));
+        fsr_etit_log('AJAX - Amt Order: ' . print_r(get_option('fsr_membercards_amt_order'), true));
     }
-    fsr_updates_log('AJAX');
+    fsr_etit_log('AJAX');
 
     wp_send_json_success([
         'message' => 'Mitglieder gespeichert.',
@@ -461,12 +461,12 @@ function fsr_members_shortcode_renderer($atts) {
         'email' => ''
     ], $atts);
     $team = sanitize_key((string) ($a['team'] ?? 'all'));
-    fsr_updates_log('SHORTCODE: Team: ' . $team . ' | Amt: ' . $a['amt'] . ' | Name: ' . $a['name'] . ' | Email: ' . $a['email'] . ' | Infos: ' . $a['infos']);
+    fsr_etit_log('SHORTCODE: Team: ' . $team . ' | Amt: ' . $a['amt'] . ' | Name: ' . $a['name'] . ' | Email: ' . $a['email']);
     if (!in_array($team, ['all', 'gewaehlte', 'helfer', 'ehemalige'], true)) {
         $team = 'all';
-        fsr_updates_log('SHORTCODE: Invalid team specified. Defaulting to "all".');
+        fsr_etit_log('SHORTCODE: Invalid team specified. Defaulting to "all".');
     }
-    fsr_updates_log('SHORTCODE: Fetching members for team: ' . $team);
+    fsr_etit_log('SHORTCODE: Fetching members for team: ' . $team);
     $data = fsr_get_members_data($team);
     $members = $data['members'] ?? [];
     // Filter nach Amt
@@ -479,7 +479,7 @@ function fsr_members_shortcode_renderer($atts) {
             );
             return in_array($filter_amt, $aemter, true);
         });
-        fsr_updates_log('AMT FILTER: ' . $filter_amt . ' | Remaining members: ' . count($members));
+        fsr_etit_log('AMT FILTER: ' . $filter_amt . ' | Remaining members: ' . count($members));
     }
     // Filter nach Name
     if (!empty($a['name'])) {
@@ -491,7 +491,7 @@ function fsr_members_shortcode_renderer($atts) {
             );
             return str_contains($name, $filter_name);
         });
-        fsr_updates_log('NAME FILTER: ' . $filter_name . ' | Remaining members: ' . count($members));
+        fsr_etit_log('NAME FILTER: ' . $filter_name . ' | Remaining members: ' . count($members));
     }
     // Filter nach Email-Präfix
     if (!empty($a['email'])) {
@@ -502,11 +502,11 @@ function fsr_members_shortcode_renderer($atts) {
                 $filter_email
             );
         });
-        fsr_updates_log('EMAIL FILTER: ' . $filter_email . ' | Remaining members: ' . count($members));
+        fsr_etit_log('EMAIL FILTER: ' . $filter_email . ' | Remaining members: ' . count($members));
     }
     $layout_settings = fsr_get_membercards_layout_settings();
     if (empty($members)) {
-        fsr_updates_log('NO MATCHING MEMBERS FOUND');
+        fsr_etit_log('NO MATCHING MEMBERS FOUND');
         return '<div class="fsr-members-empty">Keine passenden Mitglieder gefunden.</div>';
     }
     ob_start();

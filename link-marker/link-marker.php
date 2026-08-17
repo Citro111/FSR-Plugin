@@ -15,7 +15,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('FSR_ETIT_LINK_MARKER_VERSION', '1.0.0');
+define('FSR_ETIT_LINK_MARKER_VERSION', '1.1.0');
 define(
     'FSR_ETIT_LINK_MARKER_DIR',
     plugin_dir_path(__FILE__)
@@ -60,7 +60,8 @@ function fsr_etit_link_marker_enqueue_assets(): void {
                 rest_url('fsr-etit/v1/link-status')
             ),
             'siteHost' => wp_parse_url(home_url('/'), PHP_URL_HOST) ?: '',
-            'oldHost'  => 'fsr-etit.de',
+            'sitePath' => wp_parse_url(home_url('/'), PHP_URL_PATH) ?: '/',
+            'oldUrls'  => fsr_etit_link_marker_get_old_urls(),
             'showOldForCurrentUser' => fsr_etit_link_marker_can_show('old'),
             'showMissingForCurrentUser' => fsr_etit_link_marker_can_show('missing'),
             'showEmptyForCurrentUser' => fsr_etit_link_marker_can_show('empty'),
@@ -145,26 +146,89 @@ function fsr_etit_link_marker_rest_status(WP_REST_Request $request): WP_REST_Res
 }
 
 /**
+ * Removes a URL fragment because fragments do not affect the HTTP target.
+ */
+function fsr_etit_link_marker_strip_fragment(string $url): string {
+    $hash_pos = strpos($url, '#');
+    return $hash_pos === false ? $url : substr($url, 0, $hash_pos);
+}
+
+/**
+ * Checks whether a URL belongs to one of the configured legacy base URLs.
+ * Matching ignores the scheme but respects host, port and optional base path.
+ */
+function fsr_etit_link_marker_is_old_url(string $url): bool {
+    $target = wp_parse_url($url);
+    if (!is_array($target) || empty($target['host'])) {
+        return false;
+    }
+
+    $target_host = strtolower((string) $target['host']);
+    $target_scheme = strtolower((string) ($target['scheme'] ?? ''));
+    $target_port_raw = isset($target['port']) ? (int) $target['port'] : null;
+    $target_port = in_array([$target_scheme, $target_port_raw], [['http', 80], ['https', 443]], true)
+        ? null
+        : $target_port_raw;
+    $target_path = '/' . ltrim((string) ($target['path'] ?? '/'), '/');
+
+    $current = wp_parse_url(home_url('/'));
+    $current_host = is_array($current) ? strtolower((string) ($current['host'] ?? '')) : '';
+    $current_scheme = is_array($current) ? strtolower((string) ($current['scheme'] ?? '')) : '';
+    $current_port_raw = is_array($current) && isset($current['port']) ? (int) $current['port'] : null;
+    $current_port = in_array([$current_scheme, $current_port_raw], [['http', 80], ['https', 443]], true)
+        ? null
+        : $current_port_raw;
+    $current_path = is_array($current) ? '/' . ltrim((string) ($current['path'] ?? '/'), '/') : '/';
+    $current_path = trailingslashit($current_path);
+
+    foreach (fsr_etit_link_marker_get_old_urls() as $old_url) {
+        $old = wp_parse_url($old_url);
+        if (!is_array($old) || empty($old['host'])) {
+            continue;
+        }
+
+        $old_host = strtolower((string) $old['host']);
+        $old_scheme = strtolower((string) ($old['scheme'] ?? ''));
+        $old_port_raw = isset($old['port']) ? (int) $old['port'] : null;
+        $old_port = in_array([$old_scheme, $old_port_raw], [['http', 80], ['https', 443]], true)
+            ? null
+            : $old_port_raw;
+        $old_path = trailingslashit('/' . ltrim((string) ($old['path'] ?? '/'), '/'));
+
+        if ($target_host !== $old_host || $target_port !== $old_port) {
+            continue;
+        }
+
+        // Do not classify the site's own complete base URL as legacy.
+        if (
+            $old_host === $current_host
+            && $old_port === $current_port
+            && $old_path === $current_path
+        ) {
+            continue;
+        }
+
+        if ($old_path === '/' || str_starts_with(trailingslashit($target_path), $old_path)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+/**
  * Classifies one URL.
  */
 function fsr_etit_link_marker_classify_url(string $url): array {
+    $url = fsr_etit_link_marker_strip_fragment($url);
     $host = strtolower((string) wp_parse_url($url, PHP_URL_HOST));
     $site_host = strtolower((string) wp_parse_url(home_url('/'), PHP_URL_HOST));
-    $old_host = strtolower(
-        (string) apply_filters(
-            'fsr_etit_link_marker_old_host',
-            'fsr-etit.de'
-        )
-    );
 
     if ($host === '' || $site_host === '') {
         return ['status' => 'ignore'];
     }
 
-    // Old public domain is recognized separately. Subdomains other than the
-    // current WordPress host also count as old only when they are exactly the
-    // configured old host.
-    if ($host === $old_host && $host !== $site_host) {
+    if (fsr_etit_link_marker_is_old_url($url)) {
         return [
             'status' => 'old',
             'url'    => $url,
@@ -212,14 +276,17 @@ function fsr_etit_link_marker_classify_url(string $url): array {
      * (archives, taxonomy pages, custom routes, etc.). For unresolved internal
      * URLs, use a short server-side request and cache the result.
      */
-    $cache_key = 'fsr_lm_' . md5($url);
+    $cache_key = 'fsr_lm_' . md5($url . '|' . implode('|', fsr_etit_link_marker_get_old_urls()));
     $cached = get_transient($cache_key);
 
     if (is_array($cached) && isset($cached['status'])) {
         return $cached;
     }
 
-    $response = wp_safe_remote_get(
+    // The host was validated above as this WordPress site's own host.
+    // wp_remote_get() is intentional here: wp_safe_remote_get() rejects local/private
+    // development hosts, which made 404 detection fail in environments such as Local.
+    $response = wp_remote_get(
         $url,
         [
             'timeout'             => 4,

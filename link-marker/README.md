@@ -1,6 +1,6 @@
 # FSR ET/IT Link Marker
 
-Das Modul markiert interne Links und stellt eine eigene Admin-Unterseite bereit.
+Das Modul markiert problematische Links im Frontend und stellt im bestehenden FSR-Adminbereich einen manuellen Link-Bericht bereit.
 
 ## Einbindung
 
@@ -10,38 +10,38 @@ Im Hauptplugin:
 require_once FSR_ETIT_DIR . 'link-marker/link-marker.php';
 ```
 
-`link-marker.php` lädt `admin.php` automatisch und registriert standardmäßig eine Unterseite unter dem WordPress-Admin-Menü `fsr-etit`.
-
-Wenn dein `global/admin.php` bereits einen eigenen Router / Tabsystem besitzt, kannst du stattdessen die öffentliche Render-Funktion direkt verwenden:
-
-```php
-fsr_etit_link_marker_render_admin_page();
-```
-
-Oder nur die Menüregistrierung selbst aufrufen:
-
-```php
-fsr_etit_link_marker_register_admin_menu();
-```
-
-Dann solltest du die automatische `admin_menu`-Registrierung in `link-marker.php` entfernen, damit die Seite nicht doppelt registriert wird.
+`link-marker.php` lädt `admin.php` automatisch. Das Hauptplugin rendert die öffentliche Funktion `fsr_etit_link_marker_render_admin_page()` im vorhandenen Admin-Router unter **FSR ET/IT > Links**.
 
 ## Admin-Einstellungen
 
-Die Admin-Seite bietet pro Markierung drei Zustände:
+Für jede Markierung gibt es drei Sichtbarkeitszustände:
 
 - Alle Besucher
 - Nur Administratoren
 - Deaktiviert
 
-Gespeichert werden sie unter `fsr_etit_link_marker_settings`.
+Zusätzlich können unter **Alte Website-URLs** beliebig viele alte Basis-URLs hinterlegt werden, eine pro Zeile. Erlaubt sind komplette Domains und Unterpfade, z. B. `https://fsr-etit.de/` oder `https://example.org/altes-wiki/`. Eine Domain ohne Protokoll wird als HTTPS interpretiert.
 
-## Aktuelle Markierungen
+Gespeichert werden die Werte unter `fsr_etit_link_marker_settings`.
+
+## Markierungen
 
 - `404`: interne Links mit HTTP 404
 - `LEER`: WordPress-Seiten ohne substantiellen Inhalt bzw. nur Überschriften/Leerraum
-- `ALT`: Links auf `fsr-etit.de`, standardmäßig nur für Administratoren
+- `ALT`: Links auf eine der konfigurierten alten Basis-URLs
 
-## Späterer Bericht
+## Link-Bericht
 
-Für den gewünschten Bericht „Auf welchen Seiten steht welcher problematische Link?“ kann `fsr_etit_link_marker_classify_url()` direkt weiterverwendet werden. Ein Scan sollte dabei im Admin-Kontext und nicht beim normalen Frontend-Aufruf ausgeführt werden.
+Der manuelle Scan durchsucht alle veröffentlichten öffentlichen WordPress-Beitragstypen und gruppiert Fundstellen in:
+
+- 404 / fehlende Ziele
+- Links auf leere Seiten
+- Links auf alte Website-URLs
+
+Pro Fundstelle werden Quellseite, Linktext, Ziel-URL sowie Links zum Ansehen und Bearbeiten angezeigt. Gleiche Ziel-URLs werden während eines Scans nur einmal klassifiziert. Der letzte Bericht bleibt gespeichert, bis ein neuer Scan ausgeführt wird.
+
+Der Inhalts-Scan wertet gespeichertes `post_content` aus. Links, die ausschließlich zur Laufzeit durch JavaScript, ein Theme oder dynamische Plugins entstehen, sind daher nicht zwingend enthalten.
+
+## Entwicklungsumgebungen
+
+Unaufgelöste interne URLs werden erst nach einer exakten Host-Prüfung per `wp_remote_get()` geprüft. Dadurch funktioniert die 404-Erkennung auch auf Local-/localhost-artigen Entwicklungsseiten, die von `wp_safe_remote_get()` wegen privater IP-Adressen blockiert werden können.

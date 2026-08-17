@@ -14,6 +14,44 @@
         }
     };
 
+    const normalizedOldUrls = Array.isArray(config.oldUrls)
+        ? config.oldUrls.map((url) => normalizeUrl(url)).filter(Boolean)
+        : [];
+
+    const isOldUrl = (url) => {
+        try {
+            const target = new URL(url);
+
+            return normalizedOldUrls.some((baseUrl) => {
+                const base = new URL(baseUrl);
+                const basePath = base.pathname.endsWith('/') ? base.pathname : `${base.pathname}/`;
+                const targetPath = target.pathname.endsWith('/') ? target.pathname : `${target.pathname}/`;
+
+                if (target.hostname.toLowerCase() !== base.hostname.toLowerCase()) {
+                    return false;
+                }
+
+                if (target.port !== base.port) {
+                    return false;
+                }
+
+                const current = new URL(window.location.origin + (config.sitePath || '/'));
+                const currentPath = current.pathname.endsWith('/') ? current.pathname : `${current.pathname}/`;
+                if (
+                    base.hostname.toLowerCase() === current.hostname.toLowerCase()
+                    && base.port === current.port
+                    && basePath === currentPath
+                ) {
+                    return false;
+                }
+
+                return basePath === '/' || targetPath.startsWith(basePath);
+            });
+        } catch (error) {
+            return false;
+        }
+    };
+
     const isSkippable = (anchor, url) => {
         if (!anchor || !url) {
             return true;
@@ -24,8 +62,7 @@
         }
 
         if (
-            anchor.target === '_blank'
-            || anchor.hasAttribute('download')
+            anchor.hasAttribute('download')
             || anchor.matches('[contenteditable="true"]')
         ) {
             return true;
@@ -53,11 +90,10 @@
 
             const parsed = new URL(url);
             const siteHost = String(config.siteHost || '').toLowerCase();
-            const oldHost = String(config.oldHost || '').toLowerCase();
             const host = parsed.hostname.toLowerCase();
 
             const isCurrentSite = host === siteHost;
-            const isOldSite = host === oldHost && host !== siteHost;
+            const isOldSite = isOldUrl(url);
 
             if (!isCurrentSite && !isOldSite) {
                 continue;

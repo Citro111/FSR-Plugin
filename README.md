@@ -108,6 +108,15 @@ WordPress-Papierkorb verschoben, nicht dauerhaft gelöscht.
 - GitHub-Updater validiert, Fehlerbehandlung und Aktivierungsablauf korrigiert
 - Debug-Logging standardmäßig deaktiviert und begrenzt
 
+## Änderungen in 5.0.1
+
+- veraltete `fsr_updates_log()`-Aufrufe in den Mitgliedskarten auf `fsr_etit_log()` umgestellt
+- ungültigen Zugriff auf das nicht vorhandene `[fsr_members]`-Attribut `infos` entfernt
+- alte Link-Ziele als frei konfigurierbare Liste von Basis-URLs umgesetzt
+- manuellen, nach 404 / leeren Zielseiten / alten Links gruppierten Link-Bericht ergänzt
+- interne 404-Prüfung für Local-/private Entwicklungsumgebungen kompatibler gemacht
+- Link-Marker prüft nun auch Links mit `target="_blank"`
+
 ## Daten und Deinstallation
 
 Das Deaktivieren oder Entfernen des Plugins löscht keine Mitglieder,
