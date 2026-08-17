@@ -24,6 +24,7 @@ function fsr_etit_admin_menu(): void {
         ['Mitgliedskarten', 'fsr-etit-settings-membercards', 'fsr_etit_settings_page'],
         ['Kalender', 'fsr-etit-settings-calendar', 'fsr_etit_settings_page'],
         ['Shortcodes', 'fsr-etit-settings-shortcodes', 'fsr_etit_settings_page'],
+        ['Link Marker', 'fsr-etit-settings-links', 'fsr_etit_settings_page'],
     ];
 
     foreach ($pages as [$title, $slug, $callback]) {
@@ -65,6 +66,7 @@ function fsr_etit_settings_page(): void {
         'fsr-etit-settings-membercards' => 'membercards',
         'fsr-etit-settings-shortcodes'  => 'shortcodes',
         'fsr-etit-settings-calendar'    => 'calendar',
+        'fsr-etit-settings-links'       => 'links'
     ];
 
     $active_tab = $page_to_tab[$page_slug] ?? 'updates';
@@ -81,6 +83,7 @@ function fsr_etit_settings_page(): void {
         'membercards' => admin_url('admin.php?page=fsr-etit-settings-membercards'),
         'shortcodes'  => admin_url('admin.php?page=fsr-etit-settings-shortcodes'),
         'calendar'    => admin_url('admin.php?page=fsr-etit-settings-calendar'),
+        'links'       => admin_url('admin.php?page=fsr-etit-settings-links')
     ];
     ?>
     <div class="wrap">
@@ -93,6 +96,7 @@ function fsr_etit_settings_page(): void {
                 'membercards' => 'Mitgliedskarten',
                 'shortcodes'  => 'Shortcodes',
                 'calendar'    => 'Kalender',
+                'links'       => 'Links'
             ];
             foreach ($labels as $tab => $label) :
                 $class = 'nav-tab' . ($active_tab === $tab ? ' nav-tab-active' : '');
@@ -126,6 +130,10 @@ function fsr_etit_settings_page(): void {
         <?php elseif ($active_tab === 'shortcodes') : ?>
             <div style="margin-top:20px;">
                 <?php fsr_etit_render_shortcode_admin_page(); ?>
+            </div>
+        <?php elseif ($active_tab === 'links') : ?>
+            <div style="margin-top:20px;">
+                <?php fsr_etit_link_marker_render_admin_page(); ?>
             </div>
         <?php else : ?>
             <p>Dieser Bereich besitzt eine eigene Unterseite.</p>

@@ -27,12 +27,14 @@ require_once FSR_ETIT_DIR . 'global/variables.php';
 require_once FSR_ETIT_DIR . 'global/frontend-functions.php';
 require_once FSR_ETIT_DIR . 'global/search.php';
 require_once FSR_ETIT_DIR . 'global/admin.php';
+
 require_once FSR_ETIT_DIR . 'dokuwiki/dw-connector.php';
 require_once FSR_ETIT_DIR . 'membercards/members.php';
 require_once FSR_ETIT_DIR . 'officehours/office-hours.php';
 require_once FSR_ETIT_DIR . 'calendar/calendar.php';
 require_once FSR_ETIT_DIR . 'shortcodes/shortcodes.php';
 require_once FSR_ETIT_DIR . 'updates/updates.php';
+require_once FSR_ETIT_DIR . 'link-marker/link-marker.php';
 
 register_activation_hook(FSR_ETIT_FILE, 'fsr_etit_activate');
 register_deactivation_hook(FSR_ETIT_FILE, 'fsr_etit_deactivate');

@@ -1,0 +1,46 @@
+/* FSR ET/IT Link Marker */
+
+a.fsr-link-marker--missing {
+    font-weight: 800 !important;
+    outline: 2px solid #d63638;
+    outline-offset: 2px;
+    background: rgba(214, 54, 56, 0.10);
+}
+
+a.fsr-link-marker--missing::after {
+    content: " ⚠ 404";
+    font-size: 0.75em;
+    font-weight: 800;
+    color: #d63638;
+    margin-left: 0.25em;
+}
+
+a.fsr-link-marker--empty {
+    font-weight: 800 !important;
+    outline: 2px solid #dba617;
+    outline-offset: 2px;
+    background: rgba(219, 166, 23, 0.10);
+}
+
+a.fsr-link-marker--empty::after {
+    content: " ⚠ LEER";
+    font-size: 0.75em;
+    font-weight: 800;
+    color: #9a6700;
+    margin-left: 0.25em;
+}
+
+a.fsr-link-marker--old {
+    font-weight: 800 !important;
+    outline: 2px dashed #d63638;
+    outline-offset: 2px;
+    background: rgba(214, 54, 56, 0.06);
+}
+
+a.fsr-link-marker--old::after {
+    content: " ⚠ ALT";
+    font-size: 0.75em;
+    font-weight: 800;
+    color: #d63638;
+    margin-left: 0.25em;
+}

@@ -1,126 +1,158 @@
 <?php
+if (!defined('ABSPATH')) exit;
 
-if (!defined('ABSPATH')) {
-    exit;
-}
-
-$layout_settings = is_array($layout_settings ?? null) ? $layout_settings : [];
+$layout_settings = isset($layout_settings) && is_array($layout_settings) ? $layout_settings : [];
 $desktop_cols = max(1, min(6, absint($layout_settings['desktop_cols'] ?? 4)));
 $tablet_cols = max(1, min($desktop_cols, absint($layout_settings['tablet_cols'] ?? 2)));
 $mobile_cols = max(1, min($tablet_cols, absint($layout_settings['mobile_cols'] ?? 1)));
-$grid_style = sprintf(
-    '--fsr-cols-desktop:%d;--fsr-cols-tablet:%d;--fsr-cols-mobile:%d;',
-    $desktop_cols,
-    $tablet_cols,
-    $mobile_cols
-);
 
 $teams = [
-    FSR_ETIT_TEAM_ELECTED => ['title' => 'Gewählte Mitglieder', 'list' => []],
-    FSR_ETIT_TEAM_HELPERS  => ['title' => 'Freie Helfer', 'list' => []],
-    FSR_ETIT_TEAM_FORMER   => ['title' => 'Ehemalige', 'list' => []],
+    'gewaehlte' => ['title' => 'Gewählte Mitglieder', 'list' => []],
+    'helfer'    => ['title' => 'Freie Helfer', 'list' => []],
+    'ehemalige' => ['title' => 'Ehemalige', 'list' => []]
 ];
-foreach ($members as $member) {
-    $team_id = fsr_etit_member_normalize_team($member['team'] ?? '');
-    $teams[$team_id]['list'][] = $member;
+foreach ($members as $m) {
+    $t_id = $m['team'] ?? 'gewaehlte';
+    if (isset($teams[$t_id])) { $teams[$t_id]['list'][] = $m; }
 }
 
-if (!empty($teams[FSR_ETIT_TEAM_FORMER]['list'])) {
-    usort($teams[FSR_ETIT_TEAM_FORMER]['list'], static function ($left, $right): int {
-        $year_left = (int) preg_replace('/\D+/', '', (string) ($left['abgang_jahr'] ?? ''));
-        $year_right = (int) preg_replace('/\D+/', '', (string) ($right['abgang_jahr'] ?? ''));
-        return $year_left !== $year_right
-            ? $year_right <=> $year_left
-            : (int) ($left['sort_order'] ?? 0) <=> (int) ($right['sort_order'] ?? 0);
+if (!empty($teams['ehemalige']['list'])) {
+    usort($teams['ehemalige']['list'], function ($a, $b) {
+        $year_a = !empty($a['abgang_jahr']) ? (int) preg_replace('/\D+/', '', (string) $a['abgang_jahr']) : 0;
+        $year_b = !empty($b['abgang_jahr']) ? (int) preg_replace('/\D+/', '', (string) $b['abgang_jahr']) : 0;
+        if ($year_a !== $year_b) {
+            return $year_b <=> $year_a;
+        }
+        $order_a = isset($a['sort_order']) ? (int) $a['sort_order'] : 0;
+        $order_b = isset($b['sort_order']) ? (int) $b['sort_order'] : 0;
+        return $order_a <=> $order_b;
     });
 }
 
-$requested_team = sanitize_key((string) ($a['team'] ?? 'all'));
-if ($requested_team !== 'all' && isset($teams[$requested_team])) {
-    $teams = [$requested_team => $teams[$requested_team]];
+if ($a['team'] !== 'all' && isset($teams[$a['team']])) { 
+    $teams = [$a['team'] => $teams[$a['team']]]; 
 }
+fsr_updates_log('SHORTCODE: Rendering grid for teams: ' . implode(', ', array_keys($teams)));
 
-$render_card = static function (array $member, string $team_id, bool $former = false): void {
-    $image = !empty($member['image'])
-        ? esc_url($member['image'])
-        : 'https://www.gravatar.com/avatar/?d=mp&amp;s=150';
-    $full_name = trim((string) ($member['first_name'] ?? '') . ' ' . (string) ($member['last_name'] ?? ''));
-    $email_prefix = (string) ($member['email_prefix'] ?? '');
-    if ($email_prefix === '' && !empty($member['first_name'])) {
-        $email_prefix = fsr_etit_lowercase($member['first_name']);
-        $email_prefix = str_replace(['ä', 'ö', 'ü', 'ß'], ['ae', 'oe', 'ue', 'ss'], $email_prefix);
-        $email_prefix = preg_replace('/[^a-z0-9_.-]/', '', $email_prefix);
-    }
-    ?>
-    <article class="fsr-member-card fsr-team-<?php echo esc_attr($team_id); ?>">
-        <div class="fsr-member-image">
-            <img src="<?php echo esc_url($image); ?>" alt="<?php echo esc_attr($full_name); ?>" loading="lazy" decoding="async">
-        </div>
-        <h3><?php echo esc_html($full_name ?: 'Unbenannt'); ?></h3>
-        <?php if (!empty($member['pronomen'])) : ?>
-            <p class="fsr-pronomen"><em>(<?php echo esc_html($member['pronomen']); ?>)</em></p>
-        <?php endif; ?>
-        <?php if (!empty($member['studiengang'])) : ?>
-            <p class="fsr-studiengang">
-                <?php echo esc_html($member['studiengang']); ?>
-                <?php if (!empty($member['abschluss'])) : ?>
-                    (<?php echo esc_html($member['abschluss']); ?>)
-                <?php endif; ?>
-            </p>
-        <?php endif; ?>
-        <?php if (!empty($member['amt'])) :
-            $tags = array_filter(array_map('trim', explode(',', $member['amt'])));
-            $role_order = get_option(FSR_ETIT_OPTION_MEMBER_ROLE_ORDER, FSR_ETIT_DEFAULT_ROLE_ORDER);
-            $tags = fsr_etit_sort_tags($tags, is_array($role_order) ? $role_order : FSR_ETIT_DEFAULT_ROLE_ORDER);
+foreach ($teams as $team_id => $team_data) {
+    if (empty($team_data['list'])) continue;
+    
+    echo '<div class="fsr-team-section">';
+    echo '<h2 class="fsr-team-heading" style="color: var(--theme-palette-color-4);">' . esc_html($team_data['title']) . '</h2>';
+    if ($team_id === 'ehemalige') {
+        $current_year = null;
+        foreach ($team_data['list'] as $m) {
+            $year = !empty($m['abgang_jahr']) ? esc_html($m['abgang_jahr']) : 'Unbekannt';
+            if ($year !== $current_year) {
+                if ($current_year !== null) {
+                    echo '</div>'; // vorheriges Grid schließen
+                }
+                $current_year = $year;
+                echo '<h3 class="fsr-ehemalige-year">' . $current_year . '</h3>';
+                echo '<div class="fsr-members-grid" style="--fsr-cols-desktop:' . esc_attr($desktop_cols) .
+                    '; --fsr-cols-tablet:' . esc_attr($tablet_cols) .
+                    '; --fsr-cols-mobile:' . esc_attr($mobile_cols) . ';">';
+            }
+            $img = !empty($m['image']) ? esc_url($m['image']) : 'https://www.gravatar.com/avatar/?d=mp&s=150';
+            $full_name = trim(($m['first_name'] ?? '') . ' ' . ($m['last_name'] ?? ''));
+            $team_label = ucfirst($team_id);
+            $prefix = !empty($m['email_prefix']) ? $m['email_prefix'] : '';
+            if (empty($prefix) && !empty($m['first_name'])) {
+                $prefix = strtolower($m['first_name']);
+                $prefix = str_replace(['ä', 'ö', 'ü', 'ß'], ['ae', 'oe', 'ue', 'ss'], $prefix);
+                $prefix = preg_replace('/[^a-z0-9_.-]/', '', $prefix);
+            }
             ?>
-            <div class="fsr-amt-tags">
-                <?php foreach ($tags as $tag) : ?>
-                    <span class="fsr-amt-tag"><?php echo esc_html($tag); ?></span>
-                <?php endforeach; ?>
-            </div>
-        <?php endif; ?>
-        <?php if ($email_prefix !== '') : ?>
-            <p class="fsr-email-text"><?php echo esc_html($email_prefix . FSR_ETIT_EMAIL_SUFFIX); ?></p>
-        <?php endif; ?>
-        <?php if ($former) : ?>
-            <div class="fsr-ehemalige-info">
-                <?php if (!empty($member['erstes_jahr'])) : ?><div>Dabei seit: <?php echo esc_html($member['erstes_jahr']); ?></div><?php endif; ?>
-                <?php if (!empty($member['abgang_jahr'])) : ?><div>Abgegangen im Jahr: <?php echo esc_html($member['abgang_jahr']); ?></div><?php endif; ?>
-                <?php if (!empty($member['semester_anzahl'])) : ?><div>Semester im FSR: <?php echo esc_html($member['semester_anzahl']); ?></div><?php endif; ?>
-            </div>
-        <?php endif; ?>
-    </article>
-    <?php
-};
-?>
-
-<div class="fsr-members">
-    <?php foreach ($teams as $team_id => $team_data) :
-        if (empty($team_data['list'])) {
-            continue;
+            <article class="fsr-member-card fsr-team-<?php echo esc_attr($team_id); ?>">
+                <div class="fsr-member-image">
+                    <img src="<?php echo esc_url($img); ?>" alt="<?php echo esc_attr($full_name); ?>">
+                </div>
+                <h3><?php echo esc_html($full_name ?: 'Unbenannt'); ?></h3>
+                <?php if (!empty($m['pronomen'])): ?>
+                    <p class="fsr-pronomen"><em>(<?php echo esc_html($m['pronomen']); ?>)</em></p>
+                <?php endif; ?>
+                <?php if (!empty($m['studiengang'])):
+                    $display_studium = esc_html($m['studiengang']);
+                    if (!empty($m['abschluss'])) {
+                        $display_studium .= ' (' . esc_html($m['abschluss']) . ')';
+                    }
+                ?>
+                    <p class="fsr-studiengang"><?php echo $display_studium; ?></p>
+                <?php endif; ?>
+                <?php if (!empty($m['amt'])): ?>
+                    <div class="fsr-amt-tags">
+                        <?php
+                        foreach (explode(',', $m['amt']) as $tag) {
+                            if (trim($tag) !== '') {
+                                echo '<span class="fsr-amt-tag">' . esc_html(trim($tag)) . '</span>';
+                            }
+                        }
+                        ?>
+                    </div>
+                <?php endif; ?>
+                <?php if (!empty($prefix)): ?>
+                    <p class="fsr-email-text"><?php echo esc_html($prefix . FSR_EMAIL_SUFFIX); ?></p>
+                <?php endif; ?>
+                <div class="fsr-ehemalige-info">
+                    <?php if(!empty($m['erstes_jahr'])): ?><div>Dabei seit: <?php echo esc_html($m['erstes_jahr']); ?></div><?php endif; ?>
+                    <?php if(!empty($m['abgang_jahr'])): ?><div>Abgegangen im Jahr: <?php echo esc_html($m['abgang_jahr']); ?></div><?php endif; ?>
+                    <?php if(!empty($m['semester_anzahl'])): ?><div>Semester im FSR: <?php echo esc_html($m['semester_anzahl']); ?></div><?php endif; ?>
+                </div>
+            </article>
+            <?php
+        }
+        echo '</div>';
+    } else {
+        echo '<div class="fsr-members-grid" style="--fsr-cols-desktop:' . esc_attr($desktop_cols) . '; --fsr-cols-tablet:' . esc_attr($tablet_cols) . '; --fsr-cols-mobile:' . esc_attr($mobile_cols) . ';">';
+        foreach ($team_data['list'] as $m) {
+        $img = !empty($m['image']) ? esc_url($m['image']) : 'https://www.gravatar.com/avatar/?d=mp&s=150';
+        $full_name = trim(($m['first_name'] ?? '') . ' ' . ($m['last_name'] ?? ''));
+        $team_label = ucfirst($team_id);
+        $prefix = !empty($m['email_prefix']) ? $m['email_prefix'] : '';
+        if (empty($prefix) && !empty($m['first_name'])) {
+            $prefix = strtolower($m['first_name']);
+            $prefix = str_replace(['ä', 'ö', 'ü', 'ß'], ['ae', 'oe', 'ue', 'ss'], $prefix);
+            $prefix = preg_replace('/[^a-z0-9_.-]/', '', $prefix);
         }
         ?>
-        <section class="fsr-team-section">
-            <h2 class="fsr-team-heading"><?php echo esc_html($team_data['title']); ?></h2>
-
-            <?php if ($team_id === FSR_ETIT_TEAM_FORMER) :
-                $groups = [];
-                foreach ($team_data['list'] as $member) {
-                    $year = trim((string) ($member['abgang_jahr'] ?? '')) ?: 'Unbekannt';
-                    $groups[$year][] = $member;
-                }
-                foreach ($groups as $year => $group) :
+        <article class="fsr-member-card fsr-team-<?php echo esc_attr($team_id); ?>">
+            <div class="fsr-member-image">
+                <img src="<?php echo esc_url($img); ?>" alt="<?php echo esc_attr($full_name); ?>">
+            </div>
+            <h3><?php echo esc_html($full_name ?: 'Unbenannt'); ?></h3>
+            <?php if (!empty($m['pronomen'])): ?>
+                <p class="fsr-pronomen"><em>(<?php echo esc_html($m['pronomen']); ?>)</em></p>
+            <?php endif; ?>
+            <?php if (!empty($m['studiengang'])): 
+                $display_studium = esc_html($m['studiengang']);
+                if(!empty($m['abschluss'])) { $display_studium .= ' (' . esc_html($m['abschluss']) . ')'; }
+            ?>
+                <p class="fsr-studiengang"><?php echo $display_studium; ?></p>
+            <?php endif; ?>
+            <?php if (!empty($m['amt'])): ?>
+                <div class="fsr-amt-tags">
+                    <?php 
+                    $tags = explode(',', $m['amt']);
+                    $tags = array_map('trim', $tags);
+                    $tags = fsr_sort_tags($tags, get_option('fsr_membercards_amt_order', FSR_DEFAULT_AMT_ORDER));
+                    foreach($tags as $tag) {
+                        if(trim($tag) !== '') { 
+                            echo '<span class="fsr-amt-tag">' . esc_html(trim($tag)) . '</span>'; 
+                        }
+                    }
                     ?>
-                    <h3 class="fsr-ehemalige-year"><?php echo esc_html($year); ?></h3>
-                    <div class="fsr-members-grid" style="<?php echo esc_attr($grid_style); ?>">
-                        <?php foreach ($group as $member) { $render_card($member, $team_id, true); } ?>
-                    </div>
-                <?php endforeach; ?>
-            <?php else : ?>
-                <div class="fsr-members-grid" style="<?php echo esc_attr($grid_style); ?>">
-                    <?php foreach ($team_data['list'] as $member) { $render_card($member, $team_id); } ?>
                 </div>
             <?php endif; ?>
-        </section>
-    <?php endforeach; ?>
-</div>
+            <?php if (!empty($prefix)): ?>
+                <p class="fsr-email-text">
+                    <?php echo esc_html($prefix . FSR_EMAIL_SUFFIX); ?>
+                </p>
+            <?php endif; ?>
+        </article>
+        <?php
+        }
+    } // Ende else
+    echo '</div>'; 
+    echo '</div>'; 
+}
+echo '</div>';

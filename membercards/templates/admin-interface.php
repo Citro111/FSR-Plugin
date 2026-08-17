@@ -10,9 +10,8 @@ foreach ($members as $m) {
     }
 }
 $unique_amter = array_unique(array_filter($all_ameter));
-$amt_order = get_option(FSR_ETIT_OPTION_MEMBER_ROLE_ORDER, FSR_ETIT_DEFAULT_ROLE_ORDER);
-$amt_order = is_array($amt_order) ? $amt_order : FSR_ETIT_DEFAULT_ROLE_ORDER;
-$unique_amter = fsr_etit_sort_tags($unique_amter, $amt_order);
+$amt_order = get_option('fsr_membercards_amt_order', FSR_DEFAULT_AMT_ORDER);
+$unique_amter = fsr_sort_tags($unique_amter, $amt_order);
 
 $team_labels = [
     'gewaehlte' => 'Gewählte',
@@ -26,10 +25,7 @@ $tablet_cols = max(1, min($desktop_cols, absint($layout_settings['tablet_cols'] 
 $mobile_cols = max(1, min($tablet_cols, absint($layout_settings['mobile_cols'] ?? 1)));
 
 $shortcode_usage = isset($shortcode_usage) && is_array($shortcode_usage) ? $shortcode_usage : [];
-$all_amt_tags_json = wp_json_encode(
-    array_values($unique_amter),
-    JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
-);
+$all_amt_tags_json = wp_json_encode(array_values($unique_amter));
 ?>
 <datalist id="fsr-amter-list">
     <?php foreach ($unique_amter as $amt) : ?>
@@ -48,9 +44,9 @@ $all_amt_tags_json = wp_json_encode(
             <?php settings_fields('fsr_membercards_layout_settings'); ?>
             <h4>Responsive Spalten (global für alle [fsr_members]-Shortcodes)</h4>
             <div class="fsr-layout-grid">
-                <label>Desktop<br><input type="number" min="1" max="6" name="<?php echo esc_attr(FSR_ETIT_OPTION_MEMBER_LAYOUT); ?>[desktop_cols]" value="<?php echo esc_attr($desktop_cols); ?>"></label>
-                <label>Tablet<br><input type="number" min="1" max="6" name="<?php echo esc_attr(FSR_ETIT_OPTION_MEMBER_LAYOUT); ?>[tablet_cols]" value="<?php echo esc_attr($tablet_cols); ?>"></label>
-                <label>Mobil<br><input type="number" min="1" max="6" name="<?php echo esc_attr(FSR_ETIT_OPTION_MEMBER_LAYOUT); ?>[mobile_cols]" value="<?php echo esc_attr($mobile_cols); ?>"></label>
+                <label>Desktop<br><input type="number" min="1" max="6" name="fsr_membercards_layout[desktop_cols]" value="<?php echo esc_attr($desktop_cols); ?>"></label>
+                <label>Tablet<br><input type="number" min="1" max="6" name="fsr_membercards_layout[tablet_cols]" value="<?php echo esc_attr($tablet_cols); ?>"></label>
+                <label>Mobil<br><input type="number" min="1" max="6" name="fsr_membercards_layout[mobile_cols]" value="<?php echo esc_attr($mobile_cols); ?>"></label>
             </div>
             <?php submit_button('Layout speichern', 'secondary', 'submit', false); ?>
         </form>
@@ -69,8 +65,7 @@ $all_amt_tags_json = wp_json_encode(
     <div class="fsr-filter-wrapper">
         <div class="fsr-filter-group">
             <span class="fsr-filter-label">Filter:</span>
-            <button type="button" class="button fsr-filter-btn active" data-filter="all">Alle</button>
-            <button type="button" class="button fsr-filter-btn" data-filter="gewaehlte">Gewählte</button>
+            <button type="button" class="button fsr-filter-btn active" data-filter="gewaehlte">Gewählte</button>
             <button type="button" class="button fsr-filter-btn" data-filter="helfer">Helfer</button>
             <button type="button" class="button fsr-filter-btn" data-filter="ehemalige">Ehemalige</button>
         </div>
@@ -136,7 +131,7 @@ $all_amt_tags_json = wp_json_encode(
                         <label class="col-2">Abgegangen im Jahr:<br><input type="text" name="fsr_members_settings[members][<?php echo $index; ?>][abgang_jahr]" value="<?php echo esc_attr($member['abgang_jahr'] ?? ''); ?>" placeholder="z. B. 2025" /></label>
                     </div>
                     <div class="fsr-row-footer-actions">
-                        <button type="button" class="button button-link-delete remove-member">In den Papierkorb verschieben</button>
+                        <button type="button" class="button button-link-delete remove-member">Dauerhaft löschen</button>
                     </div>
                 </div>
             </div>
@@ -184,9 +179,6 @@ jQuery(document).ready(function($) {
     const nonce = $('#fsr_member_admin_nonce').val();
     const allAmtTags = <?php echo $all_amt_tags_json ? $all_amt_tags_json : '[]'; ?>;
     let activeFilter = 'all';
-    let saveTimer = null;
-    let saveRequest = null;
-    let saveQueued = false;
 
     function slugify(text) {
         return text.toString().toLowerCase()
@@ -194,9 +186,21 @@ jQuery(document).ready(function($) {
             .replace(/[^a-z0-9_.-]/g, '');
     }
 
-    function teamLabel(value) {
+    function escapeHtml(value) {
+        return String(value || '').replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function teamLabel(value, isEhemalige) {
         const labels = { gewaehlte: 'Gewählte', helfer: 'Helfer', ehemalige: 'Ehemalige' };
-        return labels[value] || value.charAt(0).toUpperCase() + value.slice(1);
+        let label = labels[value] || value.charAt(0).toUpperCase() + value.slice(1);
+        if (isEhemalige && value !== 'ehemalige') {
+            label += ' + Ehemalige';
+        }
+        return label;
     }
 
     function parseAmtTags(value) {
@@ -238,9 +242,15 @@ jQuery(document).ready(function($) {
 
     function applyRowTeamState(row) {
         const val = row.find('.fsr-team-selector').val();
+        const isEhemalige = row.find('.fsr-is-ehemalige').is(':checked');
+
         row.removeClass('fsr-team-gewaehlte fsr-team-helfer fsr-team-ehemalige');
         row.addClass('fsr-team-' + val);
-        row.find('.badge-team-name').text(teamLabel(val));
+        if (isEhemalige) {
+            row.addClass('fsr-team-ehemalige');
+        }
+
+        row.find('.badge-team-name').text(teamLabel(val, isEhemalige));
     }
 
     function filterRows(filter) {
@@ -255,54 +265,28 @@ jQuery(document).ready(function($) {
         filterRows(activeFilter);
     }
 
-    function triggerAutoSave(immediate) {
-        window.clearTimeout(saveTimer);
-        if (immediate) {
-            performSave();
-            return;
-        }
-        saveTimer = window.setTimeout(performSave, 350);
-    }
-
-    function performSave() {
-        if (saveRequest) {
-            saveQueued = true;
-            return;
-        }
-
+    function triggerAutoSave() {
         reindexMemberRows();
         $('#fsr-save-indicator').text('Speichert...').css({'color':'var(--theme-palette-color-6)', 'background':'var(--theme-palette-color-13)', 'border-color':'var(--theme-palette-color-5)'}).fadeIn();
-        const rows = $('#fsr-sortable-members .fsr-member-row').toArray();
         const formData = $('#fsr-sortable-members :input').serialize();
-        const memberCount = rows.length;
         const amtOrder = $('#fsr-sortable-amter').data('order') || [];
-        saveRequest = $.ajax({
+        $.ajax({
             url: ajaxurl,
             type: 'POST',
-            data: { action: 'fsr_save_member_order', order: formData, member_count: memberCount, amt_order: amtOrder, nonce: nonce }
-        }).done(function(response) {
-            if (response.success) {
-                if (response.data && response.data.member_ids) {
-                    rows.forEach(function(row, index) {
-                        const memberId = response.data.member_ids[index] || '';
-                        $(row).find('.fsr-member-id').val(memberId);
-                        $(row).attr('data-member-id', memberId);
-                    });
+            data: { action: 'fsr_save_member_order', order: formData, amt_order: amtOrder, nonce: nonce },
+            success: function(response) {
+                if(response.success) {
+                    if (response.data && response.data.member_ids) {
+                        $('#fsr-sortable-members .fsr-member-row').each(function(index) {
+                            const memberId = response.data.member_ids[index] || '';
+                            $(this).find('.fsr-member-id').val(memberId);
+                            $(this).attr('data-member-id', memberId);
+                        });
+                    }
+                    $('#fsr-save-indicator').text('✓ Gespeichert').css({'color':'var(--theme-palette-color-6)', 'background':'var(--theme-palette-color-13)', 'border-color':'var(--theme-palette-color-5)'}).delay(1500).fadeOut();
+                } else {
+                    $('#fsr-save-indicator').text('❌ Fehler').css({'color':'#dc2626', 'background':'#fef2f2', 'border-color':'#fecaca'}).fadeIn();
                 }
-                $('#fsr-save-indicator').text('✓ Gespeichert').css({'color':'var(--theme-palette-color-6)', 'background':'var(--theme-palette-color-13)', 'border-color':'var(--theme-palette-color-5)'}).delay(1500).fadeOut();
-            } else {
-                const message = typeof response.data === 'string' ? response.data : 'Speichern fehlgeschlagen';
-                $('#fsr-save-indicator').text('❌ ' + message).css({'color':'#dc2626', 'background':'#fef2f2', 'border-color':'#fecaca'}).fadeIn();
-            }
-        }).fail(function(xhr) {
-            const responseData = xhr && xhr.responseJSON ? xhr.responseJSON.data : null;
-            const message = typeof responseData === 'string' ? responseData : 'Speichern fehlgeschlagen';
-            $('#fsr-save-indicator').text('❌ ' + message).css({'color':'#dc2626', 'background':'#fef2f2', 'border-color':'#fecaca'}).fadeIn();
-        }).always(function() {
-            saveRequest = null;
-            if (saveQueued) {
-                saveQueued = false;
-                performSave();
             }
         });
     }
@@ -344,7 +328,7 @@ jQuery(document).ready(function($) {
                     <label class="col-2">Abgegangen im Jahr:<br><input type="text" name="fsr_members_settings[members][${index}][abgang_jahr]" placeholder="z. B. 2025" /></label>
                 </div>
                 <div class="fsr-row-footer-actions">
-                    <button type="button" class="button button-link-delete remove-member">In den Papierkorb verschieben</button>
+                    <button type="button" class="button button-link-delete remove-member">Dauerhaft löschen</button>
                 </div>
             </div>
         </div>`;
@@ -369,15 +353,13 @@ jQuery(document).ready(function($) {
                     $('#fsr-import-status').text(response.data || 'Import fehlgeschlagen.').removeClass('is-loading is-success').addClass('is-error');
                 }
             },
-            error: function(xhr) {
-                const responseData = xhr && xhr.responseJSON ? xhr.responseJSON.data : null;
-                const message = typeof responseData === 'string' ? responseData : 'Import fehlgeschlagen.';
-                $('#fsr-import-status').text(message).removeClass('is-loading is-success').addClass('is-error');
+            error: function() {
+                $('#fsr-import-status').text('Import fehlgeschlagen.').removeClass('is-loading is-success').addClass('is-error');
             }
         });
     }
 
-    $('#save-changes-btn').on('click', function() { triggerAutoSave(true); });
+    $('#save-changes-btn').on('click', function() { triggerAutoSave(); });
 
     $('#fsr-sortable-members').sortable({
         handle: '.fsr-row-header', placeholder: 'ui-state-highlight', forcePlaceholderSize: true,
@@ -428,7 +410,7 @@ jQuery(document).ready(function($) {
         }
     });
 
-    $(document).on('change', '.fsr-team-selector', function() {
+    $(document).on('change', '.fsr-team-selector, .fsr-is-ehemalige', function() {
         const row = $(this).closest('.fsr-member-row');
         applyRowTeamState(row);
         applyCurrentFilter();
@@ -474,7 +456,7 @@ jQuery(document).ready(function($) {
     });
 
     $(document).on('click', '.remove-member', function() {
-        if(confirm('Mitglied wirklich in den Papierkorb verschieben?')) {
+        if(confirm('Mitglied wirklich löschen?')) {
             $(this).closest('.fsr-member-row').remove();
             triggerAutoSave();
         }
@@ -487,6 +469,7 @@ jQuery(document).ready(function($) {
         renderDynamicQuickTags(row);
         applyRowTeamState(row);
         applyCurrentFilter();
+        triggerAutoSave();
     });
 
     $('#fsr-member-import-btn').on('click', function() {
@@ -494,10 +477,6 @@ jQuery(document).ready(function($) {
         const textValue = $('#fsr-member-import-data').val().trim();
 
         if (fileInput.files && fileInput.files[0]) {
-            if (fileInput.files[0].size > 1024 * 1024) {
-                $('#fsr-import-status').text('Die Datei darf höchstens 1 MB groß sein.').removeClass('is-loading is-success').addClass('is-error');
-                return;
-            }
             const reader = new FileReader();
             reader.onload = function(event) {
                 handleImport(event.target.result || '');
